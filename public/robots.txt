@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+Disallow: /home
+Disallow: /friends
+Disallow: /messages
+Disallow: /leaderboard
+Disallow: /challenges
+Disallow: /notifications
+Disallow: /resume-analyse
+Disallow: /job-preparation
+Disallow: /apply
+Disallow: /profile
