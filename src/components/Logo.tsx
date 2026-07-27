@@ -4,7 +4,14 @@ export function LogoMark({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 64 64" className={cn("h-8 w-8", className)} fill="none" aria-hidden="true">
       <defs>
-        <linearGradient id="provnLogoGradient" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+        <linearGradient
+          id="provnLogoGradient"
+          x1="0"
+          y1="0"
+          x2="64"
+          y2="64"
+          gradientUnits="userSpaceOnUse"
+        >
           <stop offset="0%" stopColor="#60A5FA" />
           <stop offset="55%" stopColor="#2563EB" />
           <stop offset="100%" stopColor="#1E3A8A" />
@@ -30,9 +37,21 @@ export function LogoMark({ className }: { className?: string }) {
   );
 }
 
-export function Wordmark({ className, size = "md" }: { className?: string; size?: "sm" | "md" | "lg" | "xl" }) {
+export function Wordmark({
+  className,
+  size = "md",
+}: {
+  className?: string;
+  size?: "sm" | "md" | "lg" | "xl";
+}) {
   const iconSize =
-    size === "xl" ? "h-14 w-14" : size === "lg" ? "h-10 w-10" : size === "sm" ? "h-6 w-6" : "h-8 w-8";
+    size === "xl"
+      ? "h-14 w-14"
+      : size === "lg"
+        ? "h-10 w-10"
+        : size === "sm"
+          ? "h-6 w-6"
+          : "h-8 w-8";
   const text =
     size === "xl" ? "text-4xl" : size === "lg" ? "text-2xl" : size === "sm" ? "text-sm" : "text-lg";
   return (

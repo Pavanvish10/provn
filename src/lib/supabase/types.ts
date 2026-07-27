@@ -1,0 +1,1923 @@
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
+
+export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5";
+  };
+  public: {
+    Tables: {
+      achievements: {
+        Row: {
+          achieved_at: string;
+          description: string | null;
+          icon: string | null;
+          id: string;
+          profile_id: string;
+          source: string;
+          title: string;
+        };
+        Insert: {
+          achieved_at?: string;
+          description?: string | null;
+          icon?: string | null;
+          id?: string;
+          profile_id: string;
+          source?: string;
+          title: string;
+        };
+        Update: {
+          achieved_at?: string;
+          description?: string | null;
+          icon?: string | null;
+          id?: string;
+          profile_id?: string;
+          source?: string;
+          title?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "achievements_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      activity_log: {
+        Row: {
+          activity_type: string;
+          created_at: string;
+          id: string;
+          minutes: number;
+          profile_id: string;
+        };
+        Insert: {
+          activity_type: string;
+          created_at?: string;
+          id?: string;
+          minutes?: number;
+          profile_id: string;
+        };
+        Update: {
+          activity_type?: string;
+          created_at?: string;
+          id?: string;
+          minutes?: number;
+          profile_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "activity_log_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      admin_actions: {
+        Row: {
+          action: string;
+          admin_id: string;
+          created_at: string;
+          id: string;
+          notes: string | null;
+          target_id: string | null;
+          target_type: string;
+        };
+        Insert: {
+          action: string;
+          admin_id: string;
+          created_at?: string;
+          id?: string;
+          notes?: string | null;
+          target_id?: string | null;
+          target_type: string;
+        };
+        Update: {
+          action?: string;
+          admin_id?: string;
+          created_at?: string;
+          id?: string;
+          notes?: string | null;
+          target_id?: string | null;
+          target_type?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "admin_actions_admin_id_fkey";
+            columns: ["admin_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      challenge_categories: {
+        Row: {
+          id: string;
+          name: string;
+          slug: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          slug: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          slug?: string;
+        };
+        Relationships: [];
+      };
+      challenge_submissions: {
+        Row: {
+          challenge_id: string;
+          created_at: string;
+          id: string;
+          language: string;
+          passed_count: number;
+          profile_id: string;
+          runtime_ms: number | null;
+          source_code: string;
+          status: string;
+          stderr: string | null;
+          stdout: string | null;
+          total_count: number;
+        };
+        Insert: {
+          challenge_id: string;
+          created_at?: string;
+          id?: string;
+          language: string;
+          passed_count?: number;
+          profile_id: string;
+          runtime_ms?: number | null;
+          source_code: string;
+          status?: string;
+          stderr?: string | null;
+          stdout?: string | null;
+          total_count?: number;
+        };
+        Update: {
+          challenge_id?: string;
+          created_at?: string;
+          id?: string;
+          language?: string;
+          passed_count?: number;
+          profile_id?: string;
+          runtime_ms?: number | null;
+          source_code?: string;
+          status?: string;
+          stderr?: string | null;
+          stdout?: string | null;
+          total_count?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "challenge_submissions_challenge_id_fkey";
+            columns: ["challenge_id"];
+            isOneToOne: false;
+            referencedRelation: "challenges";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "challenge_submissions_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      challenge_test_cases: {
+        Row: {
+          challenge_id: string;
+          created_at: string;
+          expected_output: string;
+          id: string;
+          input: string;
+          is_hidden: boolean;
+        };
+        Insert: {
+          challenge_id: string;
+          created_at?: string;
+          expected_output: string;
+          id?: string;
+          input?: string;
+          is_hidden?: boolean;
+        };
+        Update: {
+          challenge_id?: string;
+          created_at?: string;
+          expected_output?: string;
+          id?: string;
+          input?: string;
+          is_hidden?: boolean;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "challenge_test_cases_challenge_id_fkey";
+            columns: ["challenge_id"];
+            isOneToOne: false;
+            referencedRelation: "challenges";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      challenges: {
+        Row: {
+          category_id: string | null;
+          constraints: string | null;
+          created_at: string;
+          created_by: string | null;
+          description: string;
+          difficulty: string;
+          estimated_minutes: number;
+          id: string;
+          input_format: string | null;
+          is_active: boolean;
+          is_premium: boolean;
+          output_format: string | null;
+          slug: string;
+          starter_code: Json;
+          tags: string[];
+          title: string;
+          xp_reward: number;
+        };
+        Insert: {
+          category_id?: string | null;
+          constraints?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          description: string;
+          difficulty: string;
+          estimated_minutes?: number;
+          id?: string;
+          input_format?: string | null;
+          is_active?: boolean;
+          is_premium?: boolean;
+          output_format?: string | null;
+          slug: string;
+          starter_code?: Json;
+          tags?: string[];
+          title: string;
+          xp_reward?: number;
+        };
+        Update: {
+          category_id?: string | null;
+          constraints?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          description?: string;
+          difficulty?: string;
+          estimated_minutes?: number;
+          id?: string;
+          input_format?: string | null;
+          is_active?: boolean;
+          is_premium?: boolean;
+          output_format?: string | null;
+          slug?: string;
+          starter_code?: Json;
+          tags?: string[];
+          title?: string;
+          xp_reward?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "challenges_category_id_fkey";
+            columns: ["category_id"];
+            isOneToOne: false;
+            referencedRelation: "challenge_categories";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "challenges_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      companies: {
+        Row: {
+          company_name: string | null;
+          company_size: string | null;
+          cover_image: string | null;
+          created_at: string;
+          created_by: string | null;
+          description: string | null;
+          id: string;
+          industry: string | null;
+          linkedin_url: string | null;
+          location: string | null;
+          logo: string | null;
+          verified: boolean;
+          website: string | null;
+        };
+        Insert: {
+          company_name?: string | null;
+          company_size?: string | null;
+          cover_image?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          description?: string | null;
+          id?: string;
+          industry?: string | null;
+          linkedin_url?: string | null;
+          location?: string | null;
+          logo?: string | null;
+          verified?: boolean;
+          website?: string | null;
+        };
+        Update: {
+          company_name?: string | null;
+          company_size?: string | null;
+          cover_image?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          description?: string | null;
+          id?: string;
+          industry?: string | null;
+          linkedin_url?: string | null;
+          location?: string | null;
+          logo?: string | null;
+          verified?: boolean;
+          website?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "companies_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      company_follows: {
+        Row: {
+          company_id: string;
+          created_at: string;
+          id: string;
+          profile_id: string;
+        };
+        Insert: {
+          company_id: string;
+          created_at?: string;
+          id?: string;
+          profile_id: string;
+        };
+        Update: {
+          company_id?: string;
+          created_at?: string;
+          id?: string;
+          profile_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "company_follows_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "company_follows_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      company_members: {
+        Row: {
+          company_id: string;
+          id: string;
+          invited_at: string;
+          joined_at: string | null;
+          profile_id: string;
+          role: string;
+        };
+        Insert: {
+          company_id: string;
+          id?: string;
+          invited_at?: string;
+          joined_at?: string | null;
+          profile_id: string;
+          role?: string;
+        };
+        Update: {
+          company_id?: string;
+          id?: string;
+          invited_at?: string;
+          joined_at?: string | null;
+          profile_id?: string;
+          role?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "company_members_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "company_members_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      conversation_participants: {
+        Row: {
+          conversation_id: string;
+          joined_at: string;
+          last_read_at: string;
+          profile_id: string;
+        };
+        Insert: {
+          conversation_id: string;
+          joined_at?: string;
+          last_read_at?: string;
+          profile_id: string;
+        };
+        Update: {
+          conversation_id?: string;
+          joined_at?: string;
+          last_read_at?: string;
+          profile_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "conversation_participants_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "conversation_participants_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      conversations: {
+        Row: {
+          created_at: string;
+          id: string;
+          is_group: boolean;
+          last_message_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          is_group?: boolean;
+          last_message_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          is_group?: boolean;
+          last_message_at?: string;
+        };
+        Relationships: [];
+      };
+      daily_challenge_assignments: {
+        Row: {
+          assigned_date: string;
+          challenge_id: string;
+          completed: boolean;
+          completed_at: string | null;
+          id: string;
+          profile_id: string;
+        };
+        Insert: {
+          assigned_date?: string;
+          challenge_id: string;
+          completed?: boolean;
+          completed_at?: string | null;
+          id?: string;
+          profile_id: string;
+        };
+        Update: {
+          assigned_date?: string;
+          challenge_id?: string;
+          completed?: boolean;
+          completed_at?: string | null;
+          id?: string;
+          profile_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "daily_challenge_assignments_challenge_id_fkey";
+            columns: ["challenge_id"];
+            isOneToOne: false;
+            referencedRelation: "challenges";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "daily_challenge_assignments_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      education: {
+        Row: {
+          created_at: string;
+          degree: string | null;
+          description: string | null;
+          end_year: number | null;
+          field: string | null;
+          id: string;
+          institution: string;
+          profile_id: string;
+          start_year: number | null;
+        };
+        Insert: {
+          created_at?: string;
+          degree?: string | null;
+          description?: string | null;
+          end_year?: number | null;
+          field?: string | null;
+          id?: string;
+          institution: string;
+          profile_id: string;
+          start_year?: number | null;
+        };
+        Update: {
+          created_at?: string;
+          degree?: string | null;
+          description?: string | null;
+          end_year?: number | null;
+          field?: string | null;
+          id?: string;
+          institution?: string;
+          profile_id?: string;
+          start_year?: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "education_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      experience: {
+        Row: {
+          company_name: string;
+          created_at: string;
+          description: string | null;
+          employment_type: string | null;
+          end_date: string | null;
+          id: string;
+          is_current: boolean;
+          location: string | null;
+          profile_id: string;
+          start_date: string | null;
+          title: string;
+        };
+        Insert: {
+          company_name: string;
+          created_at?: string;
+          description?: string | null;
+          employment_type?: string | null;
+          end_date?: string | null;
+          id?: string;
+          is_current?: boolean;
+          location?: string | null;
+          profile_id: string;
+          start_date?: string | null;
+          title: string;
+        };
+        Update: {
+          company_name?: string;
+          created_at?: string;
+          description?: string | null;
+          employment_type?: string | null;
+          end_date?: string | null;
+          id?: string;
+          is_current?: boolean;
+          location?: string | null;
+          profile_id?: string;
+          start_date?: string | null;
+          title?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "experience_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      friendships: {
+        Row: {
+          addressee_id: string;
+          created_at: string;
+          id: string;
+          requester_id: string;
+          status: string;
+          updated_at: string;
+        };
+        Insert: {
+          addressee_id: string;
+          created_at?: string;
+          id?: string;
+          requester_id: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          addressee_id?: string;
+          created_at?: string;
+          id?: string;
+          requester_id?: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "friendships_addressee_id_fkey";
+            columns: ["addressee_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "friendships_requester_id_fkey";
+            columns: ["requester_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      interview_schedules: {
+        Row: {
+          application_id: string;
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          interviewer_name: string | null;
+          meeting_link: string | null;
+          mode: string;
+          notes: string | null;
+          responded_at: string | null;
+          scheduled_at: string;
+          status: string;
+        };
+        Insert: {
+          application_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          interviewer_name?: string | null;
+          meeting_link?: string | null;
+          mode?: string;
+          notes?: string | null;
+          responded_at?: string | null;
+          scheduled_at: string;
+          status?: string;
+        };
+        Update: {
+          application_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          interviewer_name?: string | null;
+          meeting_link?: string | null;
+          mode?: string;
+          notes?: string | null;
+          responded_at?: string | null;
+          scheduled_at?: string;
+          status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "interview_schedules_application_id_fkey";
+            columns: ["application_id"];
+            isOneToOne: false;
+            referencedRelation: "job_applications";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "interview_schedules_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      job_applications: {
+        Row: {
+          applicant_id: string;
+          applied_at: string;
+          ats_score: number | null;
+          cover_note: string | null;
+          id: string;
+          job_id: string;
+          job_match_percentage: number | null;
+          skills_score: number | null;
+          status: string;
+          updated_at: string;
+        };
+        Insert: {
+          applicant_id: string;
+          applied_at?: string;
+          ats_score?: number | null;
+          cover_note?: string | null;
+          id?: string;
+          job_id: string;
+          job_match_percentage?: number | null;
+          skills_score?: number | null;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          applicant_id?: string;
+          applied_at?: string;
+          ats_score?: number | null;
+          cover_note?: string | null;
+          id?: string;
+          job_id?: string;
+          job_match_percentage?: number | null;
+          skills_score?: number | null;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "job_applications_applicant_id_fkey";
+            columns: ["applicant_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "job_applications_job_id_fkey";
+            columns: ["job_id"];
+            isOneToOne: false;
+            referencedRelation: "jobs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      job_invitations: {
+        Row: {
+          created_at: string;
+          id: string;
+          invited_by: string | null;
+          job_id: string;
+          profile_id: string;
+          status: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          invited_by?: string | null;
+          job_id: string;
+          profile_id: string;
+          status?: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          invited_by?: string | null;
+          job_id?: string;
+          profile_id?: string;
+          status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "job_invitations_invited_by_fkey";
+            columns: ["invited_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "job_invitations_job_id_fkey";
+            columns: ["job_id"];
+            isOneToOne: false;
+            referencedRelation: "jobs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "job_invitations_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      job_saves: {
+        Row: {
+          created_at: string;
+          id: string;
+          job_id: string;
+          profile_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          job_id: string;
+          profile_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          job_id?: string;
+          profile_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "job_saves_job_id_fkey";
+            columns: ["job_id"];
+            isOneToOne: false;
+            referencedRelation: "jobs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "job_saves_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      jobs: {
+        Row: {
+          application_deadline: string | null;
+          benefits: string | null;
+          closed_at: string | null;
+          company_id: string | null;
+          created_at: string;
+          created_by: string | null;
+          currency: string;
+          department: string | null;
+          description: string | null;
+          employment_type: string | null;
+          experience_level: string | null;
+          feed_post_id: string | null;
+          id: string;
+          location: string | null;
+          openings_count: number;
+          posted_at: string;
+          published_at: string | null;
+          requirements: string | null;
+          responsibilities: string | null;
+          salary_max: number | null;
+          salary_min: number | null;
+          status: string;
+          tags: string[];
+          title: string | null;
+          work_mode: string | null;
+        };
+        Insert: {
+          application_deadline?: string | null;
+          benefits?: string | null;
+          closed_at?: string | null;
+          company_id?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          currency?: string;
+          department?: string | null;
+          description?: string | null;
+          employment_type?: string | null;
+          experience_level?: string | null;
+          feed_post_id?: string | null;
+          id?: string;
+          location?: string | null;
+          openings_count?: number;
+          posted_at?: string;
+          published_at?: string | null;
+          requirements?: string | null;
+          responsibilities?: string | null;
+          salary_max?: number | null;
+          salary_min?: number | null;
+          status?: string;
+          tags?: string[];
+          title?: string | null;
+          work_mode?: string | null;
+        };
+        Update: {
+          application_deadline?: string | null;
+          benefits?: string | null;
+          closed_at?: string | null;
+          company_id?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          currency?: string;
+          department?: string | null;
+          description?: string | null;
+          employment_type?: string | null;
+          experience_level?: string | null;
+          feed_post_id?: string | null;
+          id?: string;
+          location?: string | null;
+          openings_count?: number;
+          posted_at?: string;
+          published_at?: string | null;
+          requirements?: string | null;
+          responsibilities?: string | null;
+          salary_max?: number | null;
+          salary_min?: number | null;
+          status?: string;
+          tags?: string[];
+          title?: string | null;
+          work_mode?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "job_roles_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "jobs_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "jobs_feed_post_id_fkey";
+            columns: ["feed_post_id"];
+            isOneToOne: false;
+            referencedRelation: "posts";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      messages: {
+        Row: {
+          content: string | null;
+          conversation_id: string;
+          created_at: string;
+          id: string;
+          image_url: string | null;
+          sender_id: string;
+        };
+        Insert: {
+          content?: string | null;
+          conversation_id: string;
+          created_at?: string;
+          id?: string;
+          image_url?: string | null;
+          sender_id: string;
+        };
+        Update: {
+          content?: string | null;
+          conversation_id?: string;
+          created_at?: string;
+          id?: string;
+          image_url?: string | null;
+          sender_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "messages_sender_id_fkey";
+            columns: ["sender_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      mock_interviews: {
+        Row: {
+          completed_at: string | null;
+          created_at: string;
+          feedback: Json | null;
+          id: string;
+          profile_id: string;
+          role: string;
+          score: number | null;
+          status: string;
+          transcript: Json;
+        };
+        Insert: {
+          completed_at?: string | null;
+          created_at?: string;
+          feedback?: Json | null;
+          id?: string;
+          profile_id: string;
+          role: string;
+          score?: number | null;
+          status?: string;
+          transcript?: Json;
+        };
+        Update: {
+          completed_at?: string | null;
+          created_at?: string;
+          feedback?: Json | null;
+          id?: string;
+          profile_id?: string;
+          role?: string;
+          score?: number | null;
+          status?: string;
+          transcript?: Json;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "mock_interviews_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      notifications: {
+        Row: {
+          actor_id: string | null;
+          created_at: string;
+          entity_id: string | null;
+          entity_type: string | null;
+          id: string;
+          is_read: boolean;
+          message: string;
+          recipient_id: string;
+          type: string;
+        };
+        Insert: {
+          actor_id?: string | null;
+          created_at?: string;
+          entity_id?: string | null;
+          entity_type?: string | null;
+          id?: string;
+          is_read?: boolean;
+          message: string;
+          recipient_id: string;
+          type: string;
+        };
+        Update: {
+          actor_id?: string | null;
+          created_at?: string;
+          entity_id?: string | null;
+          entity_type?: string | null;
+          id?: string;
+          is_read?: boolean;
+          message?: string;
+          recipient_id?: string;
+          type?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "notifications_actor_id_fkey";
+            columns: ["actor_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "notifications_recipient_id_fkey";
+            columns: ["recipient_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      post_comments: {
+        Row: {
+          author_id: string;
+          content: string;
+          created_at: string;
+          id: string;
+          post_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          author_id: string;
+          content: string;
+          created_at?: string;
+          id?: string;
+          post_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          author_id?: string;
+          content?: string;
+          created_at?: string;
+          id?: string;
+          post_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "post_comments_author_id_fkey";
+            columns: ["author_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "post_comments_post_id_fkey";
+            columns: ["post_id"];
+            isOneToOne: false;
+            referencedRelation: "posts";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      post_likes: {
+        Row: {
+          created_at: string;
+          id: string;
+          post_id: string;
+          profile_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          post_id: string;
+          profile_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          post_id?: string;
+          profile_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "post_likes_post_id_fkey";
+            columns: ["post_id"];
+            isOneToOne: false;
+            referencedRelation: "posts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "post_likes_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      posts: {
+        Row: {
+          author_id: string;
+          content: string | null;
+          created_at: string;
+          id: string;
+          image_urls: string[];
+          kind: string;
+          metadata: Json;
+          updated_at: string;
+        };
+        Insert: {
+          author_id: string;
+          content?: string | null;
+          created_at?: string;
+          id?: string;
+          image_urls?: string[];
+          kind?: string;
+          metadata?: Json;
+          updated_at?: string;
+        };
+        Update: {
+          author_id?: string;
+          content?: string | null;
+          created_at?: string;
+          id?: string;
+          image_urls?: string[];
+          kind?: string;
+          metadata?: Json;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "posts_author_id_fkey";
+            columns: ["author_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      premium_subscriptions: {
+        Row: {
+          current_period_end: string | null;
+          external_reference: string | null;
+          id: string;
+          payment_provider: string | null;
+          plan: string;
+          profile_id: string;
+          started_at: string;
+          status: string;
+          updated_at: string;
+        };
+        Insert: {
+          current_period_end?: string | null;
+          external_reference?: string | null;
+          id?: string;
+          payment_provider?: string | null;
+          plan?: string;
+          profile_id: string;
+          started_at?: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          current_period_end?: string | null;
+          external_reference?: string | null;
+          id?: string;
+          payment_provider?: string | null;
+          plan?: string;
+          profile_id?: string;
+          started_at?: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "premium_subscriptions_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: true;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      profiles: {
+        Row: {
+          account_type: string;
+          avatar_url: string | null;
+          bio: string | null;
+          branch: string | null;
+          college: string | null;
+          created_at: string | null;
+          degree: string | null;
+          email: string | null;
+          full_name: string | null;
+          github_url: string | null;
+          graduation_year: number | null;
+          id: string;
+          is_banned: boolean;
+          is_online: boolean;
+          last_activity_date: string | null;
+          last_seen_at: string | null;
+          linkedin_url: string | null;
+          live_resume_pdf_url: string | null;
+          live_resume_updated_at: string | null;
+          location: string | null;
+          mobile: string | null;
+          onboarding_completed: boolean;
+          persona: string | null;
+          portfolio_url: string | null;
+          role: string;
+          streak: number;
+          target_role: string | null;
+          updated_at: string;
+          username: string | null;
+          xp: number;
+          year_of_study: number | null;
+        };
+        Insert: {
+          account_type?: string;
+          avatar_url?: string | null;
+          bio?: string | null;
+          branch?: string | null;
+          college?: string | null;
+          created_at?: string | null;
+          degree?: string | null;
+          email?: string | null;
+          full_name?: string | null;
+          github_url?: string | null;
+          graduation_year?: number | null;
+          id: string;
+          is_banned?: boolean;
+          is_online?: boolean;
+          last_activity_date?: string | null;
+          last_seen_at?: string | null;
+          linkedin_url?: string | null;
+          live_resume_pdf_url?: string | null;
+          live_resume_updated_at?: string | null;
+          location?: string | null;
+          mobile?: string | null;
+          onboarding_completed?: boolean;
+          persona?: string | null;
+          portfolio_url?: string | null;
+          role?: string;
+          streak?: number;
+          target_role?: string | null;
+          updated_at?: string;
+          username?: string | null;
+          xp?: number;
+          year_of_study?: number | null;
+        };
+        Update: {
+          account_type?: string;
+          avatar_url?: string | null;
+          bio?: string | null;
+          branch?: string | null;
+          college?: string | null;
+          created_at?: string | null;
+          degree?: string | null;
+          email?: string | null;
+          full_name?: string | null;
+          github_url?: string | null;
+          graduation_year?: number | null;
+          id?: string;
+          is_banned?: boolean;
+          is_online?: boolean;
+          last_activity_date?: string | null;
+          last_seen_at?: string | null;
+          linkedin_url?: string | null;
+          live_resume_pdf_url?: string | null;
+          live_resume_updated_at?: string | null;
+          location?: string | null;
+          mobile?: string | null;
+          onboarding_completed?: boolean;
+          persona?: string | null;
+          portfolio_url?: string | null;
+          role?: string;
+          streak?: number;
+          target_role?: string | null;
+          updated_at?: string;
+          username?: string | null;
+          xp?: number;
+          year_of_study?: number | null;
+        };
+        Relationships: [];
+      };
+      projects: {
+        Row: {
+          created_at: string;
+          description: string | null;
+          id: string;
+          image_url: string | null;
+          profile_id: string;
+          project_url: string | null;
+          repo_url: string | null;
+          tags: string[];
+          title: string;
+        };
+        Insert: {
+          created_at?: string;
+          description?: string | null;
+          id?: string;
+          image_url?: string | null;
+          profile_id: string;
+          project_url?: string | null;
+          repo_url?: string | null;
+          tags?: string[];
+          title: string;
+        };
+        Update: {
+          created_at?: string;
+          description?: string | null;
+          id?: string;
+          image_url?: string | null;
+          profile_id?: string;
+          project_url?: string | null;
+          repo_url?: string | null;
+          tags?: string[];
+          title?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "projects_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      reports: {
+        Row: {
+          created_at: string;
+          id: string;
+          reason: string;
+          reporter_id: string;
+          reviewed_at: string | null;
+          reviewed_by: string | null;
+          status: string;
+          target_id: string;
+          target_type: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          reason: string;
+          reporter_id: string;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+          status?: string;
+          target_id: string;
+          target_type: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          reason?: string;
+          reporter_id?: string;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+          status?: string;
+          target_id?: string;
+          target_type?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "reports_reporter_id_fkey";
+            columns: ["reporter_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "reports_reviewed_by_fkey";
+            columns: ["reviewed_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      resumes: {
+        Row: {
+          analysis: Json | null;
+          analyzed_at: string | null;
+          ats_score: number | null;
+          created_at: string | null;
+          file_name: string | null;
+          file_size: number | null;
+          id: string;
+          is_current: boolean;
+          profile_id: string | null;
+          resume_url: string | null;
+          storage_path: string | null;
+          updated_at: string;
+          version: number;
+        };
+        Insert: {
+          analysis?: Json | null;
+          analyzed_at?: string | null;
+          ats_score?: number | null;
+          created_at?: string | null;
+          file_name?: string | null;
+          file_size?: number | null;
+          id?: string;
+          is_current?: boolean;
+          profile_id?: string | null;
+          resume_url?: string | null;
+          storage_path?: string | null;
+          updated_at?: string;
+          version?: number;
+        };
+        Update: {
+          analysis?: Json | null;
+          analyzed_at?: string | null;
+          ats_score?: number | null;
+          created_at?: string | null;
+          file_name?: string | null;
+          file_size?: number | null;
+          id?: string;
+          is_current?: boolean;
+          profile_id?: string | null;
+          resume_url?: string | null;
+          storage_path?: string | null;
+          updated_at?: string;
+          version?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "resumes_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      roadmap_steps: {
+        Row: {
+          description: string | null;
+          estimated_hours: number;
+          id: string;
+          order_index: number;
+          resource_url: string | null;
+          roadmap_id: string;
+          title: string;
+        };
+        Insert: {
+          description?: string | null;
+          estimated_hours?: number;
+          id?: string;
+          order_index?: number;
+          resource_url?: string | null;
+          roadmap_id: string;
+          title: string;
+        };
+        Update: {
+          description?: string | null;
+          estimated_hours?: number;
+          id?: string;
+          order_index?: number;
+          resource_url?: string | null;
+          roadmap_id?: string;
+          title?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "roadmap_steps_roadmap_id_fkey";
+            columns: ["roadmap_id"];
+            isOneToOne: false;
+            referencedRelation: "roadmap_templates";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      roadmap_templates: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          description: string | null;
+          id: string;
+          is_premium: boolean;
+          role: string;
+          title: string;
+        };
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          description?: string | null;
+          id?: string;
+          is_premium?: boolean;
+          role: string;
+          title: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          description?: string | null;
+          id?: string;
+          is_premium?: boolean;
+          role?: string;
+          title?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "roadmap_templates_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      skills: {
+        Row: {
+          created_at: string;
+          id: string;
+          level: string | null;
+          profile_id: string | null;
+          skill_name: string | null;
+          source: string;
+          verified: boolean | null;
+          verified_at: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          level?: string | null;
+          profile_id?: string | null;
+          skill_name?: string | null;
+          source?: string;
+          verified?: boolean | null;
+          verified_at?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          level?: string | null;
+          profile_id?: string | null;
+          skill_name?: string | null;
+          source?: string;
+          verified?: boolean | null;
+          verified_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "skills_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      user_roadmap_progress: {
+        Row: {
+          completed: boolean;
+          completed_at: string | null;
+          id: string;
+          step_id: string;
+          user_roadmap_id: string;
+        };
+        Insert: {
+          completed?: boolean;
+          completed_at?: string | null;
+          id?: string;
+          step_id: string;
+          user_roadmap_id: string;
+        };
+        Update: {
+          completed?: boolean;
+          completed_at?: string | null;
+          id?: string;
+          step_id?: string;
+          user_roadmap_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "user_roadmap_progress_step_id_fkey";
+            columns: ["step_id"];
+            isOneToOne: false;
+            referencedRelation: "roadmap_steps";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "user_roadmap_progress_user_roadmap_id_fkey";
+            columns: ["user_roadmap_id"];
+            isOneToOne: false;
+            referencedRelation: "user_roadmaps";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      user_roadmaps: {
+        Row: {
+          id: string;
+          profile_id: string;
+          roadmap_id: string;
+          started_at: string;
+        };
+        Insert: {
+          id?: string;
+          profile_id: string;
+          roadmap_id: string;
+          started_at?: string;
+        };
+        Update: {
+          id?: string;
+          profile_id?: string;
+          roadmap_id?: string;
+          started_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "user_roadmaps_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "user_roadmaps_roadmap_id_fkey";
+            columns: ["roadmap_id"];
+            isOneToOne: false;
+            referencedRelation: "roadmap_templates";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      xp_events: {
+        Row: {
+          amount: number;
+          created_at: string;
+          id: string;
+          profile_id: string;
+          reason: string;
+          source_id: string | null;
+          source_type: string | null;
+        };
+        Insert: {
+          amount: number;
+          created_at?: string;
+          id?: string;
+          profile_id: string;
+          reason: string;
+          source_id?: string | null;
+          source_type?: string | null;
+        };
+        Update: {
+          amount?: number;
+          created_at?: string;
+          id?: string;
+          profile_id?: string;
+          reason?: string;
+          source_id?: string | null;
+          source_type?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "xp_events_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+    };
+    Views: {
+      [_ in never]: never;
+    };
+    Functions: {
+      award_xp: {
+        Args: {
+          p_amount: number;
+          p_profile_id: string;
+          p_reason: string;
+          p_source_id?: string;
+          p_source_type?: string;
+        };
+        Returns: undefined;
+      };
+      company_has_any_members: {
+        Args: { p_company_id: string };
+        Returns: boolean;
+      };
+      create_notification: {
+        Args: {
+          p_actor_id: string;
+          p_entity_id?: string;
+          p_entity_type?: string;
+          p_message: string;
+          p_recipient_id: string;
+          p_type: string;
+        };
+        Returns: undefined;
+      };
+      current_role: { Args: never; Returns: string };
+      has_company_role: {
+        Args: { p_company_id: string; p_roles: string[] };
+        Returns: boolean;
+      };
+      is_admin: { Args: never; Returns: boolean };
+      is_premium: { Args: { p_profile_id: string }; Returns: boolean };
+    };
+    Enums: {
+      [_ in never]: never;
+    };
+    CompositeTypes: {
+      [_ in never]: never;
+    };
+  };
+};
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">;
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">];
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals;
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R;
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] & DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R;
+      }
+      ? R
+      : never
+    : never;
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals;
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I;
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I;
+      }
+      ? I
+      : never
+    : never;
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals;
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U;
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U;
+      }
+      ? U
+      : never
+    : never;
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    keyof DefaultSchema["Enums"] | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never) = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals;
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never;
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    keyof DefaultSchema["CompositeTypes"] | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never) = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals;
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never;
+
+export const Constants = {
+  public: {
+    Enums: {},
+  },
+} as const;

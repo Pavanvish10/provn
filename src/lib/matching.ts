@@ -1,8 +1,20 @@
-// Mock semantic matching engine for the Business/ATS feature.
+// Semantic matching engine for the Business/ATS feature.
 // Structured so a real embedding/LLM model can replace `expandSkill` and
 // `scoreCandidate` later without changing the UI.
-
-import type { Candidate } from "./mock-data";
+//
+// `Candidate` is defined locally so this module has no dependency on the
+// mock candidate pool — callers (job applicants, recruiter search results,
+// etc.) map their real Supabase rows into this shape before ranking.
+export type Candidate = {
+  id: string;
+  name: string;
+  avatar: string;
+  headline: string;
+  location: string;
+  years: number;
+  verifiedSkills: string[];
+  streak: number;
+};
 
 // Synonym / related-term graph. Bidirectional edges are expanded at runtime.
 const SYNONYMS: Record<string, string[]> = {
@@ -15,7 +27,17 @@ const SYNONYMS: Record<string, string[]> = {
   tailwind: ["css", "frontend", "design systems"],
   css: ["tailwind", "frontend", "accessibility"],
 
-  backend: ["nodejs", "go", "java", "spring", "postgres", "system design", "graphql", "kafka", "redis"],
+  backend: [
+    "nodejs",
+    "go",
+    "java",
+    "spring",
+    "postgres",
+    "system design",
+    "graphql",
+    "kafka",
+    "redis",
+  ],
   "server-side": ["backend", "nodejs", "go", "java"],
   "server side": ["backend"],
   nodejs: ["javascript", "typescript", "backend", "graphql"],
@@ -79,7 +101,10 @@ const SYNONYMS: Record<string, string[]> = {
 };
 
 function normalize(s: string) {
-  return s.trim().toLowerCase().replace(/[^a-z0-9+.# ]/g, "");
+  return s
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9+.# ]/g, "");
 }
 
 /** Expand a single skill/term into itself + related terms. */
@@ -109,7 +134,10 @@ export function extractSkills(text: string): string[] {
  * or via a synonym/related term. Verified skills weigh full; near-matches
  * (via expansion in the candidate's direction) weigh partial.
  */
-export function scoreCandidate(candidate: Candidate, required: string[]): {
+export function scoreCandidate(
+  candidate: Candidate,
+  required: string[],
+): {
   score: number;
   matched: string[];
   partial: string[];
@@ -126,11 +154,19 @@ export function scoreCandidate(candidate: Candidate, required: string[]): {
     const reqSet = expandSkill(req);
     let hit: "direct" | "partial" | null = null;
     for (const r of reqSet) {
-      if (candDirect.has(r)) { hit = "direct"; break; }
+      if (candDirect.has(r)) {
+        hit = "direct";
+        break;
+      }
       if (candExpanded.has(r)) hit = hit ?? "partial";
     }
-    if (hit === "direct") { points += 1; matched.push(req); }
-    else if (hit === "partial") { points += 0.7; partial.push(req); }
+    if (hit === "direct") {
+      points += 1;
+      matched.push(req);
+    } else if (hit === "partial") {
+      points += 0.7;
+      partial.push(req);
+    }
   }
   return { score: points / required.length, matched, partial };
 }

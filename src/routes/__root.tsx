@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { useHydrateDarkMode } from "../lib/store";
+import { authUserQueryOptions } from "../lib/auth-client";
 
 function NotFoundComponent() {
   return (
@@ -50,12 +51,18 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
-            onClick={() => { router.invalidate(); reset(); }}
+            onClick={() => {
+              router.invalidate();
+              reset();
+            }}
             className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
           >
             Try again
           </button>
-          <a href="/" className="rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent">
+          <a
+            href="/"
+            className="rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent"
+          >
             Go home
           </a>
         </div>
@@ -70,10 +77,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Provn — Prove Your Skills. Unlock Your Career." },
-      { name: "description", content: "Provn is a career platform where students prove skills through verified tests, AI coaching, coding challenges, and mock interviews — then get hired." },
+      {
+        name: "description",
+        content:
+          "Provn is a career platform where students prove skills through verified tests, AI coaching, coding challenges, and mock interviews — then get hired.",
+      },
       { name: "author", content: "Provn" },
       { property: "og:title", content: "Provn — Prove Your Skills. Unlock Your Career." },
-      { property: "og:description", content: "Learn, verify, prove, get hired. A modern career platform for students, grads, and switchers." },
+      {
+        property: "og:description",
+        content:
+          "Learn, verify, prove, get hired. A modern career platform for students, grads, and switchers.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -88,6 +103,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
     ],
   }),
+  beforeLoad: async ({ context }) => {
+    const user = await context.queryClient.ensureQueryData(authUserQueryOptions());
+    return { user };
+  },
   shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,

@@ -1,31 +1,16 @@
-// Lightweight client-side app state stored in localStorage. Mock-only.
+// Lightweight client-side UI preference stored in localStorage (dark mode only).
+// All app/user data (profile, verification, XP, streak, plan, etc.) lives in Supabase —
+// see profile-client.ts, resume-client.ts, premium-client.ts, and friends.
 import { useEffect, useState, useSyncExternalStore } from "react";
 
 type AppState = {
-  authed: boolean;
-  email?: string;
-  name?: string;
-  location?: string;
-  profession?: string;
-  plan?: "free" | "pro";
   darkMode: boolean;
-  verification: {
-    resume: boolean;
-    codingTest: boolean;
-    mockInterview: boolean;
-  };
-  verifiedSkills: string[];
-  streak: number;
 };
 
 const KEY = "provn.state.v1";
 
 const defaultState: AppState = {
-  authed: false,
   darkMode: false,
-  verification: { resume: false, codingTest: false, mockInterview: false },
-  verifiedSkills: ["React", "TypeScript"],
-  streak: 12,
 };
 
 const listeners = new Set<() => void>();

@@ -98,7 +98,8 @@
   * {
     border-color: var(--color-border);
   }
-  html, body {
+  html,
+  body {
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     background-color: var(--color-background);
@@ -109,7 +110,10 @@
     letter-spacing: -0.02em;
     font-weight: 700;
   }
-  h1, h2, h3, h4 {
+  h1,
+  h2,
+  h3,
+  h4 {
     font-family: var(--font-display);
     letter-spacing: -0.02em;
   }
@@ -119,6 +123,34 @@
   border: 1px solid var(--color-border);
 }
 @utility grid-dots {
-  background-image: radial-gradient(oklch(from var(--foreground) l c h / 0.08) 1px, transparent 1px);
+  background-image: radial-gradient(
+    oklch(from var(--foreground) l c h / 0.08) 1px,
+    transparent 1px
+  );
   background-size: 22px 22px;
+}
+
+/* Live Resume PDF export: window.print() renders whatever is on-screen, so we
+   strip the app chrome and force a clean, light, one-column resume layout —
+   regardless of dark mode — for any page that opts in via .live-resume-sheet. */
+@media print {
+  @page {
+    margin: 0.55in;
+  }
+  html,
+  body {
+    background: #fff !important;
+  }
+  header,
+  .no-print {
+    display: none !important;
+  }
+  main {
+    max-width: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  .live-resume-sheet {
+    max-width: none !important;
+  }
 }

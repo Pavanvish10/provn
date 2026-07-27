@@ -1,13 +1,23 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import {
-  GraduationCap, Sparkles, Rocket, Briefcase, Handshake, PenTool, RefreshCcw, MoreHorizontal, ArrowRight,
+  GraduationCap,
+  Sparkles,
+  Rocket,
+  Briefcase,
+  Handshake,
+  PenTool,
+  RefreshCcw,
+  MoreHorizontal,
+  ArrowRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DarkModeToggle } from "@/components/DarkModeToggle";
 import { Wordmark } from "@/components/Logo";
-import { setState } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { requireAuth } from "@/lib/auth-guard";
+import { useCurrentUser } from "@/lib/auth-client";
+import { useUpdateProfile } from "@/lib/profile-client";
 
 const OPTIONS = [
   { id: "student", label: "Student", sub: "Currently in college", icon: GraduationCap },
@@ -21,10 +31,14 @@ const OPTIONS = [
 ];
 
 export const Route = createFileRoute("/profession")({
+  beforeLoad: requireAuth,
   head: () => ({
     meta: [
       { title: "What best describes you? · Provn" },
-      { name: "description", content: "Pick the option that fits — Provn tailors your journey from here." },
+      {
+        name: "description",
+        content: "Pick the option that fits — Provn tailors your journey from here.",
+      },
       { property: "og:title", content: "What best describes you? · Provn" },
       { property: "og:description", content: "Your starting point shapes the whole roadmap." },
     ],
@@ -34,17 +48,22 @@ export const Route = createFileRoute("/profession")({
 
 function Profession() {
   const nav = useNavigate();
+  const { data: user } = useCurrentUser();
+  const updateProfile = useUpdateProfile(user?.id);
   const [sel, setSel] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-6">
-        <Link to="/"><Wordmark /></Link>
+        <Link to="/">
+          <Wordmark />
+        </Link>
         <DarkModeToggle />
       </div>
       <div className="mx-auto max-w-5xl px-6 pb-16">
         <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 text-xs text-muted-foreground">
-          <span className="h-1.5 w-1.5 rounded-full bg-brand" /> Step 3 of 4 · You
+          <span className="h-1.5 w-1.5 rounded-full bg-brand" /> Step 3 of 6 · You
         </span>
         <h1 className="mt-5 font-display text-5xl leading-tight tracking-tight sm:text-6xl">
           What best describes you?
@@ -90,12 +109,22 @@ function Profession() {
         </div>
 
         <div className="mt-10 flex items-center gap-3">
-          <Button variant="ghost" onClick={() => nav({ to: "/location" })}>Back</Button>
+          <Button variant="ghost" onClick={() => nav({ to: "/location" })}>
+            Back
+          </Button>
           <Button
             size="lg"
-            disabled={!sel}
+            disabled={!sel || submitting}
             className="ml-auto"
-            onClick={() => { setState({ profession: sel! }); nav({ to: "/plan" }); }}
+            onClick={async () => {
+              setSubmitting(true);
+              try {
+                await updateProfile.mutateAsync({ persona: sel! });
+                nav({ to: "/profile-details" });
+              } finally {
+                setSubmitting(false);
+              }
+            }}
           >
             Continue <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
