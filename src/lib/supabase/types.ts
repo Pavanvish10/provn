@@ -116,6 +116,27 @@ export type Database = {
           },
         ];
       };
+      badge_definitions: {
+        Row: {
+          code: string;
+          description: string | null;
+          icon: string | null;
+          name: string;
+        };
+        Insert: {
+          code: string;
+          description?: string | null;
+          icon?: string | null;
+          name: string;
+        };
+        Update: {
+          code?: string;
+          description?: string | null;
+          icon?: string | null;
+          name?: string;
+        };
+        Relationships: [];
+      };
       challenge_categories: {
         Row: {
           id: string;
@@ -134,10 +155,57 @@ export type Database = {
         };
         Relationships: [];
       };
+      challenge_discussions: {
+        Row: {
+          author_id: string;
+          challenge_id: string;
+          content: string;
+          created_at: string;
+          id: string;
+        };
+        Insert: {
+          author_id: string;
+          challenge_id: string;
+          content: string;
+          created_at?: string;
+          id?: string;
+        };
+        Update: {
+          author_id?: string;
+          challenge_id?: string;
+          content?: string;
+          created_at?: string;
+          id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "challenge_discussions_author_id_fkey";
+            columns: ["author_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "challenge_discussions_challenge_id_fkey";
+            columns: ["challenge_id"];
+            isOneToOne: false;
+            referencedRelation: "challenge_stats";
+            referencedColumns: ["challenge_id"];
+          },
+          {
+            foreignKeyName: "challenge_discussions_challenge_id_fkey";
+            columns: ["challenge_id"];
+            isOneToOne: false;
+            referencedRelation: "challenges";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       challenge_submissions: {
         Row: {
           challenge_id: string;
           created_at: string;
+          hint_used: boolean;
           id: string;
           language: string;
           passed_count: number;
@@ -147,11 +215,13 @@ export type Database = {
           status: string;
           stderr: string | null;
           stdout: string | null;
+          time_taken_seconds: number | null;
           total_count: number;
         };
         Insert: {
           challenge_id: string;
           created_at?: string;
+          hint_used?: boolean;
           id?: string;
           language: string;
           passed_count?: number;
@@ -161,11 +231,13 @@ export type Database = {
           status?: string;
           stderr?: string | null;
           stdout?: string | null;
+          time_taken_seconds?: number | null;
           total_count?: number;
         };
         Update: {
           challenge_id?: string;
           created_at?: string;
+          hint_used?: boolean;
           id?: string;
           language?: string;
           passed_count?: number;
@@ -175,9 +247,17 @@ export type Database = {
           status?: string;
           stderr?: string | null;
           stdout?: string | null;
+          time_taken_seconds?: number | null;
           total_count?: number;
         };
         Relationships: [
+          {
+            foreignKeyName: "challenge_submissions_challenge_id_fkey";
+            columns: ["challenge_id"];
+            isOneToOne: false;
+            referencedRelation: "challenge_stats";
+            referencedColumns: ["challenge_id"];
+          },
           {
             foreignKeyName: "challenge_submissions_challenge_id_fkey";
             columns: ["challenge_id"];
@@ -224,6 +304,13 @@ export type Database = {
             foreignKeyName: "challenge_test_cases_challenge_id_fkey";
             columns: ["challenge_id"];
             isOneToOne: false;
+            referencedRelation: "challenge_stats";
+            referencedColumns: ["challenge_id"];
+          },
+          {
+            foreignKeyName: "challenge_test_cases_challenge_id_fkey";
+            columns: ["challenge_id"];
+            isOneToOne: false;
             referencedRelation: "challenges";
             referencedColumns: ["id"];
           },
@@ -237,7 +324,9 @@ export type Database = {
           created_by: string | null;
           description: string;
           difficulty: string;
+          editorial: string | null;
           estimated_minutes: number;
+          hints: Json;
           id: string;
           input_format: string | null;
           is_active: boolean;
@@ -256,7 +345,9 @@ export type Database = {
           created_by?: string | null;
           description: string;
           difficulty: string;
+          editorial?: string | null;
           estimated_minutes?: number;
+          hints?: Json;
           id?: string;
           input_format?: string | null;
           is_active?: boolean;
@@ -275,7 +366,9 @@ export type Database = {
           created_by?: string | null;
           description?: string;
           difficulty?: string;
+          editorial?: string | null;
           estimated_minutes?: number;
+          hints?: Json;
           id?: string;
           input_format?: string | null;
           is_active?: boolean;
@@ -298,6 +391,38 @@ export type Database = {
           {
             foreignKeyName: "challenges_created_by_fkey";
             columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      coin_events: {
+        Row: {
+          amount: number;
+          created_at: string;
+          id: string;
+          profile_id: string;
+          reason: string;
+        };
+        Insert: {
+          amount: number;
+          created_at?: string;
+          id?: string;
+          profile_id: string;
+          reason: string;
+        };
+        Update: {
+          amount?: number;
+          created_at?: string;
+          id?: string;
+          profile_id?: string;
+          reason?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "coin_events_profile_id_fkey";
+            columns: ["profile_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
             referencedColumns: ["id"];
@@ -495,6 +620,38 @@ export type Database = {
         };
         Relationships: [];
       };
+      daily_activity: {
+        Row: {
+          activity_date: string;
+          challenges_solved: number;
+          id: string;
+          profile_id: string;
+          xp_earned: number;
+        };
+        Insert: {
+          activity_date?: string;
+          challenges_solved?: number;
+          id?: string;
+          profile_id: string;
+          xp_earned?: number;
+        };
+        Update: {
+          activity_date?: string;
+          challenges_solved?: number;
+          id?: string;
+          profile_id?: string;
+          xp_earned?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "daily_activity_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       daily_challenge_assignments: {
         Row: {
           assigned_date: string;
@@ -525,6 +682,13 @@ export type Database = {
             foreignKeyName: "daily_challenge_assignments_challenge_id_fkey";
             columns: ["challenge_id"];
             isOneToOne: false;
+            referencedRelation: "challenge_stats";
+            referencedColumns: ["challenge_id"];
+          },
+          {
+            foreignKeyName: "daily_challenge_assignments_challenge_id_fkey";
+            columns: ["challenge_id"];
+            isOneToOne: false;
             referencedRelation: "challenges";
             referencedColumns: ["id"];
           },
@@ -533,6 +697,138 @@ export type Database = {
             columns: ["profile_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      daily_challenge_sessions: {
+        Row: {
+          completed: boolean;
+          completed_at: string | null;
+          created_at: string;
+          id: string;
+          profile_id: string;
+          reward_claimed: boolean;
+          session_date: string;
+        };
+        Insert: {
+          completed?: boolean;
+          completed_at?: string | null;
+          created_at?: string;
+          id?: string;
+          profile_id: string;
+          reward_claimed?: boolean;
+          session_date?: string;
+        };
+        Update: {
+          completed?: boolean;
+          completed_at?: string | null;
+          created_at?: string;
+          id?: string;
+          profile_id?: string;
+          reward_claimed?: boolean;
+          session_date?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "daily_challenge_sessions_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      daily_session_questions: {
+        Row: {
+          challenge_id: string;
+          id: string;
+          session_topic_id: string;
+          solved: boolean;
+          solved_at: string | null;
+          started_at: string | null;
+        };
+        Insert: {
+          challenge_id: string;
+          id?: string;
+          session_topic_id: string;
+          solved?: boolean;
+          solved_at?: string | null;
+          started_at?: string | null;
+        };
+        Update: {
+          challenge_id?: string;
+          id?: string;
+          session_topic_id?: string;
+          solved?: boolean;
+          solved_at?: string | null;
+          started_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "daily_session_questions_challenge_id_fkey";
+            columns: ["challenge_id"];
+            isOneToOne: false;
+            referencedRelation: "challenge_stats";
+            referencedColumns: ["challenge_id"];
+          },
+          {
+            foreignKeyName: "daily_session_questions_challenge_id_fkey";
+            columns: ["challenge_id"];
+            isOneToOne: false;
+            referencedRelation: "challenges";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "daily_session_questions_session_topic_id_fkey";
+            columns: ["session_topic_id"];
+            isOneToOne: false;
+            referencedRelation: "daily_session_topics";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      daily_session_topics: {
+        Row: {
+          category_id: string;
+          completed: boolean;
+          completed_at: string | null;
+          id: string;
+          required_solved: number;
+          session_id: string;
+          solved_count: number;
+        };
+        Insert: {
+          category_id: string;
+          completed?: boolean;
+          completed_at?: string | null;
+          id?: string;
+          required_solved?: number;
+          session_id: string;
+          solved_count?: number;
+        };
+        Update: {
+          category_id?: string;
+          completed?: boolean;
+          completed_at?: string | null;
+          id?: string;
+          required_solved?: number;
+          session_id?: string;
+          solved_count?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "daily_session_topics_category_id_fkey";
+            columns: ["category_id"];
+            isOneToOne: false;
+            referencedRelation: "challenge_categories";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "daily_session_topics_session_id_fkey";
+            columns: ["session_id"];
+            isOneToOne: false;
+            referencedRelation: "daily_challenge_sessions";
             referencedColumns: ["id"];
           },
         ];
@@ -580,6 +876,36 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      email_otps: {
+        Row: {
+          attempts: number;
+          code_hash: string;
+          consumed_at: string | null;
+          created_at: string;
+          email: string;
+          expires_at: string;
+          id: string;
+        };
+        Insert: {
+          attempts?: number;
+          code_hash: string;
+          consumed_at?: string | null;
+          created_at?: string;
+          email: string;
+          expires_at: string;
+          id?: string;
+        };
+        Update: {
+          attempts?: number;
+          code_hash?: string;
+          consumed_at?: string | null;
+          created_at?: string;
+          email?: string;
+          expires_at?: string;
+          id?: string;
+        };
+        Relationships: [];
       };
       experience: {
         Row: {
@@ -1281,6 +1607,7 @@ export type Database = {
           avatar_url: string | null;
           bio: string | null;
           branch: string | null;
+          coins: number;
           college: string | null;
           created_at: string | null;
           degree: string | null;
@@ -1297,6 +1624,7 @@ export type Database = {
           live_resume_pdf_url: string | null;
           live_resume_updated_at: string | null;
           location: string | null;
+          longest_streak: number;
           mobile: string | null;
           onboarding_completed: boolean;
           persona: string | null;
@@ -1314,6 +1642,7 @@ export type Database = {
           avatar_url?: string | null;
           bio?: string | null;
           branch?: string | null;
+          coins?: number;
           college?: string | null;
           created_at?: string | null;
           degree?: string | null;
@@ -1330,6 +1659,7 @@ export type Database = {
           live_resume_pdf_url?: string | null;
           live_resume_updated_at?: string | null;
           location?: string | null;
+          longest_streak?: number;
           mobile?: string | null;
           onboarding_completed?: boolean;
           persona?: string | null;
@@ -1347,6 +1677,7 @@ export type Database = {
           avatar_url?: string | null;
           bio?: string | null;
           branch?: string | null;
+          coins?: number;
           college?: string | null;
           created_at?: string | null;
           degree?: string | null;
@@ -1363,6 +1694,7 @@ export type Database = {
           live_resume_pdf_url?: string | null;
           live_resume_updated_at?: string | null;
           location?: string | null;
+          longest_streak?: number;
           mobile?: string | null;
           onboarding_completed?: boolean;
           persona?: string | null;
@@ -1645,6 +1977,42 @@ export type Database = {
           },
         ];
       };
+      user_badges: {
+        Row: {
+          badge_code: string;
+          earned_at: string;
+          id: string;
+          profile_id: string;
+        };
+        Insert: {
+          badge_code: string;
+          earned_at?: string;
+          id?: string;
+          profile_id: string;
+        };
+        Update: {
+          badge_code?: string;
+          earned_at?: string;
+          id?: string;
+          profile_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "user_badges_badge_code_fkey";
+            columns: ["badge_code"];
+            isOneToOne: false;
+            referencedRelation: "badge_definitions";
+            referencedColumns: ["code"];
+          },
+          {
+            foreignKeyName: "user_badges_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       user_roadmap_progress: {
         Row: {
           completed: boolean;
@@ -1760,9 +2128,21 @@ export type Database = {
       };
     };
     Views: {
-      [_ in never]: never;
+      challenge_stats: {
+        Row: {
+          acceptance_rate: number | null;
+          challenge_id: string | null;
+          total_attempts: number | null;
+          total_passed: number | null;
+        };
+        Relationships: [];
+      };
     };
     Functions: {
+      award_coins: {
+        Args: { p_amount: number; p_profile_id: string; p_reason: string };
+        Returns: undefined;
+      };
       award_xp: {
         Args: {
           p_amount: number;
@@ -1777,6 +2157,13 @@ export type Database = {
         Args: { p_company_id: string };
         Returns: boolean;
       };
+      compute_weekly_monthly_streak: {
+        Args: { p_profile_id: string };
+        Returns: {
+          monthly_streak: number;
+          weekly_streak: number;
+        }[];
+      };
       create_notification: {
         Args: {
           p_actor_id: string;
@@ -1789,6 +2176,10 @@ export type Database = {
         Returns: undefined;
       };
       current_role: { Args: never; Returns: string };
+      grant_badge: {
+        Args: { p_code: string; p_profile_id: string };
+        Returns: undefined;
+      };
       has_company_role: {
         Args: { p_company_id: string; p_roles: string[] };
         Returns: boolean;

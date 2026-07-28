@@ -52,6 +52,7 @@ export const analyzeResumeFn = createServerFn({ method: "POST" })
     if (resume.profile_id !== auth.user.id) return { error: "Not authorized." };
     if (!resume.storage_path) return { error: "Resume file is missing." };
 
+    // TODO(API_KEY): set ANTHROPIC_API_KEY in the environment to enable AI resume analysis.
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
       return { error: "AI analysis is not configured yet (missing ANTHROPIC_API_KEY)." };
@@ -164,6 +165,7 @@ export const analyzeResumeAgainstJdFn = createServerFn({ method: "POST" })
     const { data: auth } = await supabase.auth.getUser();
     if (!auth.user) return { error: "Not signed in." };
 
+    // TODO(API_KEY): set ANTHROPIC_API_KEY in the environment to enable AI JD matching.
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
       return { error: "AI analysis is not configured yet (missing ANTHROPIC_API_KEY)." };

@@ -12,4 +12,8 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  // Hard-pin the deploy target to Vercel rather than relying on Nitro's
+  // auto-detection (which defaults to cloudflare-module outside a
+  // recognized platform build environment).
+  nitro: { preset: "vercel" },
 });

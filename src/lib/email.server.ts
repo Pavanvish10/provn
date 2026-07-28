@@ -9,6 +9,9 @@ export async function sendEmail(input: { to: string; subject: string; html: stri
   sent: boolean;
   error?: string;
 }> {
+  // TODO(API_KEY): set RESEND_API_KEY (https://resend.com) in the environment to enable
+  // transactional email. Every call site here (interview scheduling, application status,
+  // job invitations, business-emails.server.ts) already degrades gracefully without it.
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
     console.warn(
@@ -52,6 +55,19 @@ function wrapEmail(title: string, bodyHtml: string) {
       <p style="margin-top: 32px; font-size: 12px; color: #94a3b8;">You're receiving this because of activity on your Provn account.</p>
     </div>
   `;
+}
+
+export async function sendOtpEmail(params: { to: string; code: string }) {
+  return sendEmail({
+    to: params.to,
+    subject: `${params.code} is your Provn sign-in code`,
+    html: wrapEmail(
+      "Your sign-in code",
+      `<p>Enter this code to sign in to Provn:</p>
+       <p style="font-size: 32px; font-weight: 700; letter-spacing: 0.15em; margin: 20px 0;">${params.code}</p>
+       <p>This code expires in 10 minutes. If you didn't request this, you can safely ignore this email.</p>`,
+    ),
+  });
 }
 
 export async function sendInterviewScheduledEmail(params: {

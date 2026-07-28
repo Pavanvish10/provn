@@ -31,11 +31,11 @@ export function getSupabaseServerClient() {
 // server-only operations (admin actions, system-generated rows like daily
 // challenge assignments) — never expose this client or its key to the browser.
 export function getSupabaseAdminClient() {
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!serviceRoleKey) {
-    throw new Error("SUPABASE_SERVICE_ROLE_KEY is not configured on the server.");
+  const secretKey = process.env.SUPABASE_SECRET_KEY;
+  if (!secretKey) {
+    throw new Error("SUPABASE_SECRET_KEY is not configured on the server.");
   }
-  return createClient<Database>(import.meta.env.VITE_SUPABASE_URL, serviceRoleKey, {
+  return createClient<Database>(import.meta.env.VITE_SUPABASE_URL, secretKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 }

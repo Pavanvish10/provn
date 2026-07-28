@@ -2,8 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { Database } from "@/lib/supabase/types";
-import { ensureTodaysChallengesFn } from "@/lib/daily-challenges.server";
-import { getSupportedLanguagesFn, runSampleFn, submitChallengeFn } from "@/lib/piston.server";
+import { getSupportedLanguagesFn, runSampleFn, submitChallengeFn } from "@/lib/judge0.server";
 
 export type Challenge = Database["public"]["Tables"]["challenges"]["Row"];
 export type ChallengeCategory = Database["public"]["Tables"]["challenge_categories"]["Row"];
@@ -55,40 +54,9 @@ export function useChallenge(slug: string | undefined) {
   });
 }
 
-export function useTodaysChallenges(profileId: string | undefined) {
-  return useQuery({
-    queryKey: ["daily-challenges", profileId],
-    queryFn: async () => {
-      const result = await ensureTodaysChallengesFn();
-      if (result.error || result.challengeIds.length === 0)
-        return { challenges: [], error: result.error };
-      const supabase = getSupabaseBrowserClient();
-      const { data, error } = await supabase
-        .from("challenges")
-        .select("*")
-        .in("id", result.challengeIds);
-      if (error) throw error;
-
-      const today = new Date().toISOString().slice(0, 10);
-      const { data: assignments } = await supabase
-        .from("daily_challenge_assignments")
-        .select("challenge_id, completed")
-        .eq("profile_id", profileId!)
-        .eq("assigned_date", today);
-      const completedMap = new Map((assignments ?? []).map((a) => [a.challenge_id, a.completed]));
-
-      return {
-        challenges: (data ?? []).map((c) => ({ ...c, completed: completedMap.get(c.id) ?? false })),
-        error: null,
-      };
-    },
-    enabled: !!profileId,
-  });
-}
-
 export function useSupportedLanguages() {
   return useQuery({
-    queryKey: ["piston-languages"],
+    queryKey: ["judge0-languages"],
     queryFn: () => getSupportedLanguagesFn(),
     staleTime: 60 * 60 * 1000,
   });
@@ -96,12 +64,8 @@ export function useSupportedLanguages() {
 
 export function useRunSample() {
   return useMutation({
-    mutationFn: (vars: {
-      challengeId: string;
-      language: string;
-      version: string;
-      source: string;
-    }) => runSampleFn({ data: vars }),
+    mutationFn: (vars: { challengeId: string; judge0Id: number; source: string }) =>
+      runSampleFn({ data: vars }),
   });
 }
 
@@ -110,13 +74,15 @@ export function useSubmitChallenge(profileId: string | undefined) {
   return useMutation({
     mutationFn: (vars: {
       challengeId: string;
+      judge0Id: number;
       language: string;
-      version: string;
       source: string;
+      timeTakenSeconds?: number;
+      hintUsed?: boolean;
     }) => submitChallengeFn({ data: vars }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["submissions"] });
-      queryClient.invalidateQueries({ queryKey: ["daily-challenges", profileId] });
+      queryClient.invalidateQueries({ queryKey: ["daily-session"] });
       queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
     },
   });
@@ -140,22 +106,21 @@ export function useMySubmissions(challengeId: string | undefined, profileId: str
   });
 }
 
-export function useLeaderboard(page: number) {
-  const pageSize = 25;
+export function useChallengeStats(challengeIds: string[]) {
   return useQuery({
-    queryKey: ["leaderboard", page],
+    queryKey: ["challenge-stats", challengeIds.slice().sort()],
     queryFn: async () => {
+      if (challengeIds.length === 0) return new Map<string, number | null>();
       const supabase = getSupabaseBrowserClient();
-      const from = page * pageSize;
-      const to = from + pageSize - 1;
-      const { data, error, count } = await supabase
-        .from("profiles")
-        .select("id, full_name, username, avatar_url, xp, streak", { count: "exact" })
-        .order("xp", { ascending: false })
-        .order("streak", { ascending: false })
-        .range(from, to);
+      const { data, error } = await supabase
+        .from("challenge_stats")
+        .select("challenge_id, acceptance_rate")
+        .in("challenge_id", challengeIds);
       if (error) throw error;
-      return { rows: data ?? [], count: count ?? 0 };
+      return new Map(
+        (data ?? []).map((r) => [r.challenge_id as string, r.acceptance_rate as number | null]),
+      );
     },
+    enabled: challengeIds.length > 0,
   });
 }

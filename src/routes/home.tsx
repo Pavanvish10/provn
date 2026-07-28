@@ -20,6 +20,7 @@ import {
   Share2,
   Building2,
   Check,
+  Target,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +30,9 @@ import { useCurrentUser } from "@/lib/auth-client";
 import { requireAuth } from "@/lib/auth-guard";
 import { useProfile } from "@/lib/profile-client";
 import { useSkills, useLeaderboardRank } from "@/lib/profile-sections-client";
+import { useTodaysSession } from "@/lib/daily-session-client";
+import { useQuery } from "@tanstack/react-query";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
   useFeed,
   useCreatePost,
@@ -74,12 +78,7 @@ function Home() {
         <aside className="hidden lg:block">
           <div className="sticky top-20 space-y-4">
             <MiniProfile />
-            <Card title="Your streak" icon={<Flame className="h-4 w-4 text-brand" />}>
-              <div className="font-display text-4xl">{profile?.streak ?? 0}</div>
-              <div className="text-xs text-muted-foreground">
-                days · solve challenges today to keep it alive
-              </div>
-            </Card>
+            <DailyChallengeWidget userId={user?.id} />
           </div>
         </aside>
 
@@ -593,6 +592,94 @@ function MiniProfile() {
     </div>
   );
 }
+function useWeeklyMonthlyProgress(userId: string | undefined) {
+  return useQuery({
+    queryKey: ["home-weekly-monthly-xp", userId],
+    queryFn: async () => {
+      const supabase = getSupabaseBrowserClient();
+      const now = new Date();
+      const weekStart = new Date(now);
+      weekStart.setDate(now.getDate() - now.getDay());
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const { data, error } = await supabase
+        .from("daily_activity")
+        .select("activity_date, xp_earned")
+        .eq("profile_id", userId!)
+        .gte("activity_date", monthStart.toISOString().slice(0, 10));
+      if (error) throw error;
+      const weekIso = weekStart.toISOString().slice(0, 10);
+      const weekXp = (data ?? [])
+        .filter((d) => d.activity_date >= weekIso)
+        .reduce((n, d) => n + d.xp_earned, 0);
+      const monthXp = (data ?? []).reduce((n, d) => n + d.xp_earned, 0);
+      return { weekXp, monthXp };
+    },
+    enabled: !!userId,
+  });
+}
+
+function DailyChallengeWidget({ userId }: { userId: string | undefined }) {
+  const { data: profile } = useProfile(userId);
+  const { data: rank } = useLeaderboardRank(userId, profile?.xp);
+  const { data: session, isLoading } = useTodaysSession(userId);
+  const { data: progress } = useWeeklyMonthlyProgress(userId);
+
+  const totalRequired = session?.topics.reduce((n, t) => n + t.required_solved, 0) ?? 0;
+  const totalSolved =
+    session?.topics.reduce((n, t) => n + Math.min(t.solved_count, t.required_solved), 0) ?? 0;
+  const totalQuestions = session?.topics.reduce((n, t) => n + t.questions.length, 0) ?? 0;
+
+  return (
+    <Card title="Daily Challenge" icon={<Target className="h-4 w-4 text-brand" />}>
+      {isLoading ? (
+        <div className="text-xs text-muted-foreground">Loading…</div>
+      ) : !session ? (
+        <>
+          <p className="text-sm text-muted-foreground">Pick today's topics to start your streak.</p>
+          <Button asChild size="sm" className="mt-3 w-full">
+            <Link to="/challenges">Choose topics</Link>
+          </Button>
+        </>
+      ) : (
+        <>
+          <div className="flex items-baseline justify-between">
+            <div className="font-display text-2xl">
+              {totalSolved}/{totalRequired}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {totalQuestions - totalSolved} remaining
+            </div>
+          </div>
+          <div className="mt-1 text-xs text-muted-foreground">
+            {session.session.completed
+              ? "Completed today 🔥"
+              : "questions solved toward today's goal"}
+          </div>
+          <Button asChild size="sm" variant="outline" className="mt-3 w-full">
+            <Link to="/challenges">
+              {session.session.completed ? "Keep practicing" : "Continue"}
+            </Link>
+          </Button>
+        </>
+      )}
+
+      <div className="mt-4 grid grid-cols-2 gap-2 text-center">
+        <Stat k={String(profile?.streak ?? 0)} v="Streak" />
+        <Stat k={String(profile?.longest_streak ?? 0)} v="Longest" />
+        <Stat k={String(profile?.xp ?? 0)} v="XP" />
+        <Stat k={String(profile?.coins ?? 0)} v="Coins" />
+      </div>
+      <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+        <span>This week: {progress?.weekXp ?? 0} XP</span>
+        <span>This month: {progress?.monthXp ?? 0} XP</span>
+      </div>
+      <div className="mt-1 text-right text-xs text-muted-foreground">
+        Rank {rank ? `#${rank}` : "—"}
+      </div>
+    </Card>
+  );
+}
+
 function Stat({ k, v }: { k: string; v: string }) {
   return (
     <div className="rounded-lg bg-muted p-2">

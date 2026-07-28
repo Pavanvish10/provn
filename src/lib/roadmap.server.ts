@@ -53,6 +53,7 @@ export const generateRoadmapForRoleFn = createServerFn({ method: "POST" })
       if (existingError) return { error: existingError.message };
       if (existing) return { error: null, roadmapId: existing.id, created: false };
 
+      // TODO(API_KEY): set ANTHROPIC_API_KEY in the environment to enable AI roadmap generation.
       const apiKey = process.env.ANTHROPIC_API_KEY;
       if (!apiKey) {
         return {

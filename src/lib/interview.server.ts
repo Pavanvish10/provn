@@ -26,6 +26,7 @@ function transcriptToText(transcript: InterviewTurn[]) {
 }
 
 function getAnthropic(): { client: Anthropic } | { error: string } {
+  // TODO(API_KEY): set ANTHROPIC_API_KEY in the environment to enable AI mock interviews.
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey)
     return { error: "AI mock interviews are not configured yet (missing ANTHROPIC_API_KEY)." };
