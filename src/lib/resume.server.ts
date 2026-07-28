@@ -3,6 +3,7 @@ import { z } from "zod";
 import Anthropic from "@anthropic-ai/sdk";
 
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { friendlyAnthropicError } from "@/lib/ai.server";
 
 export type ResumeAnalysis = {
   skills: string[];
@@ -67,22 +68,27 @@ export const analyzeResumeFn = createServerFn({ method: "POST" })
     const base64 = bytes.toString("base64");
 
     const anthropic = new Anthropic({ apiKey });
-    const message = await anthropic.messages.create({
-      model: "claude-sonnet-5",
-      max_tokens: 4096,
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "document",
-              source: { type: "base64", media_type: "application/pdf", data: base64 },
-            },
-            { type: "text", text: ANALYSIS_PROMPT },
-          ],
-        },
-      ],
-    });
+    let message: Anthropic.Messages.Message;
+    try {
+      message = await anthropic.messages.create({
+        model: "claude-sonnet-5",
+        max_tokens: 4096,
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "document",
+                source: { type: "base64", media_type: "application/pdf", data: base64 },
+              },
+              { type: "text", text: ANALYSIS_PROMPT },
+            ],
+          },
+        ],
+      });
+    } catch (err) {
+      return { error: friendlyAnthropicError(err) };
+    }
 
     const textBlock = message.content.find((b) => b.type === "text");
     if (!textBlock || textBlock.type !== "text") {
@@ -190,22 +196,27 @@ export const analyzeResumeAgainstJdFn = createServerFn({ method: "POST" })
     const base64 = bytes.toString("base64");
 
     const anthropic = new Anthropic({ apiKey });
-    const message = await anthropic.messages.create({
-      model: "claude-sonnet-5",
-      max_tokens: 2048,
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "document",
-              source: { type: "base64", media_type: "application/pdf", data: base64 },
-            },
-            { type: "text", text: JD_MATCH_PROMPT(data.jobDescription) },
-          ],
-        },
-      ],
-    });
+    let message: Anthropic.Messages.Message;
+    try {
+      message = await anthropic.messages.create({
+        model: "claude-sonnet-5",
+        max_tokens: 2048,
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "document",
+                source: { type: "base64", media_type: "application/pdf", data: base64 },
+              },
+              { type: "text", text: JD_MATCH_PROMPT(data.jobDescription) },
+            ],
+          },
+        ],
+      });
+    } catch (err) {
+      return { error: friendlyAnthropicError(err) };
+    }
 
     const textBlock = message.content.find((b) => b.type === "text");
     if (!textBlock || textBlock.type !== "text")

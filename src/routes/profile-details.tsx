@@ -7,11 +7,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { DarkModeToggle } from "@/components/DarkModeToggle";
 import { Wordmark } from "@/components/Logo";
 import { requireAuth } from "@/lib/auth-guard";
 import { useCurrentUser, invalidateCurrentUser } from "@/lib/auth-client";
 import { useProfile, useUpdateProfile, uploadAvatar } from "@/lib/profile-client";
+
+const STARTUP_STAGES = ["Idea stage", "Pre-seed", "Seed", "Early traction", "Growth", "Scaling"];
 
 export const Route = createFileRoute("/profile-details")({
   beforeLoad: requireAuth,
@@ -36,6 +45,12 @@ function ProfileDetails() {
   const [branch, setBranch] = useState("");
   const [yearOfStudy, setYearOfStudy] = useState("");
   const [graduationYear, setGraduationYear] = useState("");
+  const [founderCompanyName, setFounderCompanyName] = useState("");
+  const [founderCompanyWebsite, setFounderCompanyWebsite] = useState("");
+  const [founderCompanyLinkedin, setFounderCompanyLinkedin] = useState("");
+  const [founderStartupStage, setFounderStartupStage] = useState("");
+  const [founderIndustry, setFounderIndustry] = useState("");
+  const [founderCompanyDescription, setFounderCompanyDescription] = useState("");
   const [targetRole, setTargetRole] = useState("");
   const [github, setGithub] = useState("");
   const [linkedin, setLinkedin] = useState("");
@@ -55,6 +70,12 @@ function ProfileDetails() {
     setBranch(profile.branch ?? "");
     setYearOfStudy(profile.year_of_study ? String(profile.year_of_study) : "");
     setGraduationYear(profile.graduation_year ? String(profile.graduation_year) : "");
+    setFounderCompanyName(profile.founder_company_name ?? "");
+    setFounderCompanyWebsite(profile.founder_company_website ?? "");
+    setFounderCompanyLinkedin(profile.founder_company_linkedin ?? "");
+    setFounderStartupStage(profile.founder_startup_stage ?? "");
+    setFounderIndustry(profile.founder_industry ?? "");
+    setFounderCompanyDescription(profile.founder_company_description ?? "");
     setTargetRole(profile.target_role ?? "");
     setGithub(profile.github_url ?? "");
     setLinkedin(profile.linkedin_url ?? "");
@@ -63,6 +84,8 @@ function ProfileDetails() {
     setAvatarUrl(profile.avatar_url ?? null);
     setHydrated(true);
   }
+
+  const isFounder = profile?.persona === "founder";
 
   const onAvatarPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -97,11 +120,22 @@ function ProfileDetails() {
       await updateProfile.mutateAsync({
         full_name: fullName.trim(),
         username: username.trim().toLowerCase(),
-        college: college.trim() || null,
-        degree: degree.trim() || null,
-        branch: branch.trim() || null,
-        year_of_study: yearOfStudy ? Number(yearOfStudy) : null,
-        graduation_year: graduationYear ? Number(graduationYear) : null,
+        ...(isFounder
+          ? {
+              founder_company_name: founderCompanyName.trim() || null,
+              founder_company_website: founderCompanyWebsite.trim() || null,
+              founder_company_linkedin: founderCompanyLinkedin.trim() || null,
+              founder_startup_stage: founderStartupStage || null,
+              founder_industry: founderIndustry.trim() || null,
+              founder_company_description: founderCompanyDescription.trim() || null,
+            }
+          : {
+              college: college.trim() || null,
+              degree: degree.trim() || null,
+              branch: branch.trim() || null,
+              year_of_study: yearOfStudy ? Number(yearOfStudy) : null,
+              graduation_year: graduationYear ? Number(graduationYear) : null,
+            }),
         target_role: targetRole.trim() || null,
         github_url: github.trim() || null,
         linkedin_url: linkedin.trim() || null,
@@ -193,46 +227,109 @@ function ProfileDetails() {
             </Field>
           </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Field label="College / University">
-              <Input value={college} onChange={(e) => setCollege(e.target.value)} />
-            </Field>
-            <Field label="Degree">
-              <Input
-                value={degree}
-                onChange={(e) => setDegree(e.target.value)}
-                placeholder="B.Tech"
-              />
-            </Field>
-          </div>
+          {isFounder ? (
+            <>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Field label="Company name">
+                  <Input
+                    value={founderCompanyName}
+                    onChange={(e) => setFounderCompanyName(e.target.value)}
+                    placeholder="Your startup's name"
+                  />
+                </Field>
+                <Field label="Company website">
+                  <Input
+                    value={founderCompanyWebsite}
+                    onChange={(e) => setFounderCompanyWebsite(e.target.value)}
+                    placeholder="https://yourstartup.com"
+                  />
+                </Field>
+              </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <Field label="Branch">
-              <Input
-                value={branch}
-                onChange={(e) => setBranch(e.target.value)}
-                placeholder="Computer Science"
-              />
-            </Field>
-            <Field label="Current year">
-              <Input
-                type="number"
-                min={1}
-                max={6}
-                value={yearOfStudy}
-                onChange={(e) => setYearOfStudy(e.target.value)}
-              />
-            </Field>
-            <Field label="Graduation year">
-              <Input
-                type="number"
-                min={2000}
-                max={2100}
-                value={graduationYear}
-                onChange={(e) => setGraduationYear(e.target.value)}
-              />
-            </Field>
-          </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <Field label="Company LinkedIn">
+                  <Input
+                    value={founderCompanyLinkedin}
+                    onChange={(e) => setFounderCompanyLinkedin(e.target.value)}
+                    placeholder="https://linkedin.com/company/..."
+                  />
+                </Field>
+                <Field label="Startup stage">
+                  <Select value={founderStartupStage} onValueChange={setFounderStartupStage}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select stage" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STARTUP_STAGES.map((s) => (
+                        <SelectItem key={s} value={s}>
+                          {s}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field label="Industry">
+                  <Input
+                    value={founderIndustry}
+                    onChange={(e) => setFounderIndustry(e.target.value)}
+                    placeholder="Fintech"
+                  />
+                </Field>
+              </div>
+
+              <Field label="Company description">
+                <Textarea
+                  value={founderCompanyDescription}
+                  onChange={(e) => setFounderCompanyDescription(e.target.value)}
+                  rows={3}
+                  placeholder="What does your startup do?"
+                />
+              </Field>
+            </>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Field label="College / University">
+                  <Input value={college} onChange={(e) => setCollege(e.target.value)} />
+                </Field>
+                <Field label="Degree">
+                  <Input
+                    value={degree}
+                    onChange={(e) => setDegree(e.target.value)}
+                    placeholder="B.Tech"
+                  />
+                </Field>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <Field label="Branch">
+                  <Input
+                    value={branch}
+                    onChange={(e) => setBranch(e.target.value)}
+                    placeholder="Computer Science"
+                  />
+                </Field>
+                <Field label="Current year">
+                  <Input
+                    type="number"
+                    min={1}
+                    max={6}
+                    value={yearOfStudy}
+                    onChange={(e) => setYearOfStudy(e.target.value)}
+                  />
+                </Field>
+                <Field label="Graduation year">
+                  <Input
+                    type="number"
+                    min={2000}
+                    max={2100}
+                    value={graduationYear}
+                    onChange={(e) => setGraduationYear(e.target.value)}
+                  />
+                </Field>
+              </div>
+            </>
+          )}
 
           <Field label="Target role">
             <Input

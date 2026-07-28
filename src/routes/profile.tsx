@@ -32,6 +32,8 @@ import {
   X,
   Award,
   Sparkles,
+  Rocket,
+  Globe,
 } from "lucide-react";
 import { useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -140,6 +142,47 @@ function Me() {
               </div>
               {profile.bio && (
                 <p className="mt-2 max-w-lg text-sm text-muted-foreground">{profile.bio}</p>
+              )}
+              {profile.persona === "founder" && profile.founder_company_name && (
+                <div className="mt-3 rounded-lg border border-border bg-card/60 p-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Rocket className="h-4 w-4 text-brand" />
+                    <span className="font-medium">{profile.founder_company_name}</span>
+                    {profile.founder_startup_stage && (
+                      <Badge variant="secondary">{profile.founder_startup_stage}</Badge>
+                    )}
+                    {profile.founder_industry && (
+                      <Badge variant="secondary">{profile.founder_industry}</Badge>
+                    )}
+                  </div>
+                  {profile.founder_company_description && (
+                    <p className="mt-2 max-w-lg text-sm text-muted-foreground">
+                      {profile.founder_company_description}
+                    </p>
+                  )}
+                  <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                    {profile.founder_company_website && (
+                      <a
+                        className="inline-flex items-center gap-1 hover:text-foreground"
+                        href={profile.founder_company_website}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        <Globe className="h-3.5 w-3.5" /> Website
+                      </a>
+                    )}
+                    {profile.founder_company_linkedin && (
+                      <a
+                        className="inline-flex items-center gap-1 hover:text-foreground"
+                        href={profile.founder_company_linkedin}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        <Linkedin className="h-3.5 w-3.5" /> Company LinkedIn
+                      </a>
+                    )}
+                  </div>
+                </div>
               )}
               <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                 {profile.location && (
@@ -596,13 +639,26 @@ function EditProfileDialog({
   const [saving, setSaving] = useState(false);
   const [hydratedFor, setHydratedFor] = useState<string | null>(null);
 
+  const isFounder = profile?.persona === "founder";
+
   if (profile && hydratedFor !== profile.id && open) {
     setForm({
       full_name: profile.full_name ?? "",
       username: profile.username ?? "",
-      college: profile.college ?? "",
-      degree: profile.degree ?? "",
-      branch: profile.branch ?? "",
+      ...(isFounder
+        ? {
+            founder_company_name: profile.founder_company_name ?? "",
+            founder_company_website: profile.founder_company_website ?? "",
+            founder_company_linkedin: profile.founder_company_linkedin ?? "",
+            founder_startup_stage: profile.founder_startup_stage ?? "",
+            founder_industry: profile.founder_industry ?? "",
+            founder_company_description: profile.founder_company_description ?? "",
+          }
+        : {
+            college: profile.college ?? "",
+            degree: profile.degree ?? "",
+            branch: profile.branch ?? "",
+          }),
       target_role: profile.target_role ?? "",
       location: profile.location ?? "",
       github_url: profile.github_url ?? "",
@@ -673,9 +729,19 @@ function EditProfileDialog({
               [
                 ["full_name", "Full name"],
                 ["username", "Username"],
-                ["college", "College"],
-                ["degree", "Degree"],
-                ["branch", "Branch"],
+                ...(isFounder
+                  ? ([
+                      ["founder_company_name", "Company name"],
+                      ["founder_company_website", "Company website"],
+                      ["founder_company_linkedin", "Company LinkedIn"],
+                      ["founder_startup_stage", "Startup stage"],
+                      ["founder_industry", "Industry"],
+                    ] as const)
+                  : ([
+                      ["college", "College"],
+                      ["degree", "Degree"],
+                      ["branch", "Branch"],
+                    ] as const)),
                 ["target_role", "Target role"],
                 ["location", "Location"],
                 ["github_url", "GitHub URL"],
@@ -693,6 +759,19 @@ function EditProfileDialog({
               </div>
             ))}
           </div>
+          {isFounder && (
+            <div>
+              <Label className="text-xs text-muted-foreground">Company description</Label>
+              <Textarea
+                className="mt-1"
+                rows={3}
+                value={form.founder_company_description ?? ""}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, founder_company_description: e.target.value }))
+                }
+              />
+            </div>
+          )}
           <div>
             <Label className="text-xs text-muted-foreground">Bio</Label>
             <Textarea

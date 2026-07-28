@@ -3,6 +3,7 @@ import { z } from "zod";
 import Anthropic from "@anthropic-ai/sdk";
 
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { friendlyAnthropicError } from "@/lib/ai.server";
 
 const PASSED_PROMPT = (
   title: string,
@@ -116,11 +117,16 @@ export const explainSubmissionFn = createServerFn({ method: "POST" })
         );
 
     const anthropic = new Anthropic({ apiKey });
-    const message = await anthropic.messages.create({
-      model: "claude-sonnet-5",
-      max_tokens: 1024,
-      messages: [{ role: "user", content: prompt }],
-    });
+    let message: Anthropic.Messages.Message;
+    try {
+      message = await anthropic.messages.create({
+        model: "claude-sonnet-5",
+        max_tokens: 1024,
+        messages: [{ role: "user", content: prompt }],
+      });
+    } catch (err) {
+      return { error: friendlyAnthropicError(err) };
+    }
 
     const textBlock = message.content.find((b) => b.type === "text");
     if (!textBlock || textBlock.type !== "text") {

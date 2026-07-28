@@ -1612,6 +1612,12 @@ export type Database = {
           created_at: string | null;
           degree: string | null;
           email: string | null;
+          founder_company_description: string | null;
+          founder_company_linkedin: string | null;
+          founder_company_name: string | null;
+          founder_company_website: string | null;
+          founder_industry: string | null;
+          founder_startup_stage: string | null;
           full_name: string | null;
           github_url: string | null;
           graduation_year: number | null;
@@ -1647,6 +1653,12 @@ export type Database = {
           created_at?: string | null;
           degree?: string | null;
           email?: string | null;
+          founder_company_description?: string | null;
+          founder_company_linkedin?: string | null;
+          founder_company_name?: string | null;
+          founder_company_website?: string | null;
+          founder_industry?: string | null;
+          founder_startup_stage?: string | null;
           full_name?: string | null;
           github_url?: string | null;
           graduation_year?: number | null;
@@ -1682,6 +1694,12 @@ export type Database = {
           created_at?: string | null;
           degree?: string | null;
           email?: string | null;
+          founder_company_description?: string | null;
+          founder_company_linkedin?: string | null;
+          founder_company_name?: string | null;
+          founder_company_website?: string | null;
+          founder_industry?: string | null;
+          founder_startup_stage?: string | null;
           full_name?: string | null;
           github_url?: string | null;
           graduation_year?: number | null;

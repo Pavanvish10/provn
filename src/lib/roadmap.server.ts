@@ -3,6 +3,7 @@ import { z } from "zod";
 import Anthropic from "@anthropic-ai/sdk";
 
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { friendlyAnthropicError } from "@/lib/ai.server";
 
 function slugify(role: string) {
   return role
@@ -62,11 +63,16 @@ export const generateRoadmapForRoleFn = createServerFn({ method: "POST" })
       }
 
       const anthropic = new Anthropic({ apiKey });
-      const message = await anthropic.messages.create({
-        model: "claude-sonnet-5",
-        max_tokens: 2048,
-        messages: [{ role: "user", content: ROADMAP_PROMPT(data.role) }],
-      });
+      let message: Anthropic.Messages.Message;
+      try {
+        message = await anthropic.messages.create({
+          model: "claude-sonnet-5",
+          max_tokens: 2048,
+          messages: [{ role: "user", content: ROADMAP_PROMPT(data.role) }],
+        });
+      } catch (err) {
+        return { error: friendlyAnthropicError(err) };
+      }
 
       const textBlock = message.content.find((b) => b.type === "text");
       if (!textBlock || textBlock.type !== "text") {

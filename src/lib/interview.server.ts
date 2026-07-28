@@ -3,6 +3,7 @@ import { z } from "zod";
 import Anthropic from "@anthropic-ai/sdk";
 
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { friendlyAnthropicError } from "@/lib/ai.server";
 
 export type InterviewTurn = { role: "assistant" | "user"; content: string };
 
@@ -51,12 +52,17 @@ export const startMockInterviewFn = createServerFn({ method: "POST" })
       const anthropicResult = getAnthropic();
       if ("error" in anthropicResult) return { error: anthropicResult.error };
 
-      const message = await anthropicResult.client.messages.create({
-        model: "claude-sonnet-5",
-        max_tokens: 300,
-        system: personaPrompt(data.role),
-        messages: [{ role: "user", content: "Begin the interview with your first question." }],
-      });
+      let message: Anthropic.Messages.Message;
+      try {
+        message = await anthropicResult.client.messages.create({
+          model: "claude-sonnet-5",
+          max_tokens: 300,
+          system: personaPrompt(data.role),
+          messages: [{ role: "user", content: "Begin the interview with your first question." }],
+        });
+      } catch (err) {
+        return { error: friendlyAnthropicError(err) };
+      }
       const question = firstText(message);
       if (!question) return { error: "AI interviewer returned no question. Try again." };
 
@@ -114,12 +120,17 @@ export const respondToInterviewFn = createServerFn({ method: "POST" })
         ? "The interview is now complete. Write a brief, warm closing remark (2-3 sentences) thanking the candidate and letting them know their feedback is being prepared. Respond with ONLY that closing remark — no preamble, no markdown."
         : "Based on the conversation so far, ask the next interview question. Respond with ONLY the next question text — no preamble, no numbering, no markdown.";
 
-      const message = await anthropicResult.client.messages.create({
-        model: "claude-sonnet-5",
-        max_tokens: 300,
-        system: personaPrompt(interview.role),
-        messages: [{ role: "user", content: `${transcriptToText(transcript)}\n\n${followUp}` }],
-      });
+      let message: Anthropic.Messages.Message;
+      try {
+        message = await anthropicResult.client.messages.create({
+          model: "claude-sonnet-5",
+          max_tokens: 300,
+          system: personaPrompt(interview.role),
+          messages: [{ role: "user", content: `${transcriptToText(transcript)}\n\n${followUp}` }],
+        });
+      } catch (err) {
+        return { error: friendlyAnthropicError(err) };
+      }
       const nextText = firstText(message);
       if (!nextText) return { error: "AI interviewer returned no response. Try again." };
 
@@ -178,11 +189,16 @@ TRANSCRIPT:
 ${transcriptToText(transcript)}
 """`;
 
-    const message = await anthropicResult.client.messages.create({
-      model: "claude-sonnet-5",
-      max_tokens: 1024,
-      messages: [{ role: "user", content: feedbackPrompt }],
-    });
+    let message: Anthropic.Messages.Message;
+    try {
+      message = await anthropicResult.client.messages.create({
+        model: "claude-sonnet-5",
+        max_tokens: 1024,
+        messages: [{ role: "user", content: feedbackPrompt }],
+      });
+    } catch (err) {
+      return { error: friendlyAnthropicError(err) };
+    }
     const text = firstText(message);
     if (!text) return { error: "AI feedback generation returned no result. Try again." };
 
