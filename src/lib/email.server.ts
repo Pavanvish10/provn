@@ -3,7 +3,7 @@
 // since it reads a secret API key from process.env.
 
 const RESEND_API_URL = "https://api.resend.com/emails";
-const FROM_ADDRESS = "Provn <notifications@provn.app>";
+const FROM_ADDRESS = "Provn <notifications@provn.in>";
 
 export async function sendEmail(input: { to: string; subject: string; html: string }): Promise<{
   sent: boolean;

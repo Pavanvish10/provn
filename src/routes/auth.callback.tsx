@@ -21,7 +21,10 @@ export const Route = createFileRoute("/auth/callback")({
     if (result.error) {
       throw redirect({ to: "/login" });
     }
-    throw redirect({ to: "/home" });
+    // "/" already has the correct account-type-aware + onboarding-aware
+    // redirect (see src/routes/index.tsx) — reuse it instead of hardcoding
+    // a student-only destination here.
+    throw redirect({ to: "/" });
   },
   component: () => null,
 });

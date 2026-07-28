@@ -94,11 +94,29 @@ function Login() {
   const onGoogle = async () => {
     setError(null);
     const supabase = getSupabaseBrowserClient();
-    const { error: oauthError } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    const redirectTo = `${window.location.origin}/auth/callback`;
+    const provider = "google";
+
+    // skipBrowserRedirect lets us inspect the generated URL before the browser
+    // navigates away. Note this is Supabase's own /auth/v1/authorize endpoint —
+    // Supabase's server then 302s the browser on to Google using a *fixed*
+    // redirect_uri (`${VITE_SUPABASE_URL}/auth/v1/callback`) that this app
+    // never constructs and can't override; that's the value Google's
+    // "Authorized redirect URIs" must match exactly.
+    const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo, skipBrowserRedirect: true },
     });
-    if (oauthError) setError(oauthError.message);
+
+    console.log("[oauth] provider:", provider);
+    console.log("[oauth] redirectTo:", redirectTo);
+    console.log("[oauth] generated authorize URL:", data?.url);
+
+    if (oauthError) {
+      setError(oauthError.message);
+      return;
+    }
+    if (data?.url) window.location.href = data.url;
   };
 
   const onSendCode = async (e: React.FormEvent) => {
