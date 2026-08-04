@@ -4,7 +4,12 @@
 // outage this file fixes was caused by "gemini-2.0-flash" (Google retired
 // it) being hardcoded as the fallback default independently in 5 files —
 // one place to update means it can't drift out of sync again.
-export const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+//
+// gemini-2.5-flash was tried first and also failed in production — not
+// retired, but Google's API returned "no longer available to new users",
+// and this project's key is on a newer account tier. Trying the current
+// generation instead.
+export const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.5-flash";
 
 /** Turns whatever Gemini (or a network failure) throws into a message safe
  * to show the user, and — critically — logs the full raw error server-side
