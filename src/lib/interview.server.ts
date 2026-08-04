@@ -3,9 +3,7 @@ import { z } from "zod";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 import { getSupabaseServerClient } from "@/lib/supabase/server";
-import { friendlyGeminiError } from "@/lib/ai.server";
-
-const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+import { GEMINI_MODEL, friendlyGeminiError, withGeminiRetry } from "@/lib/ai.server";
 
 export type InterviewTurn = { role: "assistant" | "user"; content: string };
 
@@ -66,10 +64,12 @@ export const startMockInterviewFn = createServerFn({ method: "POST" })
 
       let question: string;
       try {
-        const result = await model.generateContent("Begin the interview with your first question.");
+        const result = await withGeminiRetry(() =>
+          model.generateContent("Begin the interview with your first question."),
+        );
         question = result.response.text().trim();
       } catch (err) {
-        return { error: friendlyGeminiError(err) };
+        return { error: friendlyGeminiError(err, "interview.start") };
       }
       if (!question) return { error: "AI interviewer returned no question. Try again." };
 
@@ -136,12 +136,12 @@ export const respondToInterviewFn = createServerFn({ method: "POST" })
 
       let nextText: string;
       try {
-        const result = await model.generateContent(
-          `${transcriptToText(transcript)}\n\n${followUp}`,
+        const result = await withGeminiRetry(() =>
+          model.generateContent(`${transcriptToText(transcript)}\n\n${followUp}`),
         );
         nextText = result.response.text().trim();
       } catch (err) {
-        return { error: friendlyGeminiError(err) };
+        return { error: friendlyGeminiError(err, "interview.respond") };
       }
       if (!nextText) return { error: "AI interviewer returned no response. Try again." };
 
@@ -211,10 +211,10 @@ ${transcriptToText(transcript)}
 
     let text: string;
     try {
-      const result = await model.generateContent(feedbackPrompt);
+      const result = await withGeminiRetry(() => model.generateContent(feedbackPrompt));
       text = result.response.text();
     } catch (err) {
-      return { error: friendlyGeminiError(err) };
+      return { error: friendlyGeminiError(err, "interview.finish") };
     }
     if (!text) return { error: "AI feedback generation returned no result. Try again." };
 

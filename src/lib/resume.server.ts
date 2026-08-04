@@ -3,9 +3,7 @@ import { z } from "zod";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 import { getSupabaseServerClient } from "@/lib/supabase/server";
-import { friendlyGeminiError } from "@/lib/ai.server";
-
-const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+import { GEMINI_MODEL, friendlyGeminiError, withGeminiRetry } from "@/lib/ai.server";
 
 export type ResumeAnalysis = {
   skills: string[];
@@ -77,13 +75,15 @@ export const analyzeResumeFn = createServerFn({ method: "POST" })
 
     let text: string;
     try {
-      const result = await model.generateContent([
-        { inlineData: { mimeType: "application/pdf", data: base64 } },
-        ANALYSIS_PROMPT,
-      ]);
+      const result = await withGeminiRetry(() =>
+        model.generateContent([
+          { inlineData: { mimeType: "application/pdf", data: base64 } },
+          ANALYSIS_PROMPT,
+        ]),
+      );
       text = result.response.text();
     } catch (err) {
-      return { error: friendlyGeminiError(err) };
+      return { error: friendlyGeminiError(err, "resume.analyze") };
     }
 
     if (!text) {
@@ -198,13 +198,15 @@ export const analyzeResumeAgainstJdFn = createServerFn({ method: "POST" })
 
     let text: string;
     try {
-      const geminiResult = await model.generateContent([
-        { inlineData: { mimeType: "application/pdf", data: base64 } },
-        JD_MATCH_PROMPT(data.jobDescription),
-      ]);
+      const geminiResult = await withGeminiRetry(() =>
+        model.generateContent([
+          { inlineData: { mimeType: "application/pdf", data: base64 } },
+          JD_MATCH_PROMPT(data.jobDescription),
+        ]),
+      );
       text = geminiResult.response.text();
     } catch (err) {
-      return { error: friendlyGeminiError(err) };
+      return { error: friendlyGeminiError(err, "resume.matchJd") };
     }
 
     if (!text) return { error: "AI analysis returned no result." };

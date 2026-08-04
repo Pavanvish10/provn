@@ -6,7 +6,7 @@
 //
 // Scoring formula (kept simple & transparent, not a black box):
 //   ats_score            = the applicant's current resume's ats_score (already
-//                           computed by Claude on upload — see resume.server.ts),
+//                           computed by Gemini on upload — see resume.server.ts),
 //                           or null if they have no resume yet.
 //   skills_score          = 0-100 overlap between the applicant's VERIFIED
 //                           skills and the job's `tags`, using matching.ts's

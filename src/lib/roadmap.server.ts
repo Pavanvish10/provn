@@ -3,9 +3,7 @@ import { z } from "zod";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 import { getSupabaseServerClient } from "@/lib/supabase/server";
-import { friendlyGeminiError } from "@/lib/ai.server";
-
-const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+import { GEMINI_MODEL, friendlyGeminiError, withGeminiRetry } from "@/lib/ai.server";
 
 function slugify(role: string) {
   return role
@@ -72,10 +70,12 @@ export const generateRoadmapForRoleFn = createServerFn({ method: "POST" })
 
       let text: string;
       try {
-        const result = await model.generateContent(ROADMAP_PROMPT(data.role));
+        const result = await withGeminiRetry(() =>
+          model.generateContent(ROADMAP_PROMPT(data.role)),
+        );
         text = result.response.text();
       } catch (err) {
-        return { error: friendlyGeminiError(err) };
+        return { error: friendlyGeminiError(err, "roadmap.generate") };
       }
 
       if (!text) {
