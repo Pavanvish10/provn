@@ -67,7 +67,13 @@ function Signup() {
           email,
           password,
           fullName,
-          redirectTo: `${window.location.origin}/auth/callback`,
+          // Not /auth/callback: admin.generateLink() (used server-side to
+          // build the confirmation email) can only produce implicit-flow
+          // links with tokens in the URL hash, never a PKCE `code` — the
+          // only thing /auth/callback knows how to consume. Landing on
+          // /login directly avoids a pointless bounce through a route that
+          // can never handle this link shape.
+          redirectTo: `${window.location.origin}/login`,
         },
       });
       if (result.error) {

@@ -73,7 +73,11 @@ function BusinessSignup() {
           email,
           password,
           hrName,
-          redirectTo: `${window.location.origin}/auth/callback`,
+          // See the matching comment in signup.tsx: generateLink() can only
+          // produce implicit-flow (hash-token) links, so /auth/callback
+          // (which expects a PKCE `code`) can never handle this — go
+          // straight to /login instead.
+          redirectTo: `${window.location.origin}/login`,
           company: {
             companyName,
             website: website || undefined,

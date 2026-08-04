@@ -50,6 +50,7 @@ function Login() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [cooldown, setCooldown] = useState(0);
+  const [justConfirmed, setJustConfirmed] = useState(false);
 
   const emailValid = z.string().email().safeParse(email).success;
 
@@ -58,6 +59,19 @@ function Login() {
     const t = setInterval(() => setCooldown((c) => Math.max(0, c - 1)), 1000);
     return () => clearInterval(t);
   }, [cooldown]);
+
+  // Signup confirmation links land here with an implicit-flow session in
+  // the URL hash (see the redirectTo comment in signup.tsx / business-signup.tsx)
+  // that this app's cookie-based SSR auth can't use — strip it immediately
+  // so a live access token doesn't linger in the address bar or history,
+  // and let the user know their email is confirmed.
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash.includes("access_token") && hash.includes("type=signup")) {
+      window.history.replaceState(null, "", window.location.pathname + window.location.search);
+      setJustConfirmed(true);
+    }
+  }, []);
 
   const finishSignIn = async () => {
     await invalidateCurrentUser(queryClient);
@@ -179,6 +193,12 @@ function Login() {
             <p className="mt-3 max-w-sm text-sm text-muted-foreground">
               Log in to keep proving what you can actually do.
             </p>
+
+            {justConfirmed && (
+              <p className="mt-4 rounded-lg border border-brand/30 bg-brand/10 px-3 py-2 text-sm text-foreground">
+                Email confirmed. Log in below to continue.
+              </p>
+            )}
 
             {mode === "password" && (
               <form onSubmit={onSubmit} className="mt-8 space-y-3">
