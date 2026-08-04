@@ -62,7 +62,14 @@ function Signup() {
 
     setSubmitting(true);
     try {
-      const result = await signUpFn({ data: { email, password, fullName } });
+      const result = await signUpFn({
+        data: {
+          email,
+          password,
+          fullName,
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
       if (result.error) {
         setError(result.error);
         return;

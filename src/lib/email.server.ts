@@ -3,7 +3,15 @@
 // since it reads a secret API key from process.env.
 
 const RESEND_API_URL = "https://api.resend.com/emails";
-const FROM_ADDRESS = "Provn <notifications@provn.in>";
+// The app's brand name is "Provn" but the actually-owned/verified domain is
+// "provnn.in" (double n — matches the live site, www.provnn.in). An earlier
+// fix ("Fix Resend sender domain") changed this to "provn.in" (single n),
+// which was never actually verified with Resend — confirmed live via a
+// direct Resend API call: provn.in returns 403 "domain is not verified",
+// provnn.in sends successfully. Every transactional email in this app
+// (OTP codes, interview scheduling, application updates, job invitations)
+// has been silently failing until this fix.
+const FROM_ADDRESS = "Provn <notifications@provnn.in>";
 
 export async function sendEmail(input: { to: string; subject: string; html: string }): Promise<{
   sent: boolean;
@@ -66,6 +74,34 @@ export async function sendOtpEmail(params: { to: string; code: string }) {
       `<p>Enter this code to sign in to Provn:</p>
        <p style="font-size: 32px; font-weight: 700; letter-spacing: 0.15em; margin: 20px 0;">${params.code}</p>
        <p>This code expires in 10 minutes. If you didn't request this, you can safely ignore this email.</p>`,
+    ),
+  });
+}
+
+export async function sendConfirmationEmail(params: {
+  to: string;
+  fullName: string;
+  confirmLink: string;
+  isBusiness?: boolean;
+}) {
+  return sendEmail({
+    to: params.to,
+    subject: params.isBusiness
+      ? "Confirm your Provn Business account"
+      : "Confirm your Provn account",
+    html: wrapEmail(
+      "Confirm your email",
+      `<p>Hi ${params.fullName || "there"},</p>
+       <p>${
+         params.isBusiness
+           ? "Thanks for registering your company on Provn. Confirm your email to finish setting up your business account."
+           : "Thanks for signing up for Provn. Confirm your email to activate your account."
+       }</p>
+       <p style="margin: 24px 0;">
+         <a href="${params.confirmLink}" style="display: inline-block; background: #2563EB; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">Confirm email</a>
+       </p>
+       <p style="color: #94a3b8; font-size: 12px;">Or paste this link into your browser: ${params.confirmLink}</p>
+       <p>If you didn't create this account, you can safely ignore this email.</p>`,
     ),
   });
 }

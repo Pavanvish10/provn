@@ -30,7 +30,7 @@ import { useCurrentUser } from "@/lib/auth-client";
 import { requireAuth } from "@/lib/auth-guard";
 import { useProfile } from "@/lib/profile-client";
 import { useSkills, useLeaderboardRank } from "@/lib/profile-sections-client";
-import { useTodaysSession } from "@/lib/daily-session-client";
+import { useTodaysDailyChallenge, useMyDailyChallengeStatus } from "@/lib/daily-challenge-client";
 import { useQuery } from "@tanstack/react-query";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
@@ -89,7 +89,16 @@ function Home() {
         <aside className="hidden lg:block">
           <div className="sticky top-20 space-y-4">
             <Link
-              to="/business"
+              // This card renders on the student feed — every account here
+              // is a student (company accounts are redirected to /business
+              // straight from "/", see index.tsx), so linking directly to
+              // the gated /business dashboard meant every click just
+              // bounced silently back to this same page via
+              // requireBusinessAccount's redirect — indistinguishable from
+              // the button "doing nothing". Route students to registration
+              // instead; only send an actual company account into the
+              // dashboard itself.
+              to={user?.accountType === "company" ? "/business" : "/business-signup"}
               className="group block rounded-2xl border border-border bg-gradient-to-br from-brand-soft to-card p-4 transition hover:border-brand/60"
             >
               <div className="flex items-center gap-2">
@@ -105,7 +114,7 @@ function Home() {
                 Post jobs, hire from a verified pool, and reach the Provn community.
               </p>
               <div className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-brand">
-                Open Business Hub{" "}
+                {user?.accountType === "company" ? "Open Business Hub" : "Register your company"}{" "}
                 <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" />
               </div>
             </Link>
@@ -621,43 +630,29 @@ function useWeeklyMonthlyProgress(userId: string | undefined) {
 function DailyChallengeWidget({ userId }: { userId: string | undefined }) {
   const { data: profile } = useProfile(userId);
   const { data: rank } = useLeaderboardRank(userId, profile?.xp);
-  const { data: session, isLoading } = useTodaysSession(userId);
+  const { data: challenge, isLoading } = useTodaysDailyChallenge();
+  const { data: status } = useMyDailyChallengeStatus(userId);
   const { data: progress } = useWeeklyMonthlyProgress(userId);
-
-  const totalRequired = session?.topics.reduce((n, t) => n + t.required_solved, 0) ?? 0;
-  const totalSolved =
-    session?.topics.reduce((n, t) => n + Math.min(t.solved_count, t.required_solved), 0) ?? 0;
-  const totalQuestions = session?.topics.reduce((n, t) => n + t.questions.length, 0) ?? 0;
 
   return (
     <Card title="Daily Challenge" icon={<Target className="h-4 w-4 text-brand" />}>
       {isLoading ? (
         <div className="text-xs text-muted-foreground">Loading…</div>
-      ) : !session ? (
-        <>
-          <p className="text-sm text-muted-foreground">Pick today's topics to start your streak.</p>
-          <Button asChild size="sm" className="mt-3 w-full">
-            <Link to="/challenges">Choose topics</Link>
-          </Button>
-        </>
+      ) : !challenge ? (
+        <p className="text-sm text-muted-foreground">No challenge available right now.</p>
       ) : (
         <>
-          <div className="flex items-baseline justify-between">
-            <div className="font-display text-2xl">
-              {totalSolved}/{totalRequired}
-            </div>
-            <div className="text-xs text-muted-foreground">
-              {totalQuestions - totalSolved} remaining
-            </div>
-          </div>
+          <div className="line-clamp-1 font-display text-lg leading-tight">{challenge.title}</div>
           <div className="mt-1 text-xs text-muted-foreground">
-            {session.session.completed
+            {status?.completed
               ? "Completed today 🔥"
-              : "questions solved toward today's goal"}
+              : status?.skipped
+                ? "Skipped today"
+                : "Not started yet"}
           </div>
           <Button asChild size="sm" variant="outline" className="mt-3 w-full">
             <Link to="/challenges">
-              {session.session.completed ? "Keep practicing" : "Continue"}
+              {status?.completed ? "View Daily Challenges" : "Solve now"}
             </Link>
           </Button>
         </>

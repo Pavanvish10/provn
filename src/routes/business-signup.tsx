@@ -73,6 +73,7 @@ function BusinessSignup() {
           email,
           password,
           hrName,
+          redirectTo: `${window.location.origin}/auth/callback`,
           company: {
             companyName,
             website: website || undefined,
