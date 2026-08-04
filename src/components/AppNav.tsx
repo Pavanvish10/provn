@@ -26,20 +26,35 @@ import { invalidateCurrentUser, useCurrentUser } from "@/lib/auth-client";
 import { useUnreadNotificationCount } from "@/lib/notifications-client";
 import { useConversations } from "@/lib/messages-client";
 
-const items = [
+const itemsBeforeBusiness = [
   { to: "/home", label: "Home", icon: Home, badge: null },
   { to: "/friends", label: "Friends", icon: Users, badge: null },
   { to: "/messages", label: "Messages", icon: MessageSquare, badge: "messages" },
   { to: "/leaderboard", label: "Leaderboard", icon: Trophy, badge: null },
-  { to: "/challenges", label: "Challenges", icon: Code2, badge: null },
+  { to: "/challenges", label: "Daily Challenges", icon: Code2, badge: null },
   { to: "/notifications", label: "Notifications", icon: Bell, badge: "notifications" },
   { to: "/resume-analyse", label: "Resume Analyse", icon: FileSearch, badge: null },
   { to: "/job-preparation", label: "Job Prep", icon: BookOpen, badge: null },
   { to: "/apply", label: "Apply", icon: Briefcase, badge: null },
-  { to: "/business", label: "Business", icon: Building2, badge: null },
+] as const;
+
+const itemsAfterBusiness = [
   { to: "/search", label: "Search", icon: Search, badge: null },
   { to: "/profile", label: "Me", icon: UserCircle2, badge: null },
 ] as const;
+
+// AppNav only renders for student accounts (company accounts use
+// BusinessNav/BusinessShell instead), so this item always needs to point
+// non-company users at signup rather than the auth-gated /business
+// dashboard - see the matching fix on the home feed's Business card.
+function businessItem(isCompany: boolean) {
+  return {
+    to: isCompany ? "/business" : "/business-signup",
+    label: "Business",
+    icon: Building2,
+    badge: null,
+  } as const;
+}
 
 function NavBadge({ count }: { count: number }) {
   if (count <= 0) return null;
@@ -59,6 +74,11 @@ export function AppNav() {
   const { data: unreadNotifications } = useUnreadNotificationCount(user?.id);
   const { data: conversations } = useConversations(user?.id);
   const unreadMessages = (conversations ?? []).reduce((n, c) => n + c.unreadCount, 0);
+  const items = [
+    ...itemsBeforeBusiness,
+    businessItem(user?.accountType === "company"),
+    ...itemsAfterBusiness,
+  ];
 
   const badgeCount = (badge: string | null) =>
     badge === "messages"
