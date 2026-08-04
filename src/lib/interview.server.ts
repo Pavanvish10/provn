@@ -1,11 +1,15 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 import { getSupabaseServerClient } from "@/lib/supabase/server";
-import { friendlyAnthropicError } from "@/lib/ai.server";
+import { friendlyGeminiError } from "@/lib/ai.server";
+
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash";
 
 export type InterviewTurn = { role: "assistant" | "user"; content: string };
+
+export type InterviewMode = "technical" | "soft_skills";
 
 export type InterviewFeedback = {
   score: number;
@@ -16,7 +20,10 @@ export type InterviewFeedback = {
 
 const CANDIDATE_ANSWER_THRESHOLD = 5;
 
-function personaPrompt(role: string) {
+function personaPrompt(role: string, mode: InterviewMode) {
+  if (mode === "soft_skills") {
+    return `You are conducting a professional soft-skills / behavioral interview for a candidate targeting the role of "${role}". Focus exclusively on soft skills — communication, teamwork, conflict resolution, leadership, adaptability, time management, and handling pressure or ambiguity. Ask thoughtful behavioral questions one at a time (STAR-style prompts work well). Do not ask technical or coding questions. Keep each question concise (1-3 sentences). Respond with ONLY the question text — no preamble, no numbering, no markdown, no quotation marks.`;
+  }
   return `You are conducting a professional mock interview for a candidate targeting the role of "${role}". Ask thoughtful, role-relevant interview questions one at a time, mixing technical and behavioral questions appropriate for the role. Keep each question concise (1-3 sentences). Respond with ONLY the question text — no preamble, no numbering, no markdown, no quotation marks.`;
 }
 
@@ -26,21 +33,21 @@ function transcriptToText(transcript: InterviewTurn[]) {
     .join("\n\n");
 }
 
-function getAnthropic(): { client: Anthropic } | { error: string } {
-  // TODO(API_KEY): set ANTHROPIC_API_KEY in the environment to enable AI mock interviews.
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+function getGemini(): { client: GoogleGenerativeAI } | { error: string } {
+  // TODO(API_KEY): set GEMINI_API_KEY in the environment to enable AI mock interviews.
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey)
-    return { error: "AI mock interviews are not configured yet (missing ANTHROPIC_API_KEY)." };
-  return { client: new Anthropic({ apiKey }) };
-}
-
-function firstText(message: Anthropic.Messages.Message): string | null {
-  const block = message.content.find((b) => b.type === "text");
-  return block && block.type === "text" ? block.text.trim() : null;
+    return { error: "AI mock interviews are not configured yet (missing GEMINI_API_KEY)." };
+  return { client: new GoogleGenerativeAI(apiKey) };
 }
 
 export const startMockInterviewFn = createServerFn({ method: "POST" })
-  .validator(z.object({ role: z.string().trim().min(1).max(80) }))
+  .validator(
+    z.object({
+      role: z.string().trim().min(1).max(80),
+      mode: z.enum(["technical", "soft_skills"]).default("technical"),
+    }),
+  )
   .handler(
     async ({
       data,
@@ -49,21 +56,21 @@ export const startMockInterviewFn = createServerFn({ method: "POST" })
       const { data: auth } = await supabase.auth.getUser();
       if (!auth.user) return { error: "Not signed in." };
 
-      const anthropicResult = getAnthropic();
-      if ("error" in anthropicResult) return { error: anthropicResult.error };
+      const geminiResult = getGemini();
+      if ("error" in geminiResult) return { error: geminiResult.error };
 
-      let message: Anthropic.Messages.Message;
+      const model = geminiResult.client.getGenerativeModel({
+        model: GEMINI_MODEL,
+        systemInstruction: personaPrompt(data.role, data.mode),
+      });
+
+      let question: string;
       try {
-        message = await anthropicResult.client.messages.create({
-          model: "claude-sonnet-5",
-          max_tokens: 300,
-          system: personaPrompt(data.role),
-          messages: [{ role: "user", content: "Begin the interview with your first question." }],
-        });
+        const result = await model.generateContent("Begin the interview with your first question.");
+        question = result.response.text().trim();
       } catch (err) {
-        return { error: friendlyAnthropicError(err) };
+        return { error: friendlyGeminiError(err) };
       }
-      const question = firstText(message);
       if (!question) return { error: "AI interviewer returned no question. Try again." };
 
       const transcript: InterviewTurn[] = [{ role: "assistant", content: question }];
@@ -73,6 +80,7 @@ export const startMockInterviewFn = createServerFn({ method: "POST" })
         .insert({
           profile_id: auth.user.id,
           role: data.role,
+          mode: data.mode,
           transcript,
           status: "in_progress",
         })
@@ -99,7 +107,7 @@ export const respondToInterviewFn = createServerFn({ method: "POST" })
 
       const { data: interview, error: fetchError } = await supabase
         .from("mock_interviews")
-        .select("id, profile_id, role, transcript, status")
+        .select("id, profile_id, role, mode, transcript, status")
         .eq("id", data.interviewId)
         .single();
       if (fetchError || !interview) return { error: "Interview not found." };
@@ -113,25 +121,28 @@ export const respondToInterviewFn = createServerFn({ method: "POST" })
       const candidateAnswers = transcript.filter((t) => t.role === "user").length;
       const shouldConclude = candidateAnswers >= CANDIDATE_ANSWER_THRESHOLD;
 
-      const anthropicResult = getAnthropic();
-      if ("error" in anthropicResult) return { error: anthropicResult.error };
+      const geminiResult = getGemini();
+      if ("error" in geminiResult) return { error: geminiResult.error };
+
+      const mode = (interview.mode as InterviewMode | null) ?? "technical";
+      const model = geminiResult.client.getGenerativeModel({
+        model: GEMINI_MODEL,
+        systemInstruction: personaPrompt(interview.role, mode),
+      });
 
       const followUp = shouldConclude
         ? "The interview is now complete. Write a brief, warm closing remark (2-3 sentences) thanking the candidate and letting them know their feedback is being prepared. Respond with ONLY that closing remark — no preamble, no markdown."
         : "Based on the conversation so far, ask the next interview question. Respond with ONLY the next question text — no preamble, no numbering, no markdown.";
 
-      let message: Anthropic.Messages.Message;
+      let nextText: string;
       try {
-        message = await anthropicResult.client.messages.create({
-          model: "claude-sonnet-5",
-          max_tokens: 300,
-          system: personaPrompt(interview.role),
-          messages: [{ role: "user", content: `${transcriptToText(transcript)}\n\n${followUp}` }],
-        });
+        const result = await model.generateContent(
+          `${transcriptToText(transcript)}\n\n${followUp}`,
+        );
+        nextText = result.response.text().trim();
       } catch (err) {
-        return { error: friendlyAnthropicError(err) };
+        return { error: friendlyGeminiError(err) };
       }
-      const nextText = firstText(message);
       if (!nextText) return { error: "AI interviewer returned no response. Try again." };
 
       transcript.push({ role: "assistant", content: nextText });
@@ -155,7 +166,7 @@ export const finishInterviewFn = createServerFn({ method: "POST" })
 
     const { data: interview, error: fetchError } = await supabase
       .from("mock_interviews")
-      .select("id, profile_id, role, transcript, status, feedback, score")
+      .select("id, profile_id, role, mode, transcript, status, feedback, score")
       .eq("id", data.interviewId)
       .single();
     if (fetchError || !interview) return { error: "Interview not found." };
@@ -170,10 +181,14 @@ export const finishInterviewFn = createServerFn({ method: "POST" })
       return { error: "Answer at least one question before finishing." };
     }
 
-    const anthropicResult = getAnthropic();
-    if ("error" in anthropicResult) return { error: anthropicResult.error };
+    const geminiResult = getGemini();
+    if ("error" in geminiResult) return { error: geminiResult.error };
 
-    const feedbackPrompt = `You are an expert interview coach. Review this full mock interview transcript for a candidate targeting the role of "${interview.role}" and respond with ONLY a JSON object (no markdown fences, no prose) matching this exact shape:
+    const mode = (interview.mode as InterviewMode | null) ?? "technical";
+    const focusLabel =
+      mode === "soft_skills" ? "soft-skills / behavioral" : "technical and behavioral";
+
+    const feedbackPrompt = `You are an expert interview coach. Review this full ${focusLabel} mock interview transcript for a candidate targeting the role of "${interview.role}" and respond with ONLY a JSON object (no markdown fences, no prose) matching this exact shape:
 
 {
   "score": number (0-10, a realistic honest overall performance score),
@@ -189,17 +204,18 @@ TRANSCRIPT:
 ${transcriptToText(transcript)}
 """`;
 
-    let message: Anthropic.Messages.Message;
+    const model = geminiResult.client.getGenerativeModel({
+      model: GEMINI_MODEL,
+      generationConfig: { responseMimeType: "application/json" },
+    });
+
+    let text: string;
     try {
-      message = await anthropicResult.client.messages.create({
-        model: "claude-sonnet-5",
-        max_tokens: 1024,
-        messages: [{ role: "user", content: feedbackPrompt }],
-      });
+      const result = await model.generateContent(feedbackPrompt);
+      text = result.response.text();
     } catch (err) {
-      return { error: friendlyAnthropicError(err) };
+      return { error: friendlyGeminiError(err) };
     }
-    const text = firstText(message);
     if (!text) return { error: "AI feedback generation returned no result. Try again." };
 
     let feedback: InterviewFeedback;

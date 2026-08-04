@@ -1349,6 +1349,7 @@ export type Database = {
           created_at: string;
           feedback: Json | null;
           id: string;
+          mode: string;
           profile_id: string;
           role: string;
           score: number | null;
@@ -1360,6 +1361,7 @@ export type Database = {
           created_at?: string;
           feedback?: Json | null;
           id?: string;
+          mode?: string;
           profile_id: string;
           role: string;
           score?: number | null;
@@ -1371,6 +1373,7 @@ export type Database = {
           created_at?: string;
           feedback?: Json | null;
           id?: string;
+          mode?: string;
           profile_id?: string;
           role?: string;
           score?: number | null;

@@ -1,9 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 import { getSupabaseServerClient } from "@/lib/supabase/server";
-import { friendlyAnthropicError } from "@/lib/ai.server";
+import { friendlyGeminiError } from "@/lib/ai.server";
+
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash";
 
 function slugify(role: string) {
   return role
@@ -54,35 +56,36 @@ export const generateRoadmapForRoleFn = createServerFn({ method: "POST" })
       if (existingError) return { error: existingError.message };
       if (existing) return { error: null, roadmapId: existing.id, created: false };
 
-      // TODO(API_KEY): set ANTHROPIC_API_KEY in the environment to enable AI roadmap generation.
-      const apiKey = process.env.ANTHROPIC_API_KEY;
+      // TODO(API_KEY): set GEMINI_API_KEY in the environment to enable AI roadmap generation.
+      const apiKey = process.env.GEMINI_API_KEY;
       if (!apiKey) {
         return {
-          error: "AI roadmap generation is not configured yet (missing ANTHROPIC_API_KEY).",
+          error: "AI roadmap generation is not configured yet (missing GEMINI_API_KEY).",
         };
       }
 
-      const anthropic = new Anthropic({ apiKey });
-      let message: Anthropic.Messages.Message;
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({
+        model: GEMINI_MODEL,
+        generationConfig: { responseMimeType: "application/json" },
+      });
+
+      let text: string;
       try {
-        message = await anthropic.messages.create({
-          model: "claude-sonnet-5",
-          max_tokens: 2048,
-          messages: [{ role: "user", content: ROADMAP_PROMPT(data.role) }],
-        });
+        const result = await model.generateContent(ROADMAP_PROMPT(data.role));
+        text = result.response.text();
       } catch (err) {
-        return { error: friendlyAnthropicError(err) };
+        return { error: friendlyGeminiError(err) };
       }
 
-      const textBlock = message.content.find((b) => b.type === "text");
-      if (!textBlock || textBlock.type !== "text") {
+      if (!text) {
         return { error: "AI roadmap generation returned no result. Try again." };
       }
 
       let generated: GeneratedRoadmap;
       try {
-        const jsonMatch = textBlock.text.match(/\{[\s\S]*\}/);
-        generated = JSON.parse(jsonMatch ? jsonMatch[0] : textBlock.text);
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        generated = JSON.parse(jsonMatch ? jsonMatch[0] : text);
       } catch {
         return { error: "Could not parse the generated roadmap. Try again." };
       }

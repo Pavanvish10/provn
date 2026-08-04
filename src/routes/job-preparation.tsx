@@ -22,6 +22,7 @@ import {
   Circle,
   Loader2,
   Wand2,
+  HeartHandshake,
 } from "lucide-react";
 import { requireAuth } from "@/lib/auth-guard";
 import { useCurrentUser } from "@/lib/auth-client";
@@ -167,6 +168,25 @@ function JobPrep() {
           </Button>
         </div>
       )}
+
+      <Link
+        to="/interview-practice"
+        className="mb-8 flex items-center justify-between gap-4 rounded-2xl border border-border bg-card p-6 transition hover:border-foreground/20 hover:shadow-sm"
+      >
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-brand-soft text-brand">
+            <HeartHandshake className="h-5 w-5" />
+          </div>
+          <div>
+            <div className="font-medium">Practice a soft-skills interview</div>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              Communication, teamwork, leadership — practice with AI, no pressure, doesn't affect
+              verification.
+            </p>
+          </div>
+        </div>
+        <span className="shrink-0 text-sm font-medium text-brand">Start practice →</span>
+      </Link>
 
       <div className="mb-8 rounded-2xl border border-border bg-card p-6">
         <div className="font-medium">Don't see your role?</div>

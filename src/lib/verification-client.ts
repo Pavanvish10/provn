@@ -32,10 +32,14 @@ export function useLatestMockInterview(profileId: string | undefined) {
     queryKey: ["verify-mock-interview", profileId],
     queryFn: async () => {
       const supabase = getSupabaseBrowserClient();
+      // Only the technical mock interview counts toward job-application
+      // verification — a soft-skills practice session (see
+      // /interview-practice) must not satisfy this gate.
       const { data, error } = await supabase
         .from("mock_interviews")
         .select("*")
         .eq("profile_id", profileId!)
+        .eq("mode", "technical")
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();

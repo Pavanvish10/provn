@@ -1,9 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 import { getSupabaseServerClient } from "@/lib/supabase/server";
-import { friendlyAnthropicError } from "@/lib/ai.server";
+import { friendlyGeminiError } from "@/lib/ai.server";
+
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash";
 
 export type ResumeAnalysis = {
   skills: string[];
@@ -53,10 +55,10 @@ export const analyzeResumeFn = createServerFn({ method: "POST" })
     if (resume.profile_id !== auth.user.id) return { error: "Not authorized." };
     if (!resume.storage_path) return { error: "Resume file is missing." };
 
-    // TODO(API_KEY): set ANTHROPIC_API_KEY in the environment to enable AI resume analysis.
-    const apiKey = process.env.ANTHROPIC_API_KEY;
+    // TODO(API_KEY): set GEMINI_API_KEY in the environment to enable AI resume analysis.
+    const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      return { error: "AI analysis is not configured yet (missing ANTHROPIC_API_KEY)." };
+      return { error: "AI analysis is not configured yet (missing GEMINI_API_KEY)." };
     }
 
     const { data: file, error: downloadError } = await supabase.storage
@@ -67,38 +69,31 @@ export const analyzeResumeFn = createServerFn({ method: "POST" })
     const bytes = Buffer.from(await file.arrayBuffer());
     const base64 = bytes.toString("base64");
 
-    const anthropic = new Anthropic({ apiKey });
-    let message: Anthropic.Messages.Message;
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({
+      model: GEMINI_MODEL,
+      generationConfig: { responseMimeType: "application/json" },
+    });
+
+    let text: string;
     try {
-      message = await anthropic.messages.create({
-        model: "claude-sonnet-5",
-        max_tokens: 4096,
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "document",
-                source: { type: "base64", media_type: "application/pdf", data: base64 },
-              },
-              { type: "text", text: ANALYSIS_PROMPT },
-            ],
-          },
-        ],
-      });
+      const result = await model.generateContent([
+        { inlineData: { mimeType: "application/pdf", data: base64 } },
+        ANALYSIS_PROMPT,
+      ]);
+      text = result.response.text();
     } catch (err) {
-      return { error: friendlyAnthropicError(err) };
+      return { error: friendlyGeminiError(err) };
     }
 
-    const textBlock = message.content.find((b) => b.type === "text");
-    if (!textBlock || textBlock.type !== "text") {
+    if (!text) {
       return { error: "AI analysis returned no result. Try again." };
     }
 
     let analysis: ResumeAnalysis;
     try {
-      const jsonMatch = textBlock.text.match(/\{[\s\S]*\}/);
-      analysis = JSON.parse(jsonMatch ? jsonMatch[0] : textBlock.text);
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      analysis = JSON.parse(jsonMatch ? jsonMatch[0] : text);
     } catch {
       return { error: "Could not parse AI analysis. Try again." };
     }
@@ -171,10 +166,10 @@ export const analyzeResumeAgainstJdFn = createServerFn({ method: "POST" })
     const { data: auth } = await supabase.auth.getUser();
     if (!auth.user) return { error: "Not signed in." };
 
-    // TODO(API_KEY): set ANTHROPIC_API_KEY in the environment to enable AI JD matching.
-    const apiKey = process.env.ANTHROPIC_API_KEY;
+    // TODO(API_KEY): set GEMINI_API_KEY in the environment to enable AI JD matching.
+    const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      return { error: "AI analysis is not configured yet (missing ANTHROPIC_API_KEY)." };
+      return { error: "AI analysis is not configured yet (missing GEMINI_API_KEY)." };
     }
 
     const { data: resume } = await supabase
@@ -195,36 +190,28 @@ export const analyzeResumeAgainstJdFn = createServerFn({ method: "POST" })
     const bytes = Buffer.from(await file.arrayBuffer());
     const base64 = bytes.toString("base64");
 
-    const anthropic = new Anthropic({ apiKey });
-    let message: Anthropic.Messages.Message;
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({
+      model: GEMINI_MODEL,
+      generationConfig: { responseMimeType: "application/json" },
+    });
+
+    let text: string;
     try {
-      message = await anthropic.messages.create({
-        model: "claude-sonnet-5",
-        max_tokens: 2048,
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "document",
-                source: { type: "base64", media_type: "application/pdf", data: base64 },
-              },
-              { type: "text", text: JD_MATCH_PROMPT(data.jobDescription) },
-            ],
-          },
-        ],
-      });
+      const geminiResult = await model.generateContent([
+        { inlineData: { mimeType: "application/pdf", data: base64 } },
+        JD_MATCH_PROMPT(data.jobDescription),
+      ]);
+      text = geminiResult.response.text();
     } catch (err) {
-      return { error: friendlyAnthropicError(err) };
+      return { error: friendlyGeminiError(err) };
     }
 
-    const textBlock = message.content.find((b) => b.type === "text");
-    if (!textBlock || textBlock.type !== "text")
-      return { error: "AI analysis returned no result." };
+    if (!text) return { error: "AI analysis returned no result." };
 
     try {
-      const jsonMatch = textBlock.text.match(/\{[\s\S]*\}/);
-      const result: JdMatchResult = JSON.parse(jsonMatch ? jsonMatch[0] : textBlock.text);
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      const result: JdMatchResult = JSON.parse(jsonMatch ? jsonMatch[0] : text);
       return { error: null, result };
     } catch {
       return { error: "Could not parse AI analysis. Try again." };
