@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { GEMINI_MODEL, friendlyGeminiError, withGeminiRetry } from "@/lib/ai.server";
@@ -67,21 +67,21 @@ export const analyzeResumeFn = createServerFn({ method: "POST" })
     const bytes = Buffer.from(await file.arrayBuffer());
     const base64 = bytes.toString("base64");
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: GEMINI_MODEL,
-      generationConfig: { responseMimeType: "application/json" },
-    });
+    const ai = new GoogleGenAI({ apiKey });
 
-    let text: string;
+    let text: string | undefined;
     try {
-      const result = await withGeminiRetry(() =>
-        model.generateContent([
-          { inlineData: { mimeType: "application/pdf", data: base64 } },
-          ANALYSIS_PROMPT,
-        ]),
+      const response = await withGeminiRetry(() =>
+        ai.models.generateContent({
+          model: GEMINI_MODEL,
+          contents: [
+            { inlineData: { mimeType: "application/pdf", data: base64 } },
+            ANALYSIS_PROMPT,
+          ],
+          config: { responseMimeType: "application/json" },
+        }),
       );
-      text = result.response.text();
+      text = response.text;
     } catch (err) {
       return { error: friendlyGeminiError(err, "resume.analyze") };
     }
@@ -190,21 +190,21 @@ export const analyzeResumeAgainstJdFn = createServerFn({ method: "POST" })
     const bytes = Buffer.from(await file.arrayBuffer());
     const base64 = bytes.toString("base64");
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: GEMINI_MODEL,
-      generationConfig: { responseMimeType: "application/json" },
-    });
+    const ai = new GoogleGenAI({ apiKey });
 
-    let text: string;
+    let text: string | undefined;
     try {
-      const geminiResult = await withGeminiRetry(() =>
-        model.generateContent([
-          { inlineData: { mimeType: "application/pdf", data: base64 } },
-          JD_MATCH_PROMPT(data.jobDescription),
-        ]),
+      const response = await withGeminiRetry(() =>
+        ai.models.generateContent({
+          model: GEMINI_MODEL,
+          contents: [
+            { inlineData: { mimeType: "application/pdf", data: base64 } },
+            JD_MATCH_PROMPT(data.jobDescription),
+          ],
+          config: { responseMimeType: "application/json" },
+        }),
       );
-      text = geminiResult.response.text();
+      text = response.text;
     } catch (err) {
       return { error: friendlyGeminiError(err, "resume.matchJd") };
     }

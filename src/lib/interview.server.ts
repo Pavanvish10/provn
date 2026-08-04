@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { GEMINI_MODEL, friendlyGeminiError, withGeminiRetry } from "@/lib/ai.server";
@@ -31,12 +31,12 @@ function transcriptToText(transcript: InterviewTurn[]) {
     .join("\n\n");
 }
 
-function getGemini(): { client: GoogleGenerativeAI } | { error: string } {
+function getGemini(): { client: GoogleGenAI } | { error: string } {
   // TODO(API_KEY): set GEMINI_API_KEY in the environment to enable AI mock interviews.
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey)
     return { error: "AI mock interviews are not configured yet (missing GEMINI_API_KEY)." };
-  return { client: new GoogleGenerativeAI(apiKey) };
+  return { client: new GoogleGenAI({ apiKey }) };
 }
 
 export const startMockInterviewFn = createServerFn({ method: "POST" })
@@ -57,17 +57,16 @@ export const startMockInterviewFn = createServerFn({ method: "POST" })
       const geminiResult = getGemini();
       if ("error" in geminiResult) return { error: geminiResult.error };
 
-      const model = geminiResult.client.getGenerativeModel({
-        model: GEMINI_MODEL,
-        systemInstruction: personaPrompt(data.role, data.mode),
-      });
-
       let question: string;
       try {
-        const result = await withGeminiRetry(() =>
-          model.generateContent("Begin the interview with your first question."),
+        const response = await withGeminiRetry(() =>
+          geminiResult.client.models.generateContent({
+            model: GEMINI_MODEL,
+            contents: "Begin the interview with your first question.",
+            config: { systemInstruction: personaPrompt(data.role, data.mode) },
+          }),
         );
-        question = result.response.text().trim();
+        question = (response.text ?? "").trim();
       } catch (err) {
         return { error: friendlyGeminiError(err, "interview.start") };
       }
@@ -125,10 +124,6 @@ export const respondToInterviewFn = createServerFn({ method: "POST" })
       if ("error" in geminiResult) return { error: geminiResult.error };
 
       const mode = (interview.mode as InterviewMode | null) ?? "technical";
-      const model = geminiResult.client.getGenerativeModel({
-        model: GEMINI_MODEL,
-        systemInstruction: personaPrompt(interview.role, mode),
-      });
 
       const followUp = shouldConclude
         ? "The interview is now complete. Write a brief, warm closing remark (2-3 sentences) thanking the candidate and letting them know their feedback is being prepared. Respond with ONLY that closing remark — no preamble, no markdown."
@@ -136,10 +131,14 @@ export const respondToInterviewFn = createServerFn({ method: "POST" })
 
       let nextText: string;
       try {
-        const result = await withGeminiRetry(() =>
-          model.generateContent(`${transcriptToText(transcript)}\n\n${followUp}`),
+        const response = await withGeminiRetry(() =>
+          geminiResult.client.models.generateContent({
+            model: GEMINI_MODEL,
+            contents: `${transcriptToText(transcript)}\n\n${followUp}`,
+            config: { systemInstruction: personaPrompt(interview.role, mode) },
+          }),
         );
-        nextText = result.response.text().trim();
+        nextText = (response.text ?? "").trim();
       } catch (err) {
         return { error: friendlyGeminiError(err, "interview.respond") };
       }
@@ -204,15 +203,16 @@ TRANSCRIPT:
 ${transcriptToText(transcript)}
 """`;
 
-    const model = geminiResult.client.getGenerativeModel({
-      model: GEMINI_MODEL,
-      generationConfig: { responseMimeType: "application/json" },
-    });
-
-    let text: string;
+    let text: string | undefined;
     try {
-      const result = await withGeminiRetry(() => model.generateContent(feedbackPrompt));
-      text = result.response.text();
+      const response = await withGeminiRetry(() =>
+        geminiResult.client.models.generateContent({
+          model: GEMINI_MODEL,
+          contents: feedbackPrompt,
+          config: { responseMimeType: "application/json" },
+        }),
+      );
+      text = response.text;
     } catch (err) {
       return { error: friendlyGeminiError(err, "interview.finish") };
     }

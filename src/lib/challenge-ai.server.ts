@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { GEMINI_MODEL, friendlyGeminiError, withGeminiRetry } from "@/lib/ai.server";
@@ -116,13 +116,14 @@ export const explainSubmissionFn = createServerFn({ method: "POST" })
           submission.total_count,
         );
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
+    const ai = new GoogleGenAI({ apiKey });
 
-    let text: string;
+    let text: string | undefined;
     try {
-      const result = await withGeminiRetry(() => model.generateContent(prompt));
-      text = result.response.text();
+      const response = await withGeminiRetry(() =>
+        ai.models.generateContent({ model: GEMINI_MODEL, contents: prompt }),
+      );
+      text = response.text;
     } catch (err) {
       return { error: friendlyGeminiError(err, "challenge.explain") };
     }

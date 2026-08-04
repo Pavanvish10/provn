@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { GEMINI_MODEL, friendlyGeminiError, withGeminiRetry } from "@/lib/ai.server";
@@ -62,18 +62,18 @@ export const generateRoadmapForRoleFn = createServerFn({ method: "POST" })
         };
       }
 
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({
-        model: GEMINI_MODEL,
-        generationConfig: { responseMimeType: "application/json" },
-      });
+      const ai = new GoogleGenAI({ apiKey });
 
-      let text: string;
+      let text: string | undefined;
       try {
-        const result = await withGeminiRetry(() =>
-          model.generateContent(ROADMAP_PROMPT(data.role)),
+        const response = await withGeminiRetry(() =>
+          ai.models.generateContent({
+            model: GEMINI_MODEL,
+            contents: ROADMAP_PROMPT(data.role),
+            config: { responseMimeType: "application/json" },
+          }),
         );
-        text = result.response.text();
+        text = response.text;
       } catch (err) {
         return { error: friendlyGeminiError(err, "roadmap.generate") };
       }
