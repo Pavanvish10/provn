@@ -48,6 +48,7 @@ import {
   useMyBadges,
   useMyDailyChallengeCompletionCount,
   useMyDailyChallengeStatus,
+  useMyDailyProgress,
   useSkipTodaysChallenge,
   useTodaysDailyChallenge,
   useChallengeAnalytics,
@@ -101,6 +102,7 @@ function Challenges() {
   );
   const { data: completionCount } = useMyDailyChallengeCompletionCount(user?.id);
   const { data: myBadges } = useMyBadges(user?.id);
+  const { data: dailyProgress } = useMyDailyProgress(user?.id);
 
   // Every hook above must still run on every render (Rules of Hooks) even
   // though this component yields to the child route below.
@@ -120,11 +122,21 @@ function Challenges() {
         </div>
       </div>
 
-      <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatTile
           icon={<Flame className="h-4 w-4" />}
-          label="Streak"
-          value={`${profile?.streak ?? 0}d`}
+          label="🔥 Current Streak"
+          value={`${dailyProgress?.currentStreak ?? 0}d`}
+        />
+        <StatTile
+          icon={<Trophy className="h-4 w-4" />}
+          label="🏆 Highest Streak"
+          value={`${dailyProgress?.highestStreak ?? 0}d`}
+        />
+        <StatTile
+          icon={<CheckCircle2 className="h-4 w-4" />}
+          label="✅ Today's Progress"
+          value={`${Math.min(dailyProgress?.solvedToday ?? 0, 2)}/2`}
         />
         <StatTile icon={<Star className="h-4 w-4" />} label="Points" value={profile?.xp ?? 0} />
         <StatTile

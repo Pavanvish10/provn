@@ -154,6 +154,12 @@ export const submitChallengeFn = createServerFn({ method: "POST" })
       source: z.string().min(1),
       timeTakenSeconds: z.number().int().min(0).optional(),
       hintUsed: z.boolean().optional(),
+      // The user's own local calendar date (YYYY-MM-DD), used to bucket
+      // "solved today" / streak day-boundaries by the user's local
+      // timezone rather than the server's. See the streak-system
+      // migration for why this is trusted from the client rather than
+      // derived server-side.
+      localDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     }),
   )
   .handler(async ({ data }) => {
@@ -202,10 +208,31 @@ export const submitChallengeFn = createServerFn({ method: "POST" })
         stderr: stderr.slice(0, 4000),
         time_taken_seconds: data.timeTakenSeconds ?? null,
         hint_used: data.hintUsed ?? false,
+        local_date: data.localDate,
       })
       .select()
       .single();
     if (insertError) return { error: "Could not record submission." };
 
-    return { error: null, submission };
+    // The insert above already ran the daily-streak trigger synchronously
+    // (Postgres AFTER triggers fire within the same statement), so this
+    // read reflects its result. solvedToday landing on exactly 2 is what
+    // distinguishes "this submission is the one that completed today's
+    // goal" from an already-met goal (would be 3+) or a duplicate/failed
+    // submission (would still be whatever it was before, or unaffected).
+    const { data: progressRows } = await supabase.rpc("get_my_daily_progress", {
+      p_local_date: data.localDate,
+    });
+    const progress = progressRows?.[0];
+    const dailyProgress = progress
+      ? {
+          solvedToday: progress.solved_today,
+          currentStreak: progress.current_streak,
+          highestStreak: progress.highest_streak,
+          totalSolved: progress.total_solved,
+        }
+      : null;
+    const streakJustIncreased = status === "passed" && progress?.solved_today === 2;
+
+    return { error: null, submission, dailyProgress, streakJustIncreased };
   });

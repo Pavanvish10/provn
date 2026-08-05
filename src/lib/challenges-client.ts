@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { Database } from "@/lib/supabase/types";
 import { getSupportedLanguagesFn, runSampleFn, submitChallengeFn } from "@/lib/judge0.server";
+import { dailyProgressQueryKey } from "@/lib/daily-challenge-client";
 
 export type Challenge = Database["public"]["Tables"]["challenges"]["Row"];
 export type ChallengeCategory = Database["public"]["Tables"]["challenge_categories"]["Row"];
@@ -114,11 +115,13 @@ export function useSubmitChallenge(profileId: string | undefined) {
       source: string;
       timeTakenSeconds?: number;
       hintUsed?: boolean;
+      localDate: string;
     }) => submitChallengeFn({ data: vars }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["submissions"] });
       queryClient.invalidateQueries({ queryKey: ["daily-session"] });
       queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
+      queryClient.invalidateQueries({ queryKey: dailyProgressQueryKey(profileId) });
     },
   });
 }

@@ -10,6 +10,16 @@ function todayStr() {
   return new Date().toISOString().slice(0, 10);
 }
 
+/** The user's own local calendar date (not UTC) — this is what the
+ * streak system buckets "today" by, since a streak resetting at UTC
+ * midnight would be wrong for almost everyone. */
+export function localDateStr(d = new Date()) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 /** Every user gets the same challenge each day — the RPC assigns (and
  * memoizes) it server-side, so this is safe to call from every client. */
 export function todaysDailyChallengeQueryKey() {
@@ -110,6 +120,42 @@ export function useDailyChallengeCalendar(
         .lte("challenge_date", end);
       if (error) throw error;
       return new Set((data ?? []).map((r) => r.challenge_date));
+    },
+    enabled: !!profileId,
+  });
+}
+
+export type DailyProgress = {
+  solvedToday: number;
+  currentStreak: number;
+  highestStreak: number;
+  totalSolved: number;
+};
+
+export function dailyProgressQueryKey(profileId: string | undefined) {
+  return ["daily-progress", profileId, localDateStr()] as const;
+}
+
+/** The real streak: at least 2 distinct challenges Accepted on the same
+ * local day. Always exactly correct, including a missed day showing as
+ * broken immediately (see get_my_daily_progress — it corrects staleness
+ * on read, not just on the next solve). */
+export function useMyDailyProgress(profileId: string | undefined) {
+  return useQuery({
+    queryKey: dailyProgressQueryKey(profileId),
+    queryFn: async (): Promise<DailyProgress> => {
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase.rpc("get_my_daily_progress", {
+        p_local_date: localDateStr(),
+      });
+      if (error) throw error;
+      const row = data?.[0];
+      return {
+        solvedToday: row?.solved_today ?? 0,
+        currentStreak: row?.current_streak ?? 0,
+        highestStreak: row?.highest_streak ?? 0,
+        totalSolved: row?.total_solved ?? 0,
+      };
     },
     enabled: !!profileId,
   });

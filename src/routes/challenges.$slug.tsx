@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   AlarmClock,
   ArrowLeft,
@@ -45,7 +46,7 @@ import {
   useAddDiscussionComment,
   useDeleteDiscussionComment,
 } from "@/lib/challenge-discussions-client";
-import { useTodaysDailyChallenge } from "@/lib/daily-challenge-client";
+import { useTodaysDailyChallenge, localDateStr } from "@/lib/daily-challenge-client";
 
 export const Route = createFileRoute("/challenges/$slug")({
   beforeLoad: requireAuth,
@@ -213,6 +214,7 @@ function ChallengeDetail() {
       source,
       timeTakenSeconds,
       hintUsed,
+      localDate: localDateStr(),
     });
     if (res.error) {
       setOutput({ ok: false, text: res.error });
@@ -225,6 +227,11 @@ function ChallengeDetail() {
       ok: sub.status === "passed",
       text: `${sub.status.toUpperCase()} — ${sub.passed_count}/${sub.total_count} test cases passed\n\nstdout:\n${sub.stdout || "(empty)"}\n\nstderr:\n${sub.stderr || "(empty)"}`,
     });
+    if (res.streakJustIncreased && res.dailyProgress) {
+      toast.success(
+        `🔥 Congratulations! You completed today's challenge goal. Streak: ${res.dailyProgress.currentStreak} days.`,
+      );
+    }
     if (storageKey) localStorage.removeItem(storageKey);
   };
 
