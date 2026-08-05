@@ -21,6 +21,7 @@ import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as FriendsRouteImport } from './routes/friends'
 import { Route as HomeRouteImport } from './routes/home'
 import { Route as InterviewPracticeRouteImport } from './routes/interview-practice'
+import { Route as InterviewVoiceRouteImport } from './routes/interview-voice'
 import { Route as JobPreparationRouteImport } from './routes/job-preparation'
 import { Route as LeaderboardRouteImport } from './routes/leaderboard'
 import { Route as LiveResumeRouteImport } from './routes/live-resume'
@@ -63,6 +64,12 @@ import { Route as BusinessSourcingRouteImport } from './routes/business.sourcing
 import { Route as BusinessSubscriptionRouteImport } from './routes/business.subscription'
 import { Route as CCompanyIdRouteImport } from './routes/c.$companyId'
 import { Route as ChallengesSlugRouteImport } from './routes/challenges.$slug'
+import { Route as InterviewIndexRouteImport } from './routes/interview/index'
+import { Route as InterviewDeviceCheckRouteImport } from './routes/interview/device-check'
+import { Route as InterviewReportRouteImport } from './routes/interview/report'
+import { Route as InterviewResumeUploadRouteImport } from './routes/interview/resume-upload'
+import { Route as InterviewRoomRouteImport } from './routes/interview/room'
+import { Route as InterviewSetupRouteImport } from './routes/interview/setup'
 import { Route as UUsernameRouteImport } from './routes/u.$username'
 
 const IndexRoute = IndexRouteImport.update({
@@ -123,6 +130,11 @@ const HomeRoute = HomeRouteImport.update({
 const InterviewPracticeRoute = InterviewPracticeRouteImport.update({
   id: '/interview-practice',
   path: '/interview-practice',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InterviewVoiceRoute = InterviewVoiceRouteImport.update({
+  id: '/interview-voice',
+  path: '/interview-voice',
   getParentRoute: () => rootRouteImport,
 } as any)
 const JobPreparationRoute = JobPreparationRouteImport.update({
@@ -335,6 +347,36 @@ const ChallengesSlugRoute = ChallengesSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => ChallengesRoute,
 } as any)
+const InterviewIndexRoute = InterviewIndexRouteImport.update({
+  id: '/interview/',
+  path: '/interview/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InterviewDeviceCheckRoute = InterviewDeviceCheckRouteImport.update({
+  id: '/interview/device-check',
+  path: '/interview/device-check',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InterviewReportRoute = InterviewReportRouteImport.update({
+  id: '/interview/report',
+  path: '/interview/report',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InterviewResumeUploadRoute = InterviewResumeUploadRouteImport.update({
+  id: '/interview/resume-upload',
+  path: '/interview/resume-upload',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InterviewRoomRoute = InterviewRoomRouteImport.update({
+  id: '/interview/room',
+  path: '/interview/room',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InterviewSetupRoute = InterviewSetupRouteImport.update({
+  id: '/interview/setup',
+  path: '/interview/setup',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const UUsernameRoute = UUsernameRouteImport.update({
   id: '/u/$username',
   path: '/u/$username',
@@ -354,6 +396,7 @@ export interface FileRoutesByFullPath {
   '/friends': typeof FriendsRoute
   '/home': typeof HomeRoute
   '/interview-practice': typeof InterviewPracticeRoute
+  '/interview-voice': typeof InterviewVoiceRoute
   '/job-preparation': typeof JobPreparationRoute
   '/leaderboard': typeof LeaderboardRoute
   '/live-resume': typeof LiveResumeRoute
@@ -396,7 +439,13 @@ export interface FileRoutesByFullPath {
   '/business/subscription': typeof BusinessSubscriptionRoute
   '/c/$companyId': typeof CCompanyIdRoute
   '/challenges/$slug': typeof ChallengesSlugRoute
+  '/interview/device-check': typeof InterviewDeviceCheckRoute
+  '/interview/report': typeof InterviewReportRoute
+  '/interview/resume-upload': typeof InterviewResumeUploadRoute
+  '/interview/room': typeof InterviewRoomRoute
+  '/interview/setup': typeof InterviewSetupRoute
   '/u/$username': typeof UUsernameRoute
+  '/interview/': typeof InterviewIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -411,6 +460,7 @@ export interface FileRoutesByTo {
   '/friends': typeof FriendsRoute
   '/home': typeof HomeRoute
   '/interview-practice': typeof InterviewPracticeRoute
+  '/interview-voice': typeof InterviewVoiceRoute
   '/job-preparation': typeof JobPreparationRoute
   '/leaderboard': typeof LeaderboardRoute
   '/live-resume': typeof LiveResumeRoute
@@ -453,7 +503,13 @@ export interface FileRoutesByTo {
   '/business/subscription': typeof BusinessSubscriptionRoute
   '/c/$companyId': typeof CCompanyIdRoute
   '/challenges/$slug': typeof ChallengesSlugRoute
+  '/interview/device-check': typeof InterviewDeviceCheckRoute
+  '/interview/report': typeof InterviewReportRoute
+  '/interview/resume-upload': typeof InterviewResumeUploadRoute
+  '/interview/room': typeof InterviewRoomRoute
+  '/interview/setup': typeof InterviewSetupRoute
   '/u/$username': typeof UUsernameRoute
+  '/interview': typeof InterviewIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -469,6 +525,7 @@ export interface FileRoutesById {
   '/friends': typeof FriendsRoute
   '/home': typeof HomeRoute
   '/interview-practice': typeof InterviewPracticeRoute
+  '/interview-voice': typeof InterviewVoiceRoute
   '/job-preparation': typeof JobPreparationRoute
   '/leaderboard': typeof LeaderboardRoute
   '/live-resume': typeof LiveResumeRoute
@@ -511,7 +568,13 @@ export interface FileRoutesById {
   '/business/subscription': typeof BusinessSubscriptionRoute
   '/c/$companyId': typeof CCompanyIdRoute
   '/challenges/$slug': typeof ChallengesSlugRoute
+  '/interview/device-check': typeof InterviewDeviceCheckRoute
+  '/interview/report': typeof InterviewReportRoute
+  '/interview/resume-upload': typeof InterviewResumeUploadRoute
+  '/interview/room': typeof InterviewRoomRoute
+  '/interview/setup': typeof InterviewSetupRoute
   '/u/$username': typeof UUsernameRoute
+  '/interview/': typeof InterviewIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -528,6 +591,7 @@ export interface FileRouteTypes {
     | '/friends'
     | '/home'
     | '/interview-practice'
+    | '/interview-voice'
     | '/job-preparation'
     | '/leaderboard'
     | '/live-resume'
@@ -570,7 +634,13 @@ export interface FileRouteTypes {
     | '/business/subscription'
     | '/c/$companyId'
     | '/challenges/$slug'
+    | '/interview/device-check'
+    | '/interview/report'
+    | '/interview/resume-upload'
+    | '/interview/room'
+    | '/interview/setup'
     | '/u/$username'
+    | '/interview/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -585,6 +655,7 @@ export interface FileRouteTypes {
     | '/friends'
     | '/home'
     | '/interview-practice'
+    | '/interview-voice'
     | '/job-preparation'
     | '/leaderboard'
     | '/live-resume'
@@ -627,7 +698,13 @@ export interface FileRouteTypes {
     | '/business/subscription'
     | '/c/$companyId'
     | '/challenges/$slug'
+    | '/interview/device-check'
+    | '/interview/report'
+    | '/interview/resume-upload'
+    | '/interview/room'
+    | '/interview/setup'
     | '/u/$username'
+    | '/interview'
   id:
     | '__root__'
     | '/'
@@ -642,6 +719,7 @@ export interface FileRouteTypes {
     | '/friends'
     | '/home'
     | '/interview-practice'
+    | '/interview-voice'
     | '/job-preparation'
     | '/leaderboard'
     | '/live-resume'
@@ -684,7 +762,13 @@ export interface FileRouteTypes {
     | '/business/subscription'
     | '/c/$companyId'
     | '/challenges/$slug'
+    | '/interview/device-check'
+    | '/interview/report'
+    | '/interview/resume-upload'
+    | '/interview/room'
+    | '/interview/setup'
     | '/u/$username'
+    | '/interview/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -700,6 +784,7 @@ export interface RootRouteChildren {
   FriendsRoute: typeof FriendsRoute
   HomeRoute: typeof HomeRoute
   InterviewPracticeRoute: typeof InterviewPracticeRoute
+  InterviewVoiceRoute: typeof InterviewVoiceRoute
   JobPreparationRoute: typeof JobPreparationRoute
   LeaderboardRoute: typeof LeaderboardRoute
   LiveResumeRoute: typeof LiveResumeRoute
@@ -721,7 +806,13 @@ export interface RootRouteChildren {
   ValuePropRoute: typeof ValuePropRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   CCompanyIdRoute: typeof CCompanyIdRoute
+  InterviewDeviceCheckRoute: typeof InterviewDeviceCheckRoute
+  InterviewReportRoute: typeof InterviewReportRoute
+  InterviewResumeUploadRoute: typeof InterviewResumeUploadRoute
+  InterviewRoomRoute: typeof InterviewRoomRoute
+  InterviewSetupRoute: typeof InterviewSetupRoute
   UUsernameRoute: typeof UUsernameRoute
+  InterviewIndexRoute: typeof InterviewIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -808,6 +899,13 @@ declare module '@tanstack/react-router' {
       path: '/interview-practice'
       fullPath: '/interview-practice'
       preLoaderRoute: typeof InterviewPracticeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/interview-voice': {
+      id: '/interview-voice'
+      path: '/interview-voice'
+      fullPath: '/interview-voice'
+      preLoaderRoute: typeof InterviewVoiceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/job-preparation': {
@@ -1104,6 +1202,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChallengesSlugRouteImport
       parentRoute: typeof ChallengesRoute
     }
+    '/interview/': {
+      id: '/interview/'
+      path: '/interview'
+      fullPath: '/interview/'
+      preLoaderRoute: typeof InterviewIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/interview/device-check': {
+      id: '/interview/device-check'
+      path: '/interview/device-check'
+      fullPath: '/interview/device-check'
+      preLoaderRoute: typeof InterviewDeviceCheckRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/interview/report': {
+      id: '/interview/report'
+      path: '/interview/report'
+      fullPath: '/interview/report'
+      preLoaderRoute: typeof InterviewReportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/interview/resume-upload': {
+      id: '/interview/resume-upload'
+      path: '/interview/resume-upload'
+      fullPath: '/interview/resume-upload'
+      preLoaderRoute: typeof InterviewResumeUploadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/interview/room': {
+      id: '/interview/room'
+      path: '/interview/room'
+      fullPath: '/interview/room'
+      preLoaderRoute: typeof InterviewRoomRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/interview/setup': {
+      id: '/interview/setup'
+      path: '/interview/setup'
+      fullPath: '/interview/setup'
+      preLoaderRoute: typeof InterviewSetupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/u/$username': {
       id: '/u/$username'
       path: '/u/$username'
@@ -1197,6 +1337,7 @@ const rootRouteChildren: RootRouteChildren = {
   FriendsRoute: FriendsRoute,
   HomeRoute: HomeRoute,
   InterviewPracticeRoute: InterviewPracticeRoute,
+  InterviewVoiceRoute: InterviewVoiceRoute,
   JobPreparationRoute: JobPreparationRoute,
   LeaderboardRoute: LeaderboardRoute,
   LiveResumeRoute: LiveResumeRoute,
@@ -1218,7 +1359,13 @@ const rootRouteChildren: RootRouteChildren = {
   ValuePropRoute: ValuePropRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   CCompanyIdRoute: CCompanyIdRoute,
+  InterviewDeviceCheckRoute: InterviewDeviceCheckRoute,
+  InterviewReportRoute: InterviewReportRoute,
+  InterviewResumeUploadRoute: InterviewResumeUploadRoute,
+  InterviewRoomRoute: InterviewRoomRoute,
+  InterviewSetupRoute: InterviewSetupRoute,
   UUsernameRoute: UUsernameRoute,
+  InterviewIndexRoute: InterviewIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

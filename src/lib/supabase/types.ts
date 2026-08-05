@@ -2357,6 +2357,104 @@ export type Database = {
           },
         ]
       }
+      voice_interview_sessions: {
+        Row: {
+          communication_score: number | null
+          company: string | null
+          completed_at: string | null
+          confidence_score: number | null
+          created_at: string
+          difficulty: string
+          duration_minutes: number
+          grammar_score: number | null
+          hiring_recommendation: string | null
+          id: string
+          improvement_plan: string[] | null
+          interview_type: string
+          language: string
+          leadership_score: number | null
+          overall_score: number | null
+          problem_solving_score: number | null
+          professionalism_score: number | null
+          profile_id: string
+          questions: Json
+          role: string
+          started_at: string
+          status: string
+          strengths: string[] | null
+          summary: string | null
+          technical_score: number | null
+          voice_gender: string
+          weaknesses: string[] | null
+        }
+        Insert: {
+          communication_score?: number | null
+          company?: string | null
+          completed_at?: string | null
+          confidence_score?: number | null
+          created_at?: string
+          difficulty?: string
+          duration_minutes?: number
+          grammar_score?: number | null
+          hiring_recommendation?: string | null
+          id?: string
+          improvement_plan?: string[] | null
+          interview_type: string
+          language?: string
+          leadership_score?: number | null
+          overall_score?: number | null
+          problem_solving_score?: number | null
+          professionalism_score?: number | null
+          profile_id: string
+          questions?: Json
+          role: string
+          started_at?: string
+          status?: string
+          strengths?: string[] | null
+          summary?: string | null
+          technical_score?: number | null
+          voice_gender?: string
+          weaknesses?: string[] | null
+        }
+        Update: {
+          communication_score?: number | null
+          company?: string | null
+          completed_at?: string | null
+          confidence_score?: number | null
+          created_at?: string
+          difficulty?: string
+          duration_minutes?: number
+          grammar_score?: number | null
+          hiring_recommendation?: string | null
+          id?: string
+          improvement_plan?: string[] | null
+          interview_type?: string
+          language?: string
+          leadership_score?: number | null
+          overall_score?: number | null
+          problem_solving_score?: number | null
+          professionalism_score?: number | null
+          profile_id?: string
+          questions?: Json
+          role?: string
+          started_at?: string
+          status?: string
+          strengths?: string[] | null
+          summary?: string | null
+          technical_score?: number | null
+          voice_gender?: string
+          weaknesses?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_interview_sessions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       xp_events: {
         Row: {
           amount: number
