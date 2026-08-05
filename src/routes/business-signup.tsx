@@ -18,10 +18,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { businessSignUpFn } from "@/lib/auth.server";
-import { requireGuest } from "@/lib/auth-guard";
+import { requireNotCompanyAccount } from "@/lib/auth-guard";
 
 export const Route = createFileRoute("/business-signup")({
-  beforeLoad: requireGuest,
+  beforeLoad: requireNotCompanyAccount,
   head: () => ({
     meta: [
       { title: "Register your company · Provn" },

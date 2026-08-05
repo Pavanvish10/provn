@@ -51,6 +51,21 @@ export function requireGuest({ context }: GuardArgs) {
   }
 }
 
+/** For /business-signup specifically: a logged-in student is exactly who
+ * the "Register your company" links (home card, nav item) are meant for —
+ * they're registering a separate company account under a different work
+ * email, so their current student session shouldn't block them the way
+ * requireGuest blocks /signup and /login. An already-registered company
+ * account, though, should skip straight to its own dashboard/onboarding
+ * rather than seeing the signup form again. */
+export function requireNotCompanyAccount({ context }: GuardArgs) {
+  if (context.user?.accountType === "company") {
+    throw redirect({
+      to: context.user.onboardingCompleted ? "/business" : onboardingEntryFor(context.user),
+    });
+  }
+}
+
 export function requireAdmin({ context, location }: GuardArgs) {
   requireAuth({ context, location });
   if (context.user?.role !== "admin") {
