@@ -14,6 +14,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { useHydrateDarkMode } from "../lib/store";
 import { authUserQueryOptions } from "../lib/auth-client";
 import { Toaster } from "../components/ui/sonner";
+import { AiChatWidget } from "../components/AiChatWidget";
 
 function NotFoundComponent() {
   return (
@@ -135,6 +136,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <Outlet />
       <Toaster position="top-center" richColors />
+      <AiChatWidget />
     </QueryClientProvider>
   );
 }
