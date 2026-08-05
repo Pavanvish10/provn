@@ -21,7 +21,14 @@ export function useChallengeCategories() {
   });
 }
 
-export function useChallenges(params: { category?: string; difficulty?: string; search?: string }) {
+export function useChallenges(params: {
+  category?: string;
+  difficulty?: string;
+  search?: string;
+  company?: string;
+  /** Matches challenges whose starter_code has an entry for this language key. */
+  language?: string;
+}) {
   return useQuery({
     queryKey: ["challenges", params],
     queryFn: async () => {
@@ -30,10 +37,38 @@ export function useChallenges(params: { category?: string; difficulty?: string; 
       if (params.category) query = query.eq("category_id", params.category);
       if (params.difficulty) query = query.eq("difficulty", params.difficulty);
       if (params.search) query = query.ilike("title", `%${params.search}%`);
+      if (params.company) query = query.contains("company_tags", [params.company]);
       const { data, error } = await query.order("created_at", { ascending: false });
       if (error) throw error;
-      return data;
+      if (!params.language) return data;
+      return (data ?? []).filter((c) =>
+        Object.prototype.hasOwnProperty.call(
+          (c.starter_code as Record<string, unknown>) ?? {},
+          params.language!,
+        ),
+      );
     },
+  });
+}
+
+/** Distinct company tags across all active challenges, for the search filter dropdown. */
+export function useChallengeCompanyTags() {
+  return useQuery({
+    queryKey: ["challenge-company-tags"],
+    queryFn: async () => {
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase
+        .from("challenges")
+        .select("company_tags")
+        .eq("is_active", true);
+      if (error) throw error;
+      const set = new Set<string>();
+      for (const row of data ?? []) {
+        for (const tag of row.company_tags ?? []) set.add(tag);
+      }
+      return Array.from(set).sort();
+    },
+    staleTime: 10 * 60 * 1000,
   });
 }
 

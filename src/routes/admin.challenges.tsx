@@ -1,10 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Search, ChevronLeft, ChevronRight, Plus, Trash2, Eye, EyeOff } from "lucide-react";
+import {
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  Trash2,
+  Eye,
+  EyeOff,
+  Sparkles,
+} from "lucide-react";
 
 import { AppShell } from "@/components/AppNav";
 import { AdminSubNav } from "@/components/AdminSubNav";
 import { AdminConfirmDialog } from "@/components/AdminConfirmDialog";
+import { GenerateChallengeDialog } from "@/components/GenerateChallengeDialog";
 import { requireAdmin } from "@/lib/auth-guard";
 import { useCurrentUser } from "@/lib/auth-client";
 import {
@@ -103,6 +113,7 @@ function AdminChallenges() {
   }, [searchInput]);
 
   const { data: categories } = useChallengeCategories();
+  const [generateOpen, setGenerateOpen] = useState(false);
   const { data, isLoading, isFetching } = useAdminChallenges({
     search,
     difficulty,
@@ -193,10 +204,22 @@ function AdminChallenges() {
             Full CRUD on coding challenges and their (including hidden) test cases.
           </p>
         </div>
-        <Button onClick={openNew}>
-          <Plus className="h-4 w-4" /> New challenge
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setGenerateOpen(true)}>
+            <Sparkles className="h-4 w-4" /> Generate with AI
+          </Button>
+          <Button onClick={openNew}>
+            <Plus className="h-4 w-4" /> New challenge
+          </Button>
+        </div>
       </div>
+
+      <GenerateChallengeDialog
+        open={generateOpen}
+        onOpenChange={setGenerateOpen}
+        categories={categories ?? []}
+        adminId={currentUser?.id}
+      />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1.1fr]">
         <div>

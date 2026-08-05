@@ -4,6 +4,7 @@ import { useMutation } from "@tanstack/react-query";
 import {
   AlarmClock,
   ArrowLeft,
+  Building2,
   Check,
   ChevronDown,
   Lightbulb,
@@ -11,6 +12,7 @@ import {
   Play,
   Send,
   Sparkles,
+  Star,
   Trash2,
   X,
 } from "lucide-react";
@@ -43,6 +45,7 @@ import {
   useAddDiscussionComment,
   useDeleteDiscussionComment,
 } from "@/lib/challenge-discussions-client";
+import { useTodaysDailyChallenge } from "@/lib/daily-challenge-client";
 
 export const Route = createFileRoute("/challenges/$slug")({
   beforeLoad: requireAuth,
@@ -63,6 +66,7 @@ function ChallengeDetail() {
   const { slug } = Route.useParams();
   const { data: user } = useCurrentUser();
   const { data: challenge, isLoading } = useChallenge(slug);
+  const { data: todaysChallenge } = useTodaysDailyChallenge();
   const { data: languages } = useSupportedLanguages();
   const { data: submissions } = useMySubmissions(challenge?.id, user?.id);
   const runSample = useRunSample();
@@ -246,6 +250,12 @@ function ChallengeDetail() {
         <ArrowLeft className="h-3.5 w-3.5" /> All challenges
       </Link>
 
+      {todaysChallenge?.id === challenge.id && (
+        <div className="mb-5 inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand-soft/60 px-3 py-1.5 text-xs font-medium text-brand">
+          <Star className="h-3.5 w-3.5" /> This is today's Daily Challenge
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div>
           <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground">
@@ -263,6 +273,11 @@ function ChallengeDetail() {
               </Badge>
             ))}
           </div>
+          {challenge.company_tags?.length > 0 && (
+            <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+              <Building2 className="h-3.5 w-3.5" /> Asked at: {challenge.company_tags.join(", ")}
+            </div>
+          )}
 
           <div className="mt-5 space-y-4 rounded-2xl border border-border bg-card p-5 text-sm leading-relaxed">
             <div>
@@ -463,113 +478,145 @@ function ChallengeDetail() {
           </div>
         </div>
 
-        <div>
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <Select value={language} onValueChange={setLanguage}>
-              <SelectTrigger className="w-44">
-                <SelectValue placeholder="Language" />
-              </SelectTrigger>
-              <SelectContent>
-                {sortedLanguages.map((l) => (
-                  <SelectItem key={l.language} value={l.language}>
-                    {l.language}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        {challenge.question_format === "theory" ? (
+          <TheoryAnswerPanel editorial={challenge.editorial} />
+        ) : (
+          <div>
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <Select value={language} onValueChange={setLanguage}>
+                <SelectTrigger className="w-44">
+                  <SelectValue placeholder="Language" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sortedLanguages.map((l) => (
+                    <SelectItem key={l.language} value={l.language}>
+                      {l.language}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-            {!alreadySolved && (
-              <div
-                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium tabular-nums ${
-                  remaining <= 60
-                    ? "border-destructive/40 bg-destructive/10 text-destructive"
-                    : "border-border bg-card"
-                }`}
-              >
-                <AlarmClock className="h-4 w-4" /> {fmtTime(remaining)}
+              {!alreadySolved && (
+                <div
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium tabular-nums ${
+                    remaining <= 60
+                      ? "border-destructive/40 bg-destructive/10 text-destructive"
+                      : "border-border bg-card"
+                  }`}
+                >
+                  <AlarmClock className="h-4 w-4" /> {fmtTime(remaining)}
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={run}
+                  disabled={runSample.isPending || !judge0Id || timeUp}
+                >
+                  {runSample.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Play className="mr-1.5 h-4 w-4" />
+                  )}
+                  Run
+                </Button>
+                <Button
+                  onClick={submit}
+                  disabled={submitChallenge.isPending || !judge0Id || timeUp}
+                >
+                  {submitChallenge.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="mr-1.5 h-4 w-4" />
+                  )}
+                  Submit
+                </Button>
+              </div>
+            </div>
+
+            {timeUp && !lastResult && (
+              <div className="mb-3 rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+                Time's up — your code was submitted automatically.
               </div>
             )}
 
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={run}
-                disabled={runSample.isPending || !judge0Id || timeUp}
+            <textarea
+              value={source}
+              onChange={(e) => setSource(e.target.value)}
+              spellCheck={false}
+              disabled={timeUp}
+              className="h-96 w-full resize-y rounded-xl border border-border bg-background p-4 font-mono text-sm outline-none focus:border-foreground/30 disabled:opacity-60"
+              placeholder="Write your solution here…"
+            />
+
+            {output && (
+              <div
+                className={`mt-4 whitespace-pre-wrap rounded-xl border p-4 font-mono text-xs ${
+                  output.ok ? "border-brand/40 bg-brand-soft/40" : "border-border bg-card"
+                }`}
               >
-                {runSample.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Play className="mr-1.5 h-4 w-4" />
+                {output.text}
+              </div>
+            )}
+
+            {lastResult?.status === "passed" && (
+              <div className="mt-4 rounded-xl border border-brand/40 bg-brand-soft/60 p-4 text-sm">
+                <b>Solved!</b> XP awarded and your streak was updated automatically.
+              </div>
+            )}
+
+            {lastResult && lastSubmissionId && (
+              <div className="mt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={explainWithAi}
+                  disabled={explainMutation.isPending}
+                >
+                  {explainMutation.isPending ? (
+                    <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="mr-1.5 h-4 w-4" />
+                  )}
+                  Explain with AI
+                </Button>
+                {aiError && <p className="mt-2 text-sm text-destructive">{aiError}</p>}
+                {aiExplanation && (
+                  <div className="mt-2 whitespace-pre-wrap rounded-xl border border-border bg-card p-4 text-sm leading-relaxed">
+                    {aiExplanation}
+                  </div>
                 )}
-                Run
-              </Button>
-              <Button onClick={submit} disabled={submitChallenge.isPending || !judge0Id || timeUp}>
-                {submitChallenge.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="mr-1.5 h-4 w-4" />
-                )}
-                Submit
-              </Button>
-            </div>
+              </div>
+            )}
           </div>
-
-          {timeUp && !lastResult && (
-            <div className="mb-3 rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
-              Time's up — your code was submitted automatically.
-            </div>
-          )}
-
-          <textarea
-            value={source}
-            onChange={(e) => setSource(e.target.value)}
-            spellCheck={false}
-            disabled={timeUp}
-            className="h-96 w-full resize-y rounded-xl border border-border bg-background p-4 font-mono text-sm outline-none focus:border-foreground/30 disabled:opacity-60"
-            placeholder="Write your solution here…"
-          />
-
-          {output && (
-            <div
-              className={`mt-4 whitespace-pre-wrap rounded-xl border p-4 font-mono text-xs ${
-                output.ok ? "border-brand/40 bg-brand-soft/40" : "border-border bg-card"
-              }`}
-            >
-              {output.text}
-            </div>
-          )}
-
-          {lastResult?.status === "passed" && (
-            <div className="mt-4 rounded-xl border border-brand/40 bg-brand-soft/60 p-4 text-sm">
-              <b>Solved!</b> XP awarded and your streak was updated automatically.
-            </div>
-          )}
-
-          {lastResult && lastSubmissionId && (
-            <div className="mt-4">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={explainWithAi}
-                disabled={explainMutation.isPending}
-              >
-                {explainMutation.isPending ? (
-                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-                ) : (
-                  <Sparkles className="mr-1.5 h-4 w-4" />
-                )}
-                Explain with AI
-              </Button>
-              {aiError && <p className="mt-2 text-sm text-destructive">{aiError}</p>}
-              {aiExplanation && (
-                <div className="mt-2 whitespace-pre-wrap rounded-xl border border-border bg-card p-4 text-sm leading-relaxed">
-                  {aiExplanation}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+        )}
       </div>
     </AppShell>
+  );
+}
+
+function TheoryAnswerPanel({ editorial }: { editorial: string | null }) {
+  const [revealed, setRevealed] = useState(false);
+  return (
+    <div className="rounded-2xl border border-border bg-card p-5">
+      <div className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+        Your answer
+      </div>
+      <p className="text-sm text-muted-foreground">
+        This is a theory/conceptual question — think through (or write out) your answer, then reveal
+        the model answer below to check your reasoning. There's no code execution for this question
+        type.
+      </p>
+      {!revealed ? (
+        <Button className="mt-4" variant="outline" onClick={() => setRevealed(true)}>
+          <Lightbulb className="mr-1.5 h-4 w-4" /> Reveal model answer
+        </Button>
+      ) : (
+        <div className="mt-4 whitespace-pre-wrap rounded-xl border border-brand/30 bg-brand-soft/40 p-4 text-sm leading-relaxed">
+          {editorial ?? "Model answer coming soon."}
+        </div>
+      )}
+    </div>
   );
 }
