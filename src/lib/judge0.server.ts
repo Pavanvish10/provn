@@ -19,7 +19,10 @@ function judge0Headers(): HeadersInit {
   // TODO(API_KEY): set JUDGE0_API_KEY (RapidAPI "Judge0 CE") in the environment to enable
   // real code execution (Run/Submit on the challenge workspace, sample runs, language list).
   const apiKey = process.env.JUDGE0_API_KEY;
-  if (!apiKey) throw new Error("Code execution is not configured yet (missing JUDGE0_API_KEY).");
+  if (!apiKey) {
+    console.error("[judge0] JUDGE0_API_KEY is not set in this environment.");
+    throw new Error("Code execution is not configured yet (missing JUDGE0_API_KEY).");
+  }
   return {
     "Content-Type": "application/json",
     "X-RapidAPI-Key": apiKey,
@@ -34,7 +37,13 @@ async function getLanguages(): Promise<Judge0Language[]> {
     return languagesCache.languages;
   }
   const res = await fetch(`${JUDGE0_BASE}/languages`, { headers: judge0Headers() });
-  if (!res.ok) throw new Error(`Judge0 returned ${res.status} listing languages.`);
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    console.error(
+      `[judge0] /languages failed: ${res.status} ${res.statusText} :: ${body.slice(0, 500)}`,
+    );
+    throw new Error(`Judge0 returned ${res.status} listing languages.`);
+  }
   const languages = (await res.json()) as Judge0Language[];
   languagesCache = { at: Date.now(), languages };
   return languages;
