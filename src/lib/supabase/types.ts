@@ -142,16 +142,19 @@ export type Database = {
           id: string;
           name: string;
           slug: string;
+          tracks: string[];
         };
         Insert: {
           id?: string;
           name: string;
           slug: string;
+          tracks?: string[];
         };
         Update: {
           id?: string;
           name?: string;
           slug?: string;
+          tracks?: string[];
         };
         Relationships: [];
       };
@@ -319,6 +322,7 @@ export type Database = {
       challenges: {
         Row: {
           category_id: string | null;
+          company_tags: string[];
           constraints: string | null;
           created_at: string;
           created_by: string | null;
@@ -331,7 +335,9 @@ export type Database = {
           input_format: string | null;
           is_active: boolean;
           is_premium: boolean;
+          last_daily_used_at: string | null;
           output_format: string | null;
+          question_format: string;
           slug: string;
           starter_code: Json;
           tags: string[];
@@ -340,6 +346,7 @@ export type Database = {
         };
         Insert: {
           category_id?: string | null;
+          company_tags?: string[];
           constraints?: string | null;
           created_at?: string;
           created_by?: string | null;
@@ -352,7 +359,9 @@ export type Database = {
           input_format?: string | null;
           is_active?: boolean;
           is_premium?: boolean;
+          last_daily_used_at?: string | null;
           output_format?: string | null;
+          question_format?: string;
           slug: string;
           starter_code?: Json;
           tags?: string[];
@@ -361,6 +370,7 @@ export type Database = {
         };
         Update: {
           category_id?: string | null;
+          company_tags?: string[];
           constraints?: string | null;
           created_at?: string;
           created_by?: string | null;
@@ -373,7 +383,9 @@ export type Database = {
           input_format?: string | null;
           is_active?: boolean;
           is_premium?: boolean;
+          last_daily_used_at?: string | null;
           output_format?: string | null;
+          question_format?: string;
           slug?: string;
           starter_code?: Json;
           tags?: string[];
@@ -697,6 +709,134 @@ export type Database = {
             columns: ["profile_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      daily_challenge_completions: {
+        Row: {
+          challenge_date: string;
+          challenge_id: string;
+          completed_at: string;
+          id: string;
+          profile_id: string;
+        };
+        Insert: {
+          challenge_date: string;
+          challenge_id: string;
+          completed_at?: string;
+          id?: string;
+          profile_id: string;
+        };
+        Update: {
+          challenge_date?: string;
+          challenge_id?: string;
+          completed_at?: string;
+          id?: string;
+          profile_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "daily_challenge_completions_challenge_id_fkey";
+            columns: ["challenge_id"];
+            isOneToOne: false;
+            referencedRelation: "challenge_stats";
+            referencedColumns: ["challenge_id"];
+          },
+          {
+            foreignKeyName: "daily_challenge_completions_challenge_id_fkey";
+            columns: ["challenge_id"];
+            isOneToOne: false;
+            referencedRelation: "challenges";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "daily_challenge_completions_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      daily_challenge_skips: {
+        Row: {
+          challenge_date: string;
+          challenge_id: string;
+          id: string;
+          profile_id: string;
+          skipped_at: string;
+        };
+        Insert: {
+          challenge_date?: string;
+          challenge_id: string;
+          id?: string;
+          profile_id: string;
+          skipped_at?: string;
+        };
+        Update: {
+          challenge_date?: string;
+          challenge_id?: string;
+          id?: string;
+          profile_id?: string;
+          skipped_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "daily_challenge_skips_challenge_id_fkey";
+            columns: ["challenge_id"];
+            isOneToOne: false;
+            referencedRelation: "challenge_stats";
+            referencedColumns: ["challenge_id"];
+          },
+          {
+            foreignKeyName: "daily_challenge_skips_challenge_id_fkey";
+            columns: ["challenge_id"];
+            isOneToOne: false;
+            referencedRelation: "challenges";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "daily_challenge_skips_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      daily_challenges: {
+        Row: {
+          challenge_date: string;
+          challenge_id: string;
+          created_at: string;
+          id: string;
+        };
+        Insert: {
+          challenge_date: string;
+          challenge_id: string;
+          created_at?: string;
+          id?: string;
+        };
+        Update: {
+          challenge_date?: string;
+          challenge_id?: string;
+          created_at?: string;
+          id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "daily_challenges_challenge_id_fkey";
+            columns: ["challenge_id"];
+            isOneToOne: false;
+            referencedRelation: "challenge_stats";
+            referencedColumns: ["challenge_id"];
+          },
+          {
+            foreignKeyName: "daily_challenges_challenge_id_fkey";
+            columns: ["challenge_id"];
+            isOneToOne: false;
+            referencedRelation: "challenges";
             referencedColumns: ["id"];
           },
         ];
@@ -2004,18 +2144,21 @@ export type Database = {
           earned_at: string;
           id: string;
           profile_id: string;
+          seen: boolean;
         };
         Insert: {
           badge_code: string;
           earned_at?: string;
           id?: string;
           profile_id: string;
+          seen?: boolean;
         };
         Update: {
           badge_code?: string;
           earned_at?: string;
           id?: string;
           profile_id?: string;
+          seen?: boolean;
         };
         Relationships: [
           {
@@ -2197,6 +2340,10 @@ export type Database = {
         Returns: undefined;
       };
       current_role: { Args: never; Returns: string };
+      get_or_assign_daily_challenge: {
+        Args: { p_date?: string };
+        Returns: string;
+      };
       grant_badge: {
         Args: { p_code: string; p_profile_id: string };
         Returns: undefined;
