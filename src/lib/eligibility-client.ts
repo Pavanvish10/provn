@@ -2,9 +2,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { Database } from "@/lib/supabase/types";
-import { generateEligibilityReportFn } from "@/lib/eligibility.server";
+import {
+  generateEligibilityReportFn,
+  type SkillBreakdownEntry,
+  type SkillBreakdownResources,
+} from "@/lib/eligibility.server";
 
 export type EligibilityReport = Database["public"]["Tables"]["eligibility_reports"]["Row"];
+export type { SkillBreakdownEntry, SkillBreakdownResources };
 
 export type EligibilityScoreRationale = {
   atsScore: string;

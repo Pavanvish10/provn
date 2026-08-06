@@ -1338,21 +1338,30 @@ export type Database = {
         Row: {
           ats_score: number
           career_roadmap_id: string | null
+          coding_interview_session_id: string | null
+          communication_level: number | null
           company_eligibility_score: number
           created_at: string
+          dsa_level: number | null
           estimated_interview_readiness: number
+          hr_interview_session_id: string | null
           id: string
           job_description_text: string | null
           missing_certifications: string[]
           missing_projects: string[]
           missing_skills: string[]
+          missing_soft_skills: string[]
+          overall_hiring_probability: number | null
+          problem_solving_level: number | null
           profile_id: string
           recommendations: Json
           resume_id: string | null
           roadmap_progress_percent: number | null
           role_match_score: number
           score_rationale: Json
+          skill_breakdown: Json
           skill_match_percent: number | null
+          system_design_readiness: number | null
           target_company: string | null
           target_role: string
           voice_interview_session_id: string | null
@@ -1360,21 +1369,30 @@ export type Database = {
         Insert: {
           ats_score?: number
           career_roadmap_id?: string | null
+          coding_interview_session_id?: string | null
+          communication_level?: number | null
           company_eligibility_score?: number
           created_at?: string
+          dsa_level?: number | null
           estimated_interview_readiness?: number
+          hr_interview_session_id?: string | null
           id?: string
           job_description_text?: string | null
           missing_certifications?: string[]
           missing_projects?: string[]
           missing_skills?: string[]
+          missing_soft_skills?: string[]
+          overall_hiring_probability?: number | null
+          problem_solving_level?: number | null
           profile_id: string
           recommendations?: Json
           resume_id?: string | null
           roadmap_progress_percent?: number | null
           role_match_score?: number
           score_rationale?: Json
+          skill_breakdown?: Json
           skill_match_percent?: number | null
+          system_design_readiness?: number | null
           target_company?: string | null
           target_role: string
           voice_interview_session_id?: string | null
@@ -1382,21 +1400,30 @@ export type Database = {
         Update: {
           ats_score?: number
           career_roadmap_id?: string | null
+          coding_interview_session_id?: string | null
+          communication_level?: number | null
           company_eligibility_score?: number
           created_at?: string
+          dsa_level?: number | null
           estimated_interview_readiness?: number
+          hr_interview_session_id?: string | null
           id?: string
           job_description_text?: string | null
           missing_certifications?: string[]
           missing_projects?: string[]
           missing_skills?: string[]
+          missing_soft_skills?: string[]
+          overall_hiring_probability?: number | null
+          problem_solving_level?: number | null
           profile_id?: string
           recommendations?: Json
           resume_id?: string | null
           roadmap_progress_percent?: number | null
           role_match_score?: number
           score_rationale?: Json
+          skill_breakdown?: Json
           skill_match_percent?: number | null
+          system_design_readiness?: number | null
           target_company?: string | null
           target_role?: string
           voice_interview_session_id?: string | null
@@ -1407,6 +1434,20 @@ export type Database = {
             columns: ["career_roadmap_id"]
             isOneToOne: false
             referencedRelation: "career_roadmaps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "eligibility_reports_coding_interview_session_id_fkey"
+            columns: ["coding_interview_session_id"]
+            isOneToOne: false
+            referencedRelation: "coding_interview_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "eligibility_reports_hr_interview_session_id_fkey"
+            columns: ["hr_interview_session_id"]
+            isOneToOne: false
+            referencedRelation: "voice_interview_sessions"
             referencedColumns: ["id"]
           },
           {

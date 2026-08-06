@@ -16,6 +16,12 @@ import {
   Terminal,
   UserCheck,
   FileEdit,
+  Heart,
+  BookOpen,
+  Youtube,
+  FileText,
+  ClipboardList,
+  ArrowUpDown,
 } from "lucide-react";
 
 import { AppShell } from "@/components/AppNav";
@@ -39,6 +45,7 @@ import {
   type EligibilityReport,
   type EligibilityScoreRationale,
   type EligibilityRecommendations,
+  type SkillBreakdownEntry,
 } from "@/lib/eligibility-client";
 
 export const Route = createFileRoute("/eligibility")({
@@ -283,6 +290,144 @@ function RecommendationSection({
   );
 }
 
+function priorityColor(priority: string) {
+  if (priority === "High") return "border-rose-400/40 text-rose-600 dark:text-rose-400";
+  if (priority === "Low") return "border-emerald-400/40 text-emerald-600 dark:text-emerald-400";
+  return "border-amber-400/40 text-amber-600 dark:text-amber-400";
+}
+
+function ResourceRow({
+  icon,
+  label,
+  items,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  items: string[];
+}) {
+  if (items.length === 0) return null;
+  return (
+    <div>
+      <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+        {icon} {label}
+      </div>
+      <div className="mt-1 flex flex-wrap gap-1">
+        {items.map((item) => (
+          <Badge key={item} variant="secondary" className="text-[10px]">
+            {item}
+          </Badge>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SkillBreakdownCard({ entry }: { entry: SkillBreakdownEntry }) {
+  return (
+    <div className="rounded-2xl border border-border bg-card p-5">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-soft text-[11px] font-bold text-brand">
+            {entry.learningOrder}
+          </span>
+          <span className="text-sm font-medium">{entry.skill}</span>
+          <Badge variant="outline" className="text-[10px] capitalize">
+            {entry.category}
+          </Badge>
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Badge variant="outline" className={`text-[10px] ${priorityColor(entry.priority)}`}>
+            {entry.priority} priority
+          </Badge>
+          <Badge variant="outline" className="text-[10px]">
+            {entry.difficulty}
+          </Badge>
+          {entry.estimatedLearningTime && (
+            <Badge variant="outline" className="text-[10px]">
+              {entry.estimatedLearningTime}
+            </Badge>
+          )}
+        </div>
+      </div>
+
+      {entry.whyItMatters && (
+        <p className="mt-2 text-sm text-muted-foreground">{entry.whyItMatters}</p>
+      )}
+
+      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <ResourceRow
+          icon={<BookOpen className="h-3.5 w-3.5" />}
+          label="Courses"
+          items={entry.resources.courses}
+        />
+        <ResourceRow
+          icon={<FileText className="h-3.5 w-3.5" />}
+          label="Documentation"
+          items={entry.resources.documentation}
+        />
+        <ResourceRow
+          icon={<ClipboardList className="h-3.5 w-3.5" />}
+          label="Practice websites"
+          items={entry.resources.practiceWebsites}
+        />
+        {entry.resources.youtubeSearchQuery && (
+          <div>
+            <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+              <Youtube className="h-3.5 w-3.5" /> YouTube
+            </div>
+            <a
+              href={entry.resources.youtubeUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-1 inline-block text-xs text-brand hover:underline"
+            >
+              Search "{entry.resources.youtubeSearchQuery}"
+            </a>
+          </div>
+        )}
+      </div>
+
+      {entry.resources.codingQuestions.length > 0 && (
+        <div className="mt-3">
+          <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+            <Code2 className="h-3.5 w-3.5" /> Practice questions
+          </div>
+          <ul className="mt-1 space-y-1 text-sm">
+            {entry.resources.codingQuestions.map((q) => (
+              <li key={q}>• {q}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <Link
+        to={entry.category === "soft" ? "/hr-interview" : "/coding-interview"}
+        className="mt-3 inline-block"
+      >
+        <Button size="sm" variant="outline">
+          Practice this in a mock interview
+        </Button>
+      </Link>
+    </div>
+  );
+}
+
+function SkillBreakdownSection({ entries }: { entries: SkillBreakdownEntry[] }) {
+  if (entries.length === 0) return null;
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2 text-sm font-semibold">
+        <ArrowUpDown className="h-4 w-4 text-brand" /> Skill gap breakdown — best learning order
+      </div>
+      <div className="space-y-3">
+        {entries.map((entry) => (
+          <SkillBreakdownCard key={entry.skill} entry={entry} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ReportDetail({ report }: { report: EligibilityReport }) {
   const rationale = (report.score_rationale as unknown as EligibilityScoreRationale) ?? {};
   const recs = (report.recommendations as unknown as EligibilityRecommendations) ?? {
@@ -340,13 +485,39 @@ function ReportDetail({ report }: { report: EligibilityReport }) {
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 rounded-2xl border border-border bg-card p-6 sm:grid-cols-3">
+      {report.dsa_level != null && (
+        <div className="space-y-4 rounded-2xl border border-border bg-card p-6">
+          <div className="text-sm font-semibold">Skill gap analysis</div>
+          <ScoreBar label="Communication level" value={report.communication_level ?? 0} />
+          <ScoreBar label="Problem solving level" value={report.problem_solving_level ?? 0} />
+          <ScoreBar label="DSA level" value={report.dsa_level ?? 0} />
+          <ScoreBar label="System design readiness" value={report.system_design_readiness ?? 0} />
+          <ScoreBar
+            label="Overall hiring probability"
+            value={report.overall_hiring_probability ?? 0}
+          />
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 gap-4 rounded-2xl border border-border bg-card p-6 sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            <ListChecks className="h-3.5 w-3.5" /> Missing skills
+            <ListChecks className="h-3.5 w-3.5" /> Missing technical skills
           </div>
           <div className="mt-2">
             <BadgeList items={report.missing_skills} variant="destructive" empty="No gaps found." />
+          </div>
+        </div>
+        <div>
+          <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <Heart className="h-3.5 w-3.5" /> Missing soft skills
+          </div>
+          <div className="mt-2">
+            <BadgeList
+              items={report.missing_soft_skills ?? []}
+              variant="destructive"
+              empty="No gaps found."
+            />
           </div>
         </div>
         <div>
@@ -366,6 +537,10 @@ function ReportDetail({ report }: { report: EligibilityReport }) {
           </div>
         </div>
       </div>
+
+      <SkillBreakdownSection
+        entries={(report.skill_breakdown as unknown as SkillBreakdownEntry[]) ?? []}
+      />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <RecommendationSection
