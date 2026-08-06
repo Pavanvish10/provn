@@ -77,7 +77,15 @@ export const getSupportedLanguagesFn = createServerFn({ method: "GET" }).handler
   },
 );
 
-async function runOnce(languageId: number, source: string, stdin: string): Promise<Judge0Result> {
+// Exported so other real-execution features (e.g. the Sprint 17 AI coding
+// interview engine) can run candidate code against dynamically generated
+// test cases through the same Judge0 REST plumbing/headers/error handling,
+// instead of re-implementing the fetch calls against a second table shape.
+export async function runOnce(
+  languageId: number,
+  source: string,
+  stdin: string,
+): Promise<Judge0Result> {
   const res = await fetch(`${JUDGE0_BASE}/submissions?base64_encoded=false&wait=true`, {
     method: "POST",
     headers: judge0Headers(),
@@ -87,9 +95,9 @@ async function runOnce(languageId: number, source: string, stdin: string): Promi
   return res.json();
 }
 
-type TestCase = { input: string; expected_output: string };
+export type TestCase = { input: string; expected_output: string };
 
-async function runAgainstTestCases(
+export async function runAgainstTestCases(
   languageId: number,
   source: string,
   cases: TestCase[],

@@ -587,6 +587,145 @@ export type Database = {
           },
         ]
       }
+      coding_interview_sessions: {
+        Row: {
+          ats_score: number | null
+          better_solution: string | null
+          career_roadmap_id: string | null
+          code_quality_score: number | null
+          completed_at: string | null
+          constraints: string | null
+          correctness_score: number | null
+          created_at: string
+          description: string
+          difficulty: string
+          edge_case_score: number | null
+          examples: Json
+          id: string
+          language: string | null
+          learning_resources: string[]
+          mistakes: string[]
+          optimization_score: number | null
+          optimization_suggestions: string[]
+          overall_score: number | null
+          passed_count: number | null
+          profile_id: string
+          resume_id: string | null
+          roadmap_progress_percent: number | null
+          runtime_ms: number | null
+          sample_test_cases: Json
+          source_code: string | null
+          space_complexity_score: number | null
+          status: string
+          stderr: string | null
+          stdout: string | null
+          target_company: string | null
+          target_role: string
+          test_cases: Json
+          time_complexity_score: number | null
+          title: string
+          total_count: number | null
+        }
+        Insert: {
+          ats_score?: number | null
+          better_solution?: string | null
+          career_roadmap_id?: string | null
+          code_quality_score?: number | null
+          completed_at?: string | null
+          constraints?: string | null
+          correctness_score?: number | null
+          created_at?: string
+          description: string
+          difficulty: string
+          edge_case_score?: number | null
+          examples?: Json
+          id?: string
+          language?: string | null
+          learning_resources?: string[]
+          mistakes?: string[]
+          optimization_score?: number | null
+          optimization_suggestions?: string[]
+          overall_score?: number | null
+          passed_count?: number | null
+          profile_id: string
+          resume_id?: string | null
+          roadmap_progress_percent?: number | null
+          runtime_ms?: number | null
+          sample_test_cases?: Json
+          source_code?: string | null
+          space_complexity_score?: number | null
+          status?: string
+          stderr?: string | null
+          stdout?: string | null
+          target_company?: string | null
+          target_role: string
+          test_cases?: Json
+          time_complexity_score?: number | null
+          title: string
+          total_count?: number | null
+        }
+        Update: {
+          ats_score?: number | null
+          better_solution?: string | null
+          career_roadmap_id?: string | null
+          code_quality_score?: number | null
+          completed_at?: string | null
+          constraints?: string | null
+          correctness_score?: number | null
+          created_at?: string
+          description?: string
+          difficulty?: string
+          edge_case_score?: number | null
+          examples?: Json
+          id?: string
+          language?: string | null
+          learning_resources?: string[]
+          mistakes?: string[]
+          optimization_score?: number | null
+          optimization_suggestions?: string[]
+          overall_score?: number | null
+          passed_count?: number | null
+          profile_id?: string
+          resume_id?: string | null
+          roadmap_progress_percent?: number | null
+          runtime_ms?: number | null
+          sample_test_cases?: Json
+          source_code?: string | null
+          space_complexity_score?: number | null
+          status?: string
+          stderr?: string | null
+          stdout?: string | null
+          target_company?: string | null
+          target_role?: string
+          test_cases?: Json
+          time_complexity_score?: number | null
+          title?: string
+          total_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coding_interview_sessions_career_roadmap_id_fkey"
+            columns: ["career_roadmap_id"]
+            isOneToOne: false
+            referencedRelation: "career_roadmaps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coding_interview_sessions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coding_interview_sessions_resume_id_fkey"
+            columns: ["resume_id"]
+            isOneToOne: false
+            referencedRelation: "resumes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       coin_events: {
         Row: {
           amount: number

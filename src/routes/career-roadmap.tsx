@@ -14,6 +14,7 @@ import {
   Milestone,
   CalendarClock,
   Gauge,
+  Terminal,
 } from "lucide-react";
 
 import { AppShell } from "@/components/AppNav";
@@ -533,6 +534,12 @@ function RoadmapDashboard({
           items={interviewPlan}
         />
       </div>
+
+      <Link to="/coding-interview">
+        <Button variant="outline">
+          <Terminal className="mr-2 h-4 w-4" /> Practice a real coding interview
+        </Button>
+      </Link>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   Sparkles,
   Loader2,
@@ -13,6 +13,7 @@ import {
   Award,
   Code2,
   MessagesSquare,
+  Terminal,
 } from "lucide-react";
 
 import { AppShell } from "@/components/AppNav";
@@ -391,6 +392,12 @@ function ReportDetail({ report }: { report: EligibilityReport }) {
           items={recs.interviewPracticePriorities}
         />
       </div>
+
+      <Link to="/coding-interview">
+        <Button variant="outline">
+          <Terminal className="mr-2 h-4 w-4" /> Practice a real coding interview
+        </Button>
+      </Link>
     </div>
   );
 }

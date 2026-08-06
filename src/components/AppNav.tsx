@@ -11,6 +11,7 @@ import {
   BookOpen,
   Compass,
   Gauge,
+  Terminal,
   Briefcase,
   Building2,
   UserCircle2,
@@ -38,6 +39,7 @@ const itemsBeforeBusiness = [
   { to: "/resume-analyse", label: "Resume Analyse", icon: FileSearch, badge: null },
   { to: "/career-roadmap", label: "Career Roadmap", icon: Compass, badge: null },
   { to: "/eligibility", label: "Eligibility", icon: Gauge, badge: null },
+  { to: "/coding-interview", label: "Coding Interview", icon: Terminal, badge: null },
   { to: "/job-preparation", label: "Job Prep", icon: BookOpen, badge: null },
   { to: "/apply", label: "Apply", icon: Briefcase, badge: null },
 ] as const;
