@@ -1,4 +1,4 @@
-import { KeywordMatcher } from "@/ai/resume/KeywordMatcher";
+import { KeywordMatcher, type KeywordDefinition } from "@/ai/resume/KeywordMatcher";
 import { SKILL_VOCABULARY } from "@/ai/resume/SkillExtractor";
 
 // Splits a job description into the sections Sprint 7 calls for
@@ -15,6 +15,54 @@ export interface JobDescriptionAnalysis {
   experienceRequirement: string | null;
   educationRequirement: string | null;
   technologies: string[];
+  softSkills: string[];
+  keywords: string[];
+}
+
+// Sprint 12: a small, independent vocabulary of soft skills — kept
+// separate from SKILL_VOCABULARY (which is technical/tooling-focused)
+// since a JD's "soft skills" bucket is conceptually distinct from its
+// required/preferred technical skills, even though both are matched the
+// same keyword-scan way.
+const SOFT_SKILL_VOCABULARY: KeywordDefinition[] = [
+  { term: "Communication" },
+  { term: "Leadership" },
+  { term: "Teamwork", aliases: ["team player"] },
+  { term: "Collaboration" },
+  { term: "Problem Solving" },
+  { term: "Adaptability" },
+  { term: "Time Management" },
+  { term: "Critical Thinking" },
+  { term: "Ownership" },
+  { term: "Mentorship", aliases: ["mentoring"] },
+  { term: "Conflict Resolution" },
+  { term: "Stakeholder Management" },
+  { term: "Empathy" },
+  { term: "Creativity" },
+  { term: "Attention to Detail" },
+  { term: "Self-Motivated" },
+  { term: "Analytical Thinking" },
+];
+
+const KEYWORD_STOPWORDS = new Set([
+  "the","and","for","with","that","this","from","have","will","your","you","are","our",
+  "role","team","work","working","years","experience","strong","ability","skills","across",
+  "including","such","who","what","into","also","who's","etc","using","use","able","join",
+  "looking","required","preferred","plus","about","them","they","their","been","being","can",
+]);
+
+function extractKeywords(text: string): string[] {
+  const counts = new Map<string, number>();
+  const words = text.toLowerCase().match(/[a-z][a-z+.#-]{2,}/g) ?? [];
+  for (const word of words) {
+    if (KEYWORD_STOPWORDS.has(word)) continue;
+    counts.set(word, (counts.get(word) ?? 0) + 1);
+  }
+  return Array.from(counts.entries())
+    .filter(([, count]) => count >= 2)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 15)
+    .map(([word]) => word);
 }
 
 type JDSectionKey =
@@ -81,6 +129,8 @@ export class JobDescriptionAnalyzer {
       experienceRequirement: sections.experience.join(" ").trim() || null,
       educationRequirement: sections.education.join(" ").trim() || null,
       technologies: KeywordMatcher.findMatches(jdText, SKILL_VOCABULARY).map((match) => match.term),
+      softSkills: KeywordMatcher.findMatches(jdText, SOFT_SKILL_VOCABULARY).map((match) => match.term),
+      keywords: extractKeywords(jdText),
     };
   }
 

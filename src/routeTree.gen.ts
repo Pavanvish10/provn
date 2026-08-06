@@ -66,6 +66,7 @@ import { Route as CCompanyIdRouteImport } from './routes/c.$companyId'
 import { Route as ChallengesSlugRouteImport } from './routes/challenges.$slug'
 import { Route as InterviewIndexRouteImport } from './routes/interview/index'
 import { Route as InterviewDeviceCheckRouteImport } from './routes/interview/device-check'
+import { Route as InterviewJobDescriptionRouteImport } from './routes/interview/job-description'
 import { Route as InterviewReportRouteImport } from './routes/interview/report'
 import { Route as InterviewResumeUploadRouteImport } from './routes/interview/resume-upload'
 import { Route as InterviewRoomRouteImport } from './routes/interview/room'
@@ -357,6 +358,11 @@ const InterviewDeviceCheckRoute = InterviewDeviceCheckRouteImport.update({
   path: '/interview/device-check',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InterviewJobDescriptionRoute = InterviewJobDescriptionRouteImport.update({
+  id: '/interview/job-description',
+  path: '/interview/job-description',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const InterviewReportRoute = InterviewReportRouteImport.update({
   id: '/interview/report',
   path: '/interview/report',
@@ -440,6 +446,7 @@ export interface FileRoutesByFullPath {
   '/c/$companyId': typeof CCompanyIdRoute
   '/challenges/$slug': typeof ChallengesSlugRoute
   '/interview/device-check': typeof InterviewDeviceCheckRoute
+  '/interview/job-description': typeof InterviewJobDescriptionRoute
   '/interview/report': typeof InterviewReportRoute
   '/interview/resume-upload': typeof InterviewResumeUploadRoute
   '/interview/room': typeof InterviewRoomRoute
@@ -504,6 +511,7 @@ export interface FileRoutesByTo {
   '/c/$companyId': typeof CCompanyIdRoute
   '/challenges/$slug': typeof ChallengesSlugRoute
   '/interview/device-check': typeof InterviewDeviceCheckRoute
+  '/interview/job-description': typeof InterviewJobDescriptionRoute
   '/interview/report': typeof InterviewReportRoute
   '/interview/resume-upload': typeof InterviewResumeUploadRoute
   '/interview/room': typeof InterviewRoomRoute
@@ -569,6 +577,7 @@ export interface FileRoutesById {
   '/c/$companyId': typeof CCompanyIdRoute
   '/challenges/$slug': typeof ChallengesSlugRoute
   '/interview/device-check': typeof InterviewDeviceCheckRoute
+  '/interview/job-description': typeof InterviewJobDescriptionRoute
   '/interview/report': typeof InterviewReportRoute
   '/interview/resume-upload': typeof InterviewResumeUploadRoute
   '/interview/room': typeof InterviewRoomRoute
@@ -635,6 +644,7 @@ export interface FileRouteTypes {
     | '/c/$companyId'
     | '/challenges/$slug'
     | '/interview/device-check'
+    | '/interview/job-description'
     | '/interview/report'
     | '/interview/resume-upload'
     | '/interview/room'
@@ -699,6 +709,7 @@ export interface FileRouteTypes {
     | '/c/$companyId'
     | '/challenges/$slug'
     | '/interview/device-check'
+    | '/interview/job-description'
     | '/interview/report'
     | '/interview/resume-upload'
     | '/interview/room'
@@ -763,6 +774,7 @@ export interface FileRouteTypes {
     | '/c/$companyId'
     | '/challenges/$slug'
     | '/interview/device-check'
+    | '/interview/job-description'
     | '/interview/report'
     | '/interview/resume-upload'
     | '/interview/room'
@@ -807,6 +819,7 @@ export interface RootRouteChildren {
   AuthCallbackRoute: typeof AuthCallbackRoute
   CCompanyIdRoute: typeof CCompanyIdRoute
   InterviewDeviceCheckRoute: typeof InterviewDeviceCheckRoute
+  InterviewJobDescriptionRoute: typeof InterviewJobDescriptionRoute
   InterviewReportRoute: typeof InterviewReportRoute
   InterviewResumeUploadRoute: typeof InterviewResumeUploadRoute
   InterviewRoomRoute: typeof InterviewRoomRoute
@@ -1216,6 +1229,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InterviewDeviceCheckRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/interview/job-description': {
+      id: '/interview/job-description'
+      path: '/interview/job-description'
+      fullPath: '/interview/job-description'
+      preLoaderRoute: typeof InterviewJobDescriptionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/interview/report': {
       id: '/interview/report'
       path: '/interview/report'
@@ -1360,6 +1380,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthCallbackRoute: AuthCallbackRoute,
   CCompanyIdRoute: CCompanyIdRoute,
   InterviewDeviceCheckRoute: InterviewDeviceCheckRoute,
+  InterviewJobDescriptionRoute: InterviewJobDescriptionRoute,
   InterviewReportRoute: InterviewReportRoute,
   InterviewResumeUploadRoute: InterviewResumeUploadRoute,
   InterviewRoomRoute: InterviewRoomRoute,

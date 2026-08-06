@@ -5,6 +5,8 @@
 
 export const INTERVIEW_ROUTES = {
   dashboard: "/interview",
+  resumeUpload: "/interview/resume-upload",
+  jobDescription: "/interview/job-description",
   setup: "/interview/setup",
   deviceCheck: "/interview/device-check",
   room: "/interview/room",
@@ -14,7 +16,15 @@ export const INTERVIEW_ROUTES = {
 export type InterviewRouteKey = keyof typeof INTERVIEW_ROUTES;
 export type InterviewRoutePath = (typeof INTERVIEW_ROUTES)[InterviewRouteKey];
 
-const FLOW_ORDER: InterviewRouteKey[] = ["dashboard", "setup", "deviceCheck", "room", "report"];
+const FLOW_ORDER: InterviewRouteKey[] = [
+  "dashboard",
+  "resumeUpload",
+  "jobDescription",
+  "setup",
+  "deviceCheck",
+  "room",
+  "report",
+];
 
 export class InterviewNavigation {
   static routeFor(step: InterviewRouteKey): InterviewRoutePath {

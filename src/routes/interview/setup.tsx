@@ -10,6 +10,7 @@ import {
   Code2,
   FileUp,
   Rocket,
+  Sparkles,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -26,6 +27,8 @@ import { StartInterviewButton } from "@/components/interview/StartInterviewButto
 import { cn } from "@/lib/utils";
 import { InterviewFlowController } from "@/store/InterviewFlowController";
 import { INTERVIEW_ROUTES } from "@/store/InterviewNavigation";
+import { useInterviewSession } from "@/store/InterviewSessionStore";
+import type { JobAnalysisResult } from "@/services/job/JobAnalysisEngine";
 
 export const Route = createFileRoute("/interview/setup")({
   head: () => ({
@@ -129,10 +132,35 @@ const INITIAL_STATE: SetupState = {
   voice: null,
 };
 
+// The Job Description page (Sprint 12) speaks in its own vocabulary
+// ("Managerial", lowercase difficulty levels) — these translate its
+// output into the exact string values this wizard's selectors compare
+// against, so a job analysis carries forward as real pre-filled
+// selections instead of just inert session-store data.
+function mapAnalyzedInterviewType(label: string): string {
+  return label === "Managerial" ? "Manager" : label;
+}
+
+function capitalizeDifficulty(level: string): string {
+  return level.charAt(0).toUpperCase() + level.slice(1);
+}
+
+function buildInitialSetup(jobAnalysis: JobAnalysisResult | null): SetupState {
+  if (!jobAnalysis) return INITIAL_STATE;
+  return {
+    ...INITIAL_STATE,
+    interviewType: mapAnalyzedInterviewType(jobAnalysis.interviewType),
+    company: jobAnalysis.company?.name ?? null,
+    role: jobAnalysis.role?.label ?? null,
+    difficulty: capitalizeDifficulty(jobAnalysis.plan.difficulty),
+  };
+}
+
 function InterviewSetupPage() {
   const navigate = useNavigate();
+  const { jobAnalysis } = useInterviewSession();
   const [step, setStep] = useState(1);
-  const [setup, setSetup] = useState<SetupState>(INITIAL_STATE);
+  const [setup, setSetup] = useState<SetupState>(() => buildInitialSetup(jobAnalysis));
 
   const canContinue = useMemo(() => {
     switch (step) {
@@ -250,6 +278,44 @@ function InterviewSetupPage() {
             ))}
           </div>
         </motion.div>
+
+        {jobAnalysis && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.1 }}
+            className="mb-6 rounded-2xl border border-violet-400/30 bg-violet-500/5 p-4 backdrop-blur-xl sm:p-5"
+          >
+            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <Sparkles className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+              Pre-filled from your job description analysis
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Interview type, company, role, and difficulty below were carried over from your{" "}
+              {jobAnalysis.role?.label ?? "role"} analysis
+              {jobAnalysis.company ? ` at ${jobAnalysis.company.name}` : ""}. Change anything you
+              like — nothing here is locked in.
+            </p>
+            {(jobAnalysis.plan.focusAreas.length > 0 ||
+              jobAnalysis.plan.technicalTopics.length > 0) && (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {(jobAnalysis.plan.focusAreas.length > 0
+                  ? jobAnalysis.plan.focusAreas
+                  : jobAnalysis.plan.technicalTopics
+                )
+                  .slice(0, 6)
+                  .map((topic) => (
+                    <span
+                      key={topic}
+                      className="rounded-full bg-violet-500/10 px-2.5 py-1 text-xs font-medium text-violet-600 dark:text-violet-400"
+                    >
+                      {topic}
+                    </span>
+                  ))}
+              </div>
+            )}
+          </motion.div>
+        )}
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2">

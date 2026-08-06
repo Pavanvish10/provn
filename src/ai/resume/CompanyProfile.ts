@@ -180,6 +180,51 @@ export const COMPANY_PROFILES: Record<CompanyId, CompanyProfileData> = {
     ],
     preferredTopics: ["client communication", "consulting mindset", "adaptability"],
   },
+  atlassian: {
+    id: "atlassian",
+    name: "Atlassian",
+    interviewStyle: "Values-driven, collaborative, strong focus on open teamwork and candor.",
+    difficulty: "medium",
+    leadershipPrinciples: [
+      "Open Company, No Bullshit",
+      "Build with Heart and Balance",
+      "Don't #@!% the Customer",
+      "Play, as a Team",
+    ],
+    preferredTopics: ["collaboration", "teamwork tools", "openness", "customer trust"],
+  },
+  phonepe: {
+    id: "phonepe",
+    name: "PhonePe",
+    interviewStyle: "Fintech-at-scale rigor, deep dives on reliability and ownership.",
+    difficulty: "hard",
+    leadershipPrinciples: ["Ownership", "Customer Trust", "Speed with Reliability"],
+    preferredTopics: ["payments scale", "reliability", "fintech security", "ownership"],
+  },
+  swiggy: {
+    id: "swiggy",
+    name: "Swiggy",
+    interviewStyle: "Fast-paced consumer-tech, strong bias toward metrics and execution.",
+    difficulty: "medium",
+    leadershipPrinciples: ["Customer Obsession", "Bias for Action", "Data-Driven Decisions"],
+    preferredTopics: ["real-time logistics", "scale", "product metrics", "execution speed"],
+  },
+  zomato: {
+    id: "zomato",
+    name: "Zomato",
+    interviewStyle: "Consumer-tech, product-and-scale focused, informal but rigorous.",
+    difficulty: "medium",
+    leadershipPrinciples: ["Customer First", "Ownership", "Extreme Ownership"],
+    preferredTopics: ["consumer scale", "product thinking", "ownership", "fast iteration"],
+  },
+  capgemini: {
+    id: "capgemini",
+    name: "Capgemini",
+    interviewStyle: "Structured, process-oriented consulting rounds with fundamentals focus.",
+    difficulty: "easy",
+    leadershipPrinciples: ["Honesty", "Boldness", "Trust", "Freedom"],
+    preferredTopics: ["fundamentals", "client communication", "adaptability"],
+  },
 };
 
 const ALIASES: Record<string, CompanyId> = { fb: "meta", facebook: "meta", "google llc": "google" };

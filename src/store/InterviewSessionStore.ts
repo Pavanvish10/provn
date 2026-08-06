@@ -4,6 +4,7 @@ import type { ResumeProfile } from "@/ai/resume/ResumeAnalyzer";
 import type { JobDescriptionAnalysis } from "@/ai/resume/JobDescriptionAnalyzer";
 import type { EvaluationReport } from "@/ai/evaluation/EvaluationTypes";
 import type { TranscriptEntry } from "@/services/realtime/transcriptManager";
+import type { JobAnalysisResult } from "@/services/job/JobAnalysisEngine";
 import { loadPersistedSession, persistSession } from "@/store/SessionPersistence";
 
 // The single source of truth for "what interview is the candidate
@@ -32,6 +33,7 @@ export interface InterviewSessionData {
   deviceCheckCompleted: boolean;
   resumeMock: ResumeProfile | null;
   jobDescriptionMock: JobDescriptionAnalysis | null;
+  jobAnalysis: JobAnalysisResult | null;
   conversationHistory: TranscriptEntry[];
   evaluationReport: EvaluationReport | null;
   startedAt: number | null;
@@ -44,6 +46,7 @@ export const DEFAULT_SESSION: InterviewSessionData = {
   deviceCheckCompleted: false,
   resumeMock: null,
   jobDescriptionMock: null,
+  jobAnalysis: null,
   conversationHistory: [],
   evaluationReport: null,
   startedAt: null,
@@ -68,16 +71,21 @@ class InterviewSessionStoreImpl {
     return this.data;
   }
 
-  /** Saving a new setup is the root of the flow — it invalidates
-   * everything downstream (device check, transcript, report) so a
-   * candidate reconfiguring their interview never sees stale results
-   * from a previous run. */
+  /** Saving a new setup invalidates everything downstream of it (device
+   * check, transcript, report) so a candidate reconfiguring their
+   * interview never sees stale results from a previous run — but the
+   * resume/job-description/job-analysis a candidate supplied earlier in
+   * the flow (Resume Upload, Job Description) are carried forward rather
+   * than wiped, since those steps happen *before* Setup, not after it. */
   setSetup(setup: InterviewSetupConfig) {
     this.data = {
       ...DEFAULT_SESSION,
       status: "configuring",
       setup,
       startedAt: Date.now(),
+      resumeMock: this.data.resumeMock,
+      jobDescriptionMock: this.data.jobDescriptionMock,
+      jobAnalysis: this.data.jobAnalysis,
     };
     this.emit();
   }
@@ -94,6 +102,15 @@ class InterviewSessionStoreImpl {
 
   setJobDescriptionMock(analysis: JobDescriptionAnalysis) {
     this.data = { ...this.data, jobDescriptionMock: analysis };
+    this.emit();
+  }
+
+  setJobAnalysis(analysis: JobAnalysisResult) {
+    this.data = {
+      ...this.data,
+      jobAnalysis: analysis,
+      jobDescriptionMock: analysis.jobDescription,
+    };
     this.emit();
   }
 

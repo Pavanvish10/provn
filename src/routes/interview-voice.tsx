@@ -108,7 +108,7 @@ function InterviewDashboard() {
           </p>
         </div>
         <Link
-          to="/interview-setup"
+          to="/interview/setup"
           className="inline-flex items-center gap-2 rounded-full bg-brand px-5 py-2.5 text-sm font-semibold text-brand-foreground shadow-lg shadow-brand/20 transition hover:opacity-90"
         >
           <Mic className="h-4 w-4" /> Start AI Interview
@@ -137,33 +137,31 @@ function InterviewDashboard() {
 
       <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <DashboardCard
-          to="/interview-setup"
+          to="/interview/setup"
           icon={<Mic className="h-5 w-5" />}
           title="Start AI Interview"
           description="Configure type, role, difficulty and go live with a spoken AI interviewer."
         />
         <DashboardCard
-          to="/interview-history"
+          to="/interview/report"
           icon={<History className="h-5 w-5" />}
           title="Interview History"
           description="Review every past session, its score, and reopen the full report."
         />
         <DashboardCard
-          to="/interview-history"
+          to="/interview/report"
           icon={<FileBarChart className="h-5 w-5" />}
           title="AI Reports"
           description="Deep performance breakdowns across communication, confidence and more."
         />
         <DashboardCard
-          to="/interview-setup"
-          search={{ mode: "practice" }}
+          to="/interview/setup"
           icon={<Dumbbell className="h-5 w-5" />}
           title="Practice Mode"
           description="Low-pressure practice with easier questions — repeat as often as you like."
         />
         <DashboardCard
-          to="/interview-setup"
-          search={{ packs: "1" }}
+          to="/interview/setup"
           icon={<Building2 className="h-5 w-5" />}
           title="Company Interview Packs"
           description="Curated FAANG and startup interview presets, ready to launch instantly."
@@ -173,7 +171,7 @@ function InterviewDashboard() {
       <div className="rounded-2xl border border-border bg-card p-6">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-display text-lg font-semibold">Recent Reports</h2>
-          <Link to="/interview-history" className="text-sm font-medium text-brand hover:underline">
+          <Link to="/interview/report" className="text-sm font-medium text-brand hover:underline">
             View all
           </Link>
         </div>
@@ -182,8 +180,7 @@ function InterviewDashboard() {
             {stats.recent.map((session) => (
               <Link
                 key={session.id}
-                to="/interview-report/$sessionId"
-                params={{ sessionId: session.id }}
+                to="/interview/report"
                 className="flex items-center justify-between rounded-xl border border-border p-3 transition hover:border-foreground/20"
               >
                 <div className="flex items-center gap-3">

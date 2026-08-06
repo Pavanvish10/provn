@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, Sparkles } from "lucide-react";
@@ -22,7 +21,6 @@ export const Route = createFileRoute("/interview/resume-upload")({
 
 function ResumeUploadPage() {
   const navigate = useNavigate();
-  const [hasResume, setHasResume] = useState(false);
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-violet-50 via-white to-indigo-50 dark:from-slate-950 dark:via-slate-950 dark:to-indigo-950/40">
@@ -61,12 +59,12 @@ function ResumeUploadPage() {
           </div>
         </motion.div>
 
-        <ResumeUploader onParsed={() => setHasResume(true)} onDeleted={() => setHasResume(false)} />
+        <ResumeUploader />
 
         <div className="mt-8 flex items-center justify-between border-t border-white/10 pt-6">
           <button
             type="button"
-            onClick={() => navigate({ to: INTERVIEW_ROUTES.setup })}
+            onClick={() => navigate({ to: INTERVIEW_ROUTES.jobDescription })}
             className="text-sm font-medium text-muted-foreground transition hover:text-foreground"
           >
             Skip for now
@@ -74,10 +72,10 @@ function ResumeUploadPage() {
 
           <button
             type="button"
-            onClick={() => navigate({ to: INTERVIEW_ROUTES.setup })}
+            onClick={() => navigate({ to: INTERVIEW_ROUTES.jobDescription })}
             className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-md shadow-violet-500/20 transition hover:opacity-95"
           >
-            {hasResume ? "Continue to Setup" : "Continue"}
+            Continue
             <ArrowRight className="h-4 w-4" />
           </button>
         </div>

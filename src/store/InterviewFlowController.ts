@@ -11,6 +11,7 @@ import { ResumeStorageService } from "@/services/resume/ResumeStorageService";
 import { EvaluationEngine, DUMMY_EVALUATION_TURNS } from "@/ai/evaluation/EvaluationEngine";
 import type { EvaluationInput, EvaluationReport } from "@/ai/evaluation/EvaluationTypes";
 import type { TranscriptEntry } from "@/services/realtime/transcriptManager";
+import type { JobAnalysisResult } from "@/services/job/JobAnalysisEngine";
 
 // The orchestration layer: the single place that composes
 // InterviewSessionStore (state), FlowValidator (rules), and the AI
@@ -22,19 +23,34 @@ export class InterviewFlowController {
   // -- Flow actions ------------------------------------------------------
 
   /** Called once the Setup wizard's choices are confirmed. Saves the
-   * config, then makes sure a resume is available for the rest of the
-   * flow: a real one the candidate uploaded (Sprint 11) takes priority
-   * over the Sprint 7 mock, which only fills in when nothing was ever
-   * uploaded — the "go through the whole flow on dummy data" guarantee
-   * from Sprint 10 still holds either way. */
+   * config, then makes sure a resume and job description are available
+   * for the rest of the flow. Sprint 12: `setSetup` now carries forward
+   * whatever the candidate already supplied earlier in the flow (a real
+   * uploaded resume from Sprint 11, or a real Job Analysis from Sprint
+   * 12) — so this only ever fills in a mock for whichever of the two is
+   * still missing, preserving the "go through the whole flow on dummy
+   * data" guarantee from Sprint 10 without clobbering real data. */
   static startInterview(setup: InterviewSetupConfig) {
     interviewSessionStore.setSetup(setup);
 
-    const uploadedResume = ResumeStorageService.load();
-    interviewSessionStore.setResumeMock(
-      uploadedResume?.profile ?? new ResumeAnalyzer().analyzeMock(),
-    );
-    interviewSessionStore.setJobDescriptionMock(new JobDescriptionAnalyzer().analyzeMock());
+    const session = interviewSessionStore.getSnapshot();
+    if (!session.resumeMock) {
+      const uploadedResume = ResumeStorageService.load();
+      interviewSessionStore.setResumeMock(
+        uploadedResume?.profile ?? new ResumeAnalyzer().analyzeMock(),
+      );
+    }
+    if (!session.jobDescriptionMock) {
+      interviewSessionStore.setJobDescriptionMock(new JobDescriptionAnalyzer().analyzeMock());
+    }
+  }
+
+  /** Called once the Job Description page finishes a real analysis —
+   * stores the full result (plan, roadmap, skill match) so the rest of
+   * the flow (Setup's pre-fill, the Room's personalization, the Report)
+   * can read it straight off the shared session store. */
+  static applyJobAnalysis(result: JobAnalysisResult) {
+    interviewSessionStore.setJobAnalysis(result);
   }
 
   static completeDeviceCheck() {
