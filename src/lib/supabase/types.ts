@@ -2451,6 +2451,159 @@ export type Database = {
           },
         ]
       }
+      resume_optimizations: {
+        Row: {
+          applied: boolean
+          ats_optimization_score: number
+          created_at: string
+          formatting_suggestions: string[]
+          id: string
+          job_description_text: string | null
+          keyword_match_score: number
+          keyword_suggestions: string[]
+          missing_skills: string[]
+          profile_id: string
+          recommended_certifications: string[]
+          resume_quality_score: number
+          resume_version_id: string
+          rewritten_experience: Json
+          rewritten_projects: Json
+          rewritten_summary: string | null
+          section_feedback: Json
+          target_company: string | null
+          target_role: string | null
+        }
+        Insert: {
+          applied?: boolean
+          ats_optimization_score?: number
+          created_at?: string
+          formatting_suggestions?: string[]
+          id?: string
+          job_description_text?: string | null
+          keyword_match_score?: number
+          keyword_suggestions?: string[]
+          missing_skills?: string[]
+          profile_id: string
+          recommended_certifications?: string[]
+          resume_quality_score?: number
+          resume_version_id: string
+          rewritten_experience?: Json
+          rewritten_projects?: Json
+          rewritten_summary?: string | null
+          section_feedback?: Json
+          target_company?: string | null
+          target_role?: string | null
+        }
+        Update: {
+          applied?: boolean
+          ats_optimization_score?: number
+          created_at?: string
+          formatting_suggestions?: string[]
+          id?: string
+          job_description_text?: string | null
+          keyword_match_score?: number
+          keyword_suggestions?: string[]
+          missing_skills?: string[]
+          profile_id?: string
+          recommended_certifications?: string[]
+          resume_quality_score?: number
+          resume_version_id?: string
+          rewritten_experience?: Json
+          rewritten_projects?: Json
+          rewritten_summary?: string | null
+          section_feedback?: Json
+          target_company?: string | null
+          target_role?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resume_optimizations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resume_optimizations_resume_version_id_fkey"
+            columns: ["resume_version_id"]
+            isOneToOne: false
+            referencedRelation: "resume_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      resume_versions: {
+        Row: {
+          ats_optimization_score: number | null
+          content: Json
+          created_at: string
+          id: string
+          job_description_text: string | null
+          keyword_match_score: number | null
+          profile_id: string
+          resume_quality_score: number | null
+          resume_type: string
+          section_feedback: Json
+          source_resume_id: string | null
+          status: string
+          target_company: string | null
+          target_role: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          ats_optimization_score?: number | null
+          content?: Json
+          created_at?: string
+          id?: string
+          job_description_text?: string | null
+          keyword_match_score?: number | null
+          profile_id: string
+          resume_quality_score?: number | null
+          resume_type: string
+          section_feedback?: Json
+          source_resume_id?: string | null
+          status?: string
+          target_company?: string | null
+          target_role?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          ats_optimization_score?: number | null
+          content?: Json
+          created_at?: string
+          id?: string
+          job_description_text?: string | null
+          keyword_match_score?: number | null
+          profile_id?: string
+          resume_quality_score?: number | null
+          resume_type?: string
+          section_feedback?: Json
+          source_resume_id?: string | null
+          status?: string
+          target_company?: string | null
+          target_role?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resume_versions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resume_versions_source_resume_id_fkey"
+            columns: ["source_resume_id"]
+            isOneToOne: false
+            referencedRelation: "resumes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       resumes: {
         Row: {
           analysis: Json | null

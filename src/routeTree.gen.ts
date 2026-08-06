@@ -40,6 +40,7 @@ import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ProfileDetailsRouteImport } from './routes/profile-details'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ResumeAnalyseRouteImport } from './routes/resume-analyse'
+import { Route as ResumeBuilderRouteImport } from './routes/resume-builder'
 import { Route as ResumeSetupRouteImport } from './routes/resume-setup'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as SignupRouteImport } from './routes/signup'
@@ -230,6 +231,11 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
 const ResumeAnalyseRoute = ResumeAnalyseRouteImport.update({
   id: '/resume-analyse',
   path: '/resume-analyse',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResumeBuilderRoute = ResumeBuilderRouteImport.update({
+  id: '/resume-builder',
+  path: '/resume-builder',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResumeSetupRoute = ResumeSetupRouteImport.update({
@@ -445,6 +451,7 @@ export interface FileRoutesByFullPath {
   '/profile-details': typeof ProfileDetailsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/resume-analyse': typeof ResumeAnalyseRoute
+  '/resume-builder': typeof ResumeBuilderRoute
   '/resume-setup': typeof ResumeSetupRoute
   '/search': typeof SearchRoute
   '/signup': typeof SignupRoute
@@ -514,6 +521,7 @@ export interface FileRoutesByTo {
   '/profile-details': typeof ProfileDetailsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/resume-analyse': typeof ResumeAnalyseRoute
+  '/resume-builder': typeof ResumeBuilderRoute
   '/resume-setup': typeof ResumeSetupRoute
   '/search': typeof SearchRoute
   '/signup': typeof SignupRoute
@@ -584,6 +592,7 @@ export interface FileRoutesById {
   '/profile-details': typeof ProfileDetailsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/resume-analyse': typeof ResumeAnalyseRoute
+  '/resume-builder': typeof ResumeBuilderRoute
   '/resume-setup': typeof ResumeSetupRoute
   '/search': typeof SearchRoute
   '/signup': typeof SignupRoute
@@ -655,6 +664,7 @@ export interface FileRouteTypes {
     | '/profile-details'
     | '/reset-password'
     | '/resume-analyse'
+    | '/resume-builder'
     | '/resume-setup'
     | '/search'
     | '/signup'
@@ -724,6 +734,7 @@ export interface FileRouteTypes {
     | '/profile-details'
     | '/reset-password'
     | '/resume-analyse'
+    | '/resume-builder'
     | '/resume-setup'
     | '/search'
     | '/signup'
@@ -793,6 +804,7 @@ export interface FileRouteTypes {
     | '/profile-details'
     | '/reset-password'
     | '/resume-analyse'
+    | '/resume-builder'
     | '/resume-setup'
     | '/search'
     | '/signup'
@@ -863,6 +875,7 @@ export interface RootRouteChildren {
   ProfileDetailsRoute: typeof ProfileDetailsRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ResumeAnalyseRoute: typeof ResumeAnalyseRoute
+  ResumeBuilderRoute: typeof ResumeBuilderRoute
   ResumeSetupRoute: typeof ResumeSetupRoute
   SearchRoute: typeof SearchRoute
   SignupRoute: typeof SignupRoute
@@ -1097,6 +1110,13 @@ declare module '@tanstack/react-router' {
       path: '/resume-analyse'
       fullPath: '/resume-analyse'
       preLoaderRoute: typeof ResumeAnalyseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/resume-builder': {
+      id: '/resume-builder'
+      path: '/resume-builder'
+      fullPath: '/resume-builder'
+      preLoaderRoute: typeof ResumeBuilderRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/resume-setup': {
@@ -1456,6 +1476,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileDetailsRoute: ProfileDetailsRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ResumeAnalyseRoute: ResumeAnalyseRoute,
+  ResumeBuilderRoute: ResumeBuilderRoute,
   ResumeSetupRoute: ResumeSetupRoute,
   SearchRoute: SearchRoute,
   SignupRoute: SignupRoute,

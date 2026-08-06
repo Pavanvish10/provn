@@ -15,6 +15,7 @@ import {
   Loader2,
   Route as RouteIcon,
   Gauge,
+  FileEdit,
 } from "lucide-react";
 import { requireAuth } from "@/lib/auth-guard";
 import { useCurrentUser } from "@/lib/auth-client";
@@ -287,6 +288,11 @@ function Resume() {
                   <Link to="/eligibility">
                     <Button size="lg" variant="outline">
                       <Gauge className="mr-2 h-4 w-4" /> Check company eligibility
+                    </Button>
+                  </Link>
+                  <Link to="/resume-builder">
+                    <Button size="lg" variant="outline">
+                      <FileEdit className="mr-2 h-4 w-4" /> Build & optimize your resume
                     </Button>
                   </Link>
                 </div>

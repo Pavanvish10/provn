@@ -15,6 +15,7 @@ import {
   MessagesSquare,
   Terminal,
   UserCheck,
+  FileEdit,
 } from "lucide-react";
 
 import { AppShell } from "@/components/AppNav";
@@ -403,6 +404,11 @@ function ReportDetail({ report }: { report: EligibilityReport }) {
         <Link to="/hr-interview">
           <Button variant="outline">
             <UserCheck className="mr-2 h-4 w-4" /> Practice a real HR interview
+          </Button>
+        </Link>
+        <Link to="/resume-builder">
+          <Button variant="outline">
+            <FileEdit className="mr-2 h-4 w-4" /> Build & optimize your resume
           </Button>
         </Link>
       </div>
