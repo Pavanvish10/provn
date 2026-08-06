@@ -27,6 +27,7 @@ import { Route as HrInterviewRouteImport } from './routes/hr-interview'
 import { Route as InterviewPracticeRouteImport } from './routes/interview-practice'
 import { Route as InterviewVoiceRouteImport } from './routes/interview-voice'
 import { Route as JobPreparationRouteImport } from './routes/job-preparation'
+import { Route as JobRecommendationsRouteImport } from './routes/job-recommendations'
 import { Route as LeaderboardRouteImport } from './routes/leaderboard'
 import { Route as LiveResumeRouteImport } from './routes/live-resume'
 import { Route as LocationRouteImport } from './routes/location'
@@ -166,6 +167,11 @@ const InterviewVoiceRoute = InterviewVoiceRouteImport.update({
 const JobPreparationRoute = JobPreparationRouteImport.update({
   id: '/job-preparation',
   path: '/job-preparation',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JobRecommendationsRoute = JobRecommendationsRouteImport.update({
+  id: '/job-recommendations',
+  path: '/job-recommendations',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LeaderboardRoute = LeaderboardRouteImport.update({
@@ -438,6 +444,7 @@ export interface FileRoutesByFullPath {
   '/interview-practice': typeof InterviewPracticeRoute
   '/interview-voice': typeof InterviewVoiceRoute
   '/job-preparation': typeof JobPreparationRoute
+  '/job-recommendations': typeof JobRecommendationsRoute
   '/leaderboard': typeof LeaderboardRoute
   '/live-resume': typeof LiveResumeRoute
   '/location': typeof LocationRoute
@@ -508,6 +515,7 @@ export interface FileRoutesByTo {
   '/interview-practice': typeof InterviewPracticeRoute
   '/interview-voice': typeof InterviewVoiceRoute
   '/job-preparation': typeof JobPreparationRoute
+  '/job-recommendations': typeof JobRecommendationsRoute
   '/leaderboard': typeof LeaderboardRoute
   '/live-resume': typeof LiveResumeRoute
   '/location': typeof LocationRoute
@@ -579,6 +587,7 @@ export interface FileRoutesById {
   '/interview-practice': typeof InterviewPracticeRoute
   '/interview-voice': typeof InterviewVoiceRoute
   '/job-preparation': typeof JobPreparationRoute
+  '/job-recommendations': typeof JobRecommendationsRoute
   '/leaderboard': typeof LeaderboardRoute
   '/live-resume': typeof LiveResumeRoute
   '/location': typeof LocationRoute
@@ -651,6 +660,7 @@ export interface FileRouteTypes {
     | '/interview-practice'
     | '/interview-voice'
     | '/job-preparation'
+    | '/job-recommendations'
     | '/leaderboard'
     | '/live-resume'
     | '/location'
@@ -721,6 +731,7 @@ export interface FileRouteTypes {
     | '/interview-practice'
     | '/interview-voice'
     | '/job-preparation'
+    | '/job-recommendations'
     | '/leaderboard'
     | '/live-resume'
     | '/location'
@@ -791,6 +802,7 @@ export interface FileRouteTypes {
     | '/interview-practice'
     | '/interview-voice'
     | '/job-preparation'
+    | '/job-recommendations'
     | '/leaderboard'
     | '/live-resume'
     | '/location'
@@ -862,6 +874,7 @@ export interface RootRouteChildren {
   InterviewPracticeRoute: typeof InterviewPracticeRoute
   InterviewVoiceRoute: typeof InterviewVoiceRoute
   JobPreparationRoute: typeof JobPreparationRoute
+  JobRecommendationsRoute: typeof JobRecommendationsRoute
   LeaderboardRoute: typeof LeaderboardRoute
   LiveResumeRoute: typeof LiveResumeRoute
   LocationRoute: typeof LocationRoute
@@ -1019,6 +1032,13 @@ declare module '@tanstack/react-router' {
       path: '/job-preparation'
       fullPath: '/job-preparation'
       preLoaderRoute: typeof JobPreparationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/job-recommendations': {
+      id: '/job-recommendations'
+      path: '/job-recommendations'
+      fullPath: '/job-recommendations'
+      preLoaderRoute: typeof JobRecommendationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/leaderboard': {
@@ -1463,6 +1483,7 @@ const rootRouteChildren: RootRouteChildren = {
   InterviewPracticeRoute: InterviewPracticeRoute,
   InterviewVoiceRoute: InterviewVoiceRoute,
   JobPreparationRoute: JobPreparationRoute,
+  JobRecommendationsRoute: JobRecommendationsRoute,
   LeaderboardRoute: LeaderboardRoute,
   LiveResumeRoute: LiveResumeRoute,
   LocationRoute: LocationRoute,

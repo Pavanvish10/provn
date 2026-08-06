@@ -14,6 +14,7 @@ import {
   Terminal,
   UserCheck,
   FileEdit,
+  Target,
   Briefcase,
   Building2,
   UserCircle2,
@@ -44,6 +45,7 @@ const itemsBeforeBusiness = [
   { to: "/eligibility", label: "Eligibility", icon: Gauge, badge: null },
   { to: "/coding-interview", label: "Coding Interview", icon: Terminal, badge: null },
   { to: "/hr-interview", label: "HR Interview", icon: UserCheck, badge: null },
+  { to: "/job-recommendations", label: "Job Matches", icon: Target, badge: null },
   { to: "/job-preparation", label: "Job Prep", icon: BookOpen, badge: null },
   { to: "/apply", label: "Apply", icon: Briefcase, badge: null },
 ] as const;

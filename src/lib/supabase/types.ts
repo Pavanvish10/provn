@@ -1714,6 +1714,59 @@ export type Database = {
           },
         ]
       }
+      job_recommendations: {
+        Row: {
+          created_at: string
+          experience_level: string | null
+          full_time_only: boolean
+          id: string
+          internship_only: boolean
+          min_salary: number | null
+          next_steps: Json
+          preferred_location: string | null
+          profile_id: string
+          recommendations: Json
+          remote_only: boolean
+          target_role: string | null
+        }
+        Insert: {
+          created_at?: string
+          experience_level?: string | null
+          full_time_only?: boolean
+          id?: string
+          internship_only?: boolean
+          min_salary?: number | null
+          next_steps?: Json
+          preferred_location?: string | null
+          profile_id: string
+          recommendations?: Json
+          remote_only?: boolean
+          target_role?: string | null
+        }
+        Update: {
+          created_at?: string
+          experience_level?: string | null
+          full_time_only?: boolean
+          id?: string
+          internship_only?: boolean
+          min_salary?: number | null
+          next_steps?: Json
+          preferred_location?: string | null
+          profile_id?: string
+          recommendations?: Json
+          remote_only?: boolean
+          target_role?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_recommendations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_saves: {
         Row: {
           created_at: string

@@ -411,6 +411,11 @@ function ReportDetail({ report }: { report: EligibilityReport }) {
             <FileEdit className="mr-2 h-4 w-4" /> Build & optimize your resume
           </Button>
         </Link>
+        <Link to="/job-recommendations">
+          <Button variant="outline">
+            <Target className="mr-2 h-4 w-4" /> Find matching jobs
+          </Button>
+        </Link>
       </div>
     </div>
   );
