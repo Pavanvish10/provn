@@ -122,10 +122,6 @@ function Login() {
       options: { redirectTo, skipBrowserRedirect: true },
     });
 
-    console.log("[oauth] provider:", provider);
-    console.log("[oauth] redirectTo:", redirectTo);
-    console.log("[oauth] generated authorize URL:", data?.url);
-
     if (oauthError) {
       setError(oauthError.message);
       return;
