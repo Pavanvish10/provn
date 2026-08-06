@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { ArrowLeft, Compass, Loader2 } from "lucide-react";
+import { ArrowLeft, Compass, Gauge, Loader2 } from "lucide-react";
 
 import { OverallScoreCard } from "@/components/interview/report/OverallScoreCard";
 import { ScoreBreakdown } from "@/components/interview/report/ScoreBreakdown";
@@ -261,6 +261,12 @@ function ReportContent({
             className="inline-flex items-center justify-center gap-2 rounded-full border border-white/15 bg-white/[0.04] px-5 py-2.5 text-sm font-semibold text-white/85 transition hover:bg-white/[0.08]"
           >
             <Compass className="h-4 w-4" /> Build your personalized roadmap
+          </Link>
+          <Link
+            to="/eligibility"
+            className="inline-flex items-center justify-center gap-2 rounded-full border border-white/15 bg-white/[0.04] px-5 py-2.5 text-sm font-semibold text-white/85 transition hover:bg-white/[0.08]"
+          >
+            <Gauge className="h-4 w-4" /> Check company eligibility
           </Link>
         </div>
       </div>

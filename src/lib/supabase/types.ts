@@ -1195,6 +1195,104 @@ export type Database = {
           },
         ]
       }
+      eligibility_reports: {
+        Row: {
+          ats_score: number
+          career_roadmap_id: string | null
+          company_eligibility_score: number
+          created_at: string
+          estimated_interview_readiness: number
+          id: string
+          job_description_text: string | null
+          missing_certifications: string[]
+          missing_projects: string[]
+          missing_skills: string[]
+          profile_id: string
+          recommendations: Json
+          resume_id: string | null
+          roadmap_progress_percent: number | null
+          role_match_score: number
+          score_rationale: Json
+          skill_match_percent: number | null
+          target_company: string | null
+          target_role: string
+          voice_interview_session_id: string | null
+        }
+        Insert: {
+          ats_score?: number
+          career_roadmap_id?: string | null
+          company_eligibility_score?: number
+          created_at?: string
+          estimated_interview_readiness?: number
+          id?: string
+          job_description_text?: string | null
+          missing_certifications?: string[]
+          missing_projects?: string[]
+          missing_skills?: string[]
+          profile_id: string
+          recommendations?: Json
+          resume_id?: string | null
+          roadmap_progress_percent?: number | null
+          role_match_score?: number
+          score_rationale?: Json
+          skill_match_percent?: number | null
+          target_company?: string | null
+          target_role: string
+          voice_interview_session_id?: string | null
+        }
+        Update: {
+          ats_score?: number
+          career_roadmap_id?: string | null
+          company_eligibility_score?: number
+          created_at?: string
+          estimated_interview_readiness?: number
+          id?: string
+          job_description_text?: string | null
+          missing_certifications?: string[]
+          missing_projects?: string[]
+          missing_skills?: string[]
+          profile_id?: string
+          recommendations?: Json
+          resume_id?: string | null
+          roadmap_progress_percent?: number | null
+          role_match_score?: number
+          score_rationale?: Json
+          skill_match_percent?: number | null
+          target_company?: string | null
+          target_role?: string
+          voice_interview_session_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "eligibility_reports_career_roadmap_id_fkey"
+            columns: ["career_roadmap_id"]
+            isOneToOne: false
+            referencedRelation: "career_roadmaps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "eligibility_reports_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "eligibility_reports_resume_id_fkey"
+            columns: ["resume_id"]
+            isOneToOne: false
+            referencedRelation: "resumes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "eligibility_reports_voice_interview_session_id_fkey"
+            columns: ["voice_interview_session_id"]
+            isOneToOne: false
+            referencedRelation: "voice_interview_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_otps: {
         Row: {
           attempts: number

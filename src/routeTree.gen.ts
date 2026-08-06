@@ -18,6 +18,7 @@ import { Route as BusinessOnboardingRouteImport } from './routes/business-onboar
 import { Route as BusinessSignupRouteImport } from './routes/business-signup'
 import { Route as CareerRoadmapRouteImport } from './routes/career-roadmap'
 import { Route as ChallengesRouteImport } from './routes/challenges'
+import { Route as EligibilityRouteImport } from './routes/eligibility'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as FriendsRouteImport } from './routes/friends'
 import { Route as HomeRouteImport } from './routes/home'
@@ -117,6 +118,11 @@ const CareerRoadmapRoute = CareerRoadmapRouteImport.update({
 const ChallengesRoute = ChallengesRouteImport.update({
   id: '/challenges',
   path: '/challenges',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EligibilityRoute = EligibilityRouteImport.update({
+  id: '/eligibility',
+  path: '/eligibility',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
@@ -405,6 +411,7 @@ export interface FileRoutesByFullPath {
   '/business-signup': typeof BusinessSignupRoute
   '/career-roadmap': typeof CareerRoadmapRoute
   '/challenges': typeof ChallengesRouteWithChildren
+  '/eligibility': typeof EligibilityRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/friends': typeof FriendsRoute
   '/home': typeof HomeRoute
@@ -471,6 +478,7 @@ export interface FileRoutesByTo {
   '/business-signup': typeof BusinessSignupRoute
   '/career-roadmap': typeof CareerRoadmapRoute
   '/challenges': typeof ChallengesRouteWithChildren
+  '/eligibility': typeof EligibilityRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/friends': typeof FriendsRoute
   '/home': typeof HomeRoute
@@ -538,6 +546,7 @@ export interface FileRoutesById {
   '/business-signup': typeof BusinessSignupRoute
   '/career-roadmap': typeof CareerRoadmapRoute
   '/challenges': typeof ChallengesRouteWithChildren
+  '/eligibility': typeof EligibilityRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/friends': typeof FriendsRoute
   '/home': typeof HomeRoute
@@ -606,6 +615,7 @@ export interface FileRouteTypes {
     | '/business-signup'
     | '/career-roadmap'
     | '/challenges'
+    | '/eligibility'
     | '/forgot-password'
     | '/friends'
     | '/home'
@@ -672,6 +682,7 @@ export interface FileRouteTypes {
     | '/business-signup'
     | '/career-roadmap'
     | '/challenges'
+    | '/eligibility'
     | '/forgot-password'
     | '/friends'
     | '/home'
@@ -738,6 +749,7 @@ export interface FileRouteTypes {
     | '/business-signup'
     | '/career-roadmap'
     | '/challenges'
+    | '/eligibility'
     | '/forgot-password'
     | '/friends'
     | '/home'
@@ -805,6 +817,7 @@ export interface RootRouteChildren {
   BusinessSignupRoute: typeof BusinessSignupRoute
   CareerRoadmapRoute: typeof CareerRoadmapRoute
   ChallengesRoute: typeof ChallengesRouteWithChildren
+  EligibilityRoute: typeof EligibilityRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   FriendsRoute: typeof FriendsRoute
   HomeRoute: typeof HomeRoute
@@ -904,6 +917,13 @@ declare module '@tanstack/react-router' {
       path: '/challenges'
       fullPath: '/challenges'
       preLoaderRoute: typeof ChallengesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/eligibility': {
+      id: '/eligibility'
+      path: '/eligibility'
+      fullPath: '/eligibility'
+      preLoaderRoute: typeof EligibilityRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/forgot-password': {
@@ -1374,6 +1394,7 @@ const rootRouteChildren: RootRouteChildren = {
   BusinessSignupRoute: BusinessSignupRoute,
   CareerRoadmapRoute: CareerRoadmapRoute,
   ChallengesRoute: ChallengesRouteWithChildren,
+  EligibilityRoute: EligibilityRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   FriendsRoute: FriendsRoute,
   HomeRoute: HomeRoute,

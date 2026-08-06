@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   Sparkles,
   Loader2,
@@ -13,6 +13,7 @@ import {
   FolderKanban,
   Milestone,
   CalendarClock,
+  Gauge,
 } from "lucide-react";
 
 import { AppShell } from "@/components/AppNav";
@@ -273,14 +274,21 @@ function RoadmapDashboard({
             {roadmap.target_company ? ` @ ${roadmap.target_company}` : ""}
           </h1>
         </div>
-        <Button
-          variant="outline"
-          onClick={() => archive.mutate(roadmap.id)}
-          disabled={archive.isPending}
-        >
-          {archive.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-          Start a new roadmap
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link to="/eligibility">
+            <Button variant="outline">
+              <Gauge className="mr-2 h-4 w-4" /> Check company eligibility
+            </Button>
+          </Link>
+          <Button
+            variant="outline"
+            onClick={() => archive.mutate(roadmap.id)}
+            disabled={archive.isPending}
+          >
+            {archive.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            Start a new roadmap
+          </Button>
+        </div>
       </div>
 
       {roadmap.summary && (

@@ -14,6 +14,7 @@ import {
   Briefcase,
   Loader2,
   Route as RouteIcon,
+  Gauge,
 } from "lucide-react";
 import { requireAuth } from "@/lib/auth-guard";
 import { useCurrentUser } from "@/lib/auth-client";
@@ -281,6 +282,11 @@ function Resume() {
                   <Link to="/career-roadmap">
                     <Button size="lg" variant="outline">
                       <RouteIcon className="mr-2 h-4 w-4" /> Build your personalized roadmap
+                    </Button>
+                  </Link>
+                  <Link to="/eligibility">
+                    <Button size="lg" variant="outline">
+                      <Gauge className="mr-2 h-4 w-4" /> Check company eligibility
                     </Button>
                   </Link>
                 </div>
