@@ -2749,16 +2749,19 @@ export type Database = {
       }
       voice_interview_sessions: {
         Row: {
+          adaptability_score: number | null
           communication_score: number | null
           company: string | null
           completed_at: string | null
           confidence_score: number | null
           context_block: string | null
           created_at: string
+          culture_fit_score: number | null
           difficulty: string
           duration_minutes: number
           grammar_score: number | null
           hiring_recommendation: string | null
+          hr_readiness_score: number | null
           id: string
           improvement_plan: string[] | null
           interview_type: string
@@ -2767,30 +2770,36 @@ export type Database = {
           matched_skills: string[] | null
           missing_skills: string[] | null
           overall_score: number | null
+          previous_session_id: string | null
           problem_solving_score: number | null
           professionalism_score: number | null
           profile_id: string
           questions: Json
+          roadmap_progress_percent: number | null
           role: string
           started_at: string
           status: string
           strengths: string[] | null
           summary: string | null
+          teamwork_score: number | null
           technical_score: number | null
           voice_gender: string
           weaknesses: string[] | null
         }
         Insert: {
+          adaptability_score?: number | null
           communication_score?: number | null
           company?: string | null
           completed_at?: string | null
           confidence_score?: number | null
           context_block?: string | null
           created_at?: string
+          culture_fit_score?: number | null
           difficulty?: string
           duration_minutes?: number
           grammar_score?: number | null
           hiring_recommendation?: string | null
+          hr_readiness_score?: number | null
           id?: string
           improvement_plan?: string[] | null
           interview_type: string
@@ -2799,30 +2808,36 @@ export type Database = {
           matched_skills?: string[] | null
           missing_skills?: string[] | null
           overall_score?: number | null
+          previous_session_id?: string | null
           problem_solving_score?: number | null
           professionalism_score?: number | null
           profile_id: string
           questions?: Json
+          roadmap_progress_percent?: number | null
           role: string
           started_at?: string
           status?: string
           strengths?: string[] | null
           summary?: string | null
+          teamwork_score?: number | null
           technical_score?: number | null
           voice_gender?: string
           weaknesses?: string[] | null
         }
         Update: {
+          adaptability_score?: number | null
           communication_score?: number | null
           company?: string | null
           completed_at?: string | null
           confidence_score?: number | null
           context_block?: string | null
           created_at?: string
+          culture_fit_score?: number | null
           difficulty?: string
           duration_minutes?: number
           grammar_score?: number | null
           hiring_recommendation?: string | null
+          hr_readiness_score?: number | null
           id?: string
           improvement_plan?: string[] | null
           interview_type?: string
@@ -2831,20 +2846,30 @@ export type Database = {
           matched_skills?: string[] | null
           missing_skills?: string[] | null
           overall_score?: number | null
+          previous_session_id?: string | null
           problem_solving_score?: number | null
           professionalism_score?: number | null
           profile_id?: string
           questions?: Json
+          roadmap_progress_percent?: number | null
           role?: string
           started_at?: string
           status?: string
           strengths?: string[] | null
           summary?: string | null
+          teamwork_score?: number | null
           technical_score?: number | null
           voice_gender?: string
           weaknesses?: string[] | null
         }
         Relationships: [
+          {
+            foreignKeyName: "voice_interview_sessions_previous_session_id_fkey"
+            columns: ["previous_session_id"]
+            isOneToOne: false
+            referencedRelation: "voice_interview_sessions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "voice_interview_sessions_profile_id_fkey"
             columns: ["profile_id"]

@@ -4,9 +4,12 @@ import {
   Briefcase,
   Code2,
   Ear,
+  Heart,
+  HeartHandshake,
   MessageCircle,
   Puzzle,
   ShieldCheck,
+  Shuffle,
   SpellCheck2,
   Users,
   Waves,
@@ -32,6 +35,9 @@ const CATEGORY_ICONS: Record<EvaluationCategory, LucideIcon> = {
   leadership: Users,
   listening: Ear,
   professionalism: Briefcase,
+  teamwork: HeartHandshake,
+  adaptability: Shuffle,
+  cultureFit: Heart,
 };
 
 function bandFor(score: number) {

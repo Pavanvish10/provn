@@ -1,5 +1,14 @@
 import { motion } from "framer-motion";
-import { Check, type LucideIcon, Briefcase, Building2, Code2, Rocket, Users } from "lucide-react";
+import {
+  Check,
+  type LucideIcon,
+  Briefcase,
+  Building2,
+  Code2,
+  Rocket,
+  Users,
+  MessageCircle,
+} from "lucide-react";
 
 import { INTERVIEW_TYPE_LABELS, type InterviewType } from "@/ai/InterviewContext";
 import { cn } from "@/lib/utils";
@@ -15,6 +24,7 @@ const ICONS: Record<InterviewType, LucideIcon> = {
   startup: Rocket,
   faang: Building2,
   managerial: Briefcase,
+  behavioral: MessageCircle,
 };
 
 const TYPES = Object.keys(INTERVIEW_TYPE_LABELS) as InterviewType[];

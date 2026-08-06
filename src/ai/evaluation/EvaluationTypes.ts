@@ -18,7 +18,10 @@ export type EvaluationCategory =
   | "problemSolving"
   | "leadership"
   | "listening"
-  | "professionalism";
+  | "professionalism"
+  | "teamwork"
+  | "adaptability"
+  | "cultureFit";
 
 export type HiringRecommendation =
   "Strong Hire" | "Hire" | "Leaning Hire" | "Leaning No Hire" | "No Hire";

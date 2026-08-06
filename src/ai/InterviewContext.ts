@@ -4,7 +4,7 @@
 // copy of these fields, so there is exactly one source of truth for "what
 // interview is this."
 
-export type InterviewType = "hr" | "technical" | "startup" | "faang" | "managerial";
+export type InterviewType = "hr" | "technical" | "startup" | "faang" | "managerial" | "behavioral";
 
 export const INTERVIEW_TYPE_LABELS: Record<InterviewType, string> = {
   hr: "HR",
@@ -12,6 +12,7 @@ export const INTERVIEW_TYPE_LABELS: Record<InterviewType, string> = {
   startup: "Startup",
   faang: "FAANG",
   managerial: "Managerial",
+  behavioral: "Behavioral",
 };
 
 /** Free-form input is normalized against this list; anything unrecognized
@@ -21,6 +22,7 @@ export function normalizeInterviewType(value: string): InterviewType {
   const key = value.trim().toLowerCase();
   if (key === "hr" || key === "technical" || key === "startup" || key === "faang") return key;
   if (key === "managerial" || key === "manager") return "managerial";
+  if (key === "behavioral") return "behavioral";
   return "technical";
 }
 

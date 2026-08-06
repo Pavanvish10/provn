@@ -6,7 +6,11 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { GEMINI_MODEL, friendlyGeminiError, withGeminiRetry } from "@/lib/ai.server";
 import type { ResumeAnalysis } from "@/lib/resume.server";
 
-export type InterviewType = "hr" | "technical" | "manager" | "startup" | "faang";
+export type InterviewType = "hr" | "technical" | "manager" | "startup" | "faang" | "behavioral";
+// Sprint 18: the "HR-intelligence" family — types that get extra
+// grounding (roadmap progress, previous interview performance) and the
+// extended teamwork/adaptability/cultureFit/hrReadiness evaluation.
+const HR_FAMILY_TYPES = new Set<InterviewType>(["hr", "behavioral", "manager"]);
 export type Difficulty = "easy" | "medium" | "hard";
 export type Language = "english" | "hindi" | "hinglish";
 export type VoiceGender = "male" | "female";
@@ -35,6 +39,11 @@ export type VoiceInterviewReport = {
   leadershipScore: number;
   problemSolvingScore: number;
   professionalismScore: number;
+  // Sprint 18: only populated for hr/behavioral/manager sessions.
+  teamworkScore: number | null;
+  adaptabilityScore: number | null;
+  cultureFitScore: number | null;
+  hrReadinessScore: number | null;
   strengths: string[];
   weaknesses: string[];
   improvementPlan: string[];
@@ -52,6 +61,16 @@ function buildContextBlock(params: {
   jobDescriptionText?: string | null;
   targetSkills?: string[] | null;
   resumeAnalysis?: ResumeAnalysis | null;
+  // Sprint 18: extra grounding for hr/behavioral/manager sessions.
+  roadmapProgressPercent?: number | null;
+  previousSession?: {
+    interview_type: string;
+    role: string;
+    company: string | null;
+    overall_score: number | null;
+    strengths: string[] | null;
+    weaknesses: string[] | null;
+  } | null;
 }): string | null {
   const parts: string[] = [];
   if (params.jobDescriptionText?.trim()) {
@@ -83,6 +102,17 @@ function buildContextBlock(params: {
     }
     if (resumeParts.length) parts.push(`CANDIDATE RESUME:\n${resumeParts.join("\n")}`);
   }
+  if (params.roadmapProgressPercent != null) {
+    parts.push(
+      `CAREER ROADMAP PROGRESS: ${params.roadmapProgressPercent}% of the candidate's active preparation roadmap is complete.`,
+    );
+  }
+  if (params.previousSession) {
+    const p = params.previousSession;
+    parts.push(
+      `PREVIOUS INTERVIEW PERFORMANCE (${p.interview_type} interview for ${p.role}${p.company ? ` at ${p.company}` : ""}): overall score ${p.overall_score ?? "n/a"}/100. Strengths shown: ${(p.strengths ?? []).join(", ") || "none recorded"}. Weaknesses shown: ${(p.weaknesses ?? []).join(", ") || "none recorded"}. Build on this — probe whether past weaknesses have improved.`,
+    );
+  }
   return parts.length ? parts.join("\n\n") : null;
 }
 
@@ -94,6 +124,7 @@ const TYPE_LABEL: Record<InterviewType, string> = {
   manager: "hiring manager / leadership",
   startup: "startup, high-ownership, fast-paced",
   faang: "FAANG-style, high-bar structured",
+  behavioral: "behavioral, STAR-format past-experience",
 };
 
 const LANGUAGE_INSTRUCTION: Record<Language, string> = {
@@ -139,7 +170,7 @@ function getGemini(): { client: GoogleGenAI } | { error: string } {
 export const startVoiceInterviewFn = createServerFn({ method: "POST" })
   .validator(
     z.object({
-      interviewType: z.enum(["hr", "technical", "manager", "startup", "faang"]),
+      interviewType: z.enum(["hr", "technical", "manager", "startup", "faang", "behavioral"]),
       company: z.string().trim().max(100).optional(),
       role: z.string().trim().min(1).max(100),
       difficulty: z.enum(["easy", "medium", "hard"]),
@@ -170,10 +201,58 @@ export const startVoiceInterviewFn = createServerFn({ method: "POST" })
         .maybeSingle();
       const resumeAnalysis = (resume?.analysis as unknown as ResumeAnalysis | null) ?? null;
 
+      // Sprint 18: hr/behavioral/manager sessions additionally ground on
+      // the candidate's active roadmap progress and their most recent
+      // completed interview of any type — technical/startup/faang keep
+      // their existing Sprint 14 behavior unchanged.
+      let roadmapProgressPercent: number | null = null;
+      let previousSession: Parameters<typeof buildContextBlock>[0]["previousSession"] = null;
+      let previousSessionId: string | null = null;
+      if (HR_FAMILY_TYPES.has(data.interviewType)) {
+        const { data: activeRoadmap } = await supabase
+          .from("career_roadmaps")
+          .select("id")
+          .eq("profile_id", auth.user.id)
+          .eq("status", "active")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (activeRoadmap) {
+          const [{ count: total }, { count: completed }] = await Promise.all([
+            supabase
+              .from("career_roadmap_tasks")
+              .select("*", { count: "exact", head: true })
+              .eq("roadmap_id", activeRoadmap.id),
+            supabase
+              .from("career_roadmap_tasks")
+              .select("*", { count: "exact", head: true })
+              .eq("roadmap_id", activeRoadmap.id)
+              .eq("completed", true),
+          ]);
+          if (total && total > 0)
+            roadmapProgressPercent = Math.round(((completed ?? 0) / total) * 100);
+        }
+
+        const { data: lastSession } = await supabase
+          .from("voice_interview_sessions")
+          .select("id, interview_type, role, company, overall_score, strengths, weaknesses")
+          .eq("profile_id", auth.user.id)
+          .eq("status", "completed")
+          .order("completed_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (lastSession) {
+          previousSession = lastSession;
+          previousSessionId = lastSession.id;
+        }
+      }
+
       const contextBlock = buildContextBlock({
         jobDescriptionText: data.jobDescriptionText,
         targetSkills: data.targetSkills,
         resumeAnalysis,
+        roadmapProgressPercent,
+        previousSession,
       });
 
       const persona = personaPrompt({
@@ -219,6 +298,8 @@ export const startVoiceInterviewFn = createServerFn({ method: "POST" })
           status: "in_progress",
           questions,
           context_block: contextBlock,
+          roadmap_progress_percent: roadmapProgressPercent,
+          previous_session_id: previousSessionId,
         })
         .select("id")
         .single();
@@ -354,12 +435,19 @@ export const respondToVoiceInterviewFn = createServerFn({ method: "POST" })
     },
   );
 
+const HR_FIELDS_SCHEMA = `,
+  "teamworkScore": number (0-100, evidence of effective collaboration in the answers),
+  "adaptabilityScore": number (0-100, evidence of adjusting well to change/ambiguity in the answers),
+  "cultureFitScore": number (0-100, alignment between the candidate's stated values/working style and a healthy team culture),
+  "hrReadinessScore": number (0-100, holistic readiness for this HR/behavioral/managerial round specifically — distinct from the general overallScore)`;
+
 const REPORT_PROMPT = (
   interviewType: InterviewType,
   role: string,
   company: string | null,
   transcript: string,
   contextBlock: string | null,
+  includeHrFields: boolean,
 ) => `You are a senior interview coach and hiring panel reviewer. Review this full ${TYPE_LABEL[interviewType]} interview transcript for a candidate targeting the role of "${role}"${company ? ` at ${company}` : ""}, and respond with ONLY a JSON object (no markdown fences, no prose) matching this exact shape:
 
 {
@@ -370,17 +458,17 @@ const REPORT_PROMPT = (
   "technicalScore": number (0-100, rate general problem-solving/role knowledge even for non-technical interviews),
   "leadershipScore": number (0-100),
   "problemSolvingScore": number (0-100),
-  "professionalismScore": number (0-100),
+  "professionalismScore": number (0-100)${includeHrFields ? HR_FIELDS_SCHEMA : ""},
   "strengths": string[] (3-5 concrete strengths shown in the actual answers),
   "weaknesses": string[] (3-5 concrete, honest weaknesses shown in the actual answers),
-  "improvementPlan": string[] (3-5 specific, actionable next steps to improve),
+  "improvementPlan": string[] (3-5 specific, actionable next steps to improve${includeHrFields ? " — frame this as an HR/behavioral improvement plan" : ""}),
   "hiringRecommendation": string (one of exactly: "Strong Hire", "Hire", "Leaning Hire", "Leaning No Hire", "No Hire"),
   "summary": string (3-5 sentence overall assessment, direct and specific),
   "missingSkills": string[] (skills the target role/JD context below calls for that never came up or weren't demonstrated in the candidate's answers — empty array if no JD/role context is available or no gaps found),
   "matchedSkills": string[] (skills from the candidate's resume/context below that this interview's answers actually demonstrated — empty array if no resume context is available)
 }
 
-Score honestly and realistically based on actual answer quality, depth, and clarity — do not default to high scores. Base every point strictly on what the candidate actually said — never invent claims they didn't make.${contextBlock ? `\n\nTARGET ROLE / CANDIDATE CONTEXT (use this only for missingSkills/matchedSkills — the scores above must still be based purely on the transcript):\n${contextBlock}` : ""}
+Score honestly and realistically based on actual answer quality, depth, and clarity — do not default to high scores. Base every point strictly on what the candidate actually said — never invent claims they didn't make.${contextBlock ? `\n\nTARGET ROLE / CANDIDATE CONTEXT (use this for missingSkills/matchedSkills, and — if present — to judge improvement over prior performance and roadmap progress; the scores above must still be based purely on the transcript):\n${contextBlock}` : ""}
 
 TRANSCRIPT:
 """
@@ -414,6 +502,10 @@ export const finishVoiceInterviewFn = createServerFn({ method: "POST" })
           leadershipScore: session.leadership_score ?? 0,
           problemSolvingScore: session.problem_solving_score ?? 0,
           professionalismScore: session.professionalism_score ?? 0,
+          teamworkScore: session.teamwork_score ?? null,
+          adaptabilityScore: session.adaptability_score ?? null,
+          cultureFitScore: session.culture_fit_score ?? null,
+          hrReadinessScore: session.hr_readiness_score ?? null,
           strengths: session.strengths ?? [],
           weaknesses: session.weaknesses ?? [],
           improvementPlan: session.improvement_plan ?? [],
@@ -433,6 +525,8 @@ export const finishVoiceInterviewFn = createServerFn({ method: "POST" })
     const geminiResult = getGemini();
     if ("error" in geminiResult) return { error: geminiResult.error };
 
+    const includeHrFields = HR_FAMILY_TYPES.has(session.interview_type as InterviewType);
+
     let text: string | undefined;
     try {
       const response = await withGeminiRetry(() =>
@@ -444,6 +538,7 @@ export const finishVoiceInterviewFn = createServerFn({ method: "POST" })
             session.company,
             transcriptText(questions),
             session.context_block,
+            includeHrFields,
           ),
           config: { responseMimeType: "application/json" },
         }),
@@ -463,6 +558,13 @@ export const finishVoiceInterviewFn = createServerFn({ method: "POST" })
     }
 
     const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n ?? 0)));
+    const clampNullable = (n: number | null | undefined) =>
+      n == null ? null : Math.max(0, Math.min(100, Math.round(n)));
+
+    const teamworkScore = includeHrFields ? clampNullable(report.teamworkScore) : null;
+    const adaptabilityScore = includeHrFields ? clampNullable(report.adaptabilityScore) : null;
+    const cultureFitScore = includeHrFields ? clampNullable(report.cultureFitScore) : null;
+    const hrReadinessScore = includeHrFields ? clampNullable(report.hrReadinessScore) : null;
 
     const { error: updateError } = await supabase
       .from("voice_interview_sessions")
@@ -477,6 +579,10 @@ export const finishVoiceInterviewFn = createServerFn({ method: "POST" })
         leadership_score: clamp(report.leadershipScore),
         problem_solving_score: clamp(report.problemSolvingScore),
         professionalism_score: clamp(report.professionalismScore),
+        teamwork_score: teamworkScore,
+        adaptability_score: adaptabilityScore,
+        culture_fit_score: cultureFitScore,
+        hr_readiness_score: hrReadinessScore,
         strengths: report.strengths ?? [],
         weaknesses: report.weaknesses ?? [],
         improvement_plan: report.improvementPlan ?? [],
@@ -493,6 +599,10 @@ export const finishVoiceInterviewFn = createServerFn({ method: "POST" })
       report: {
         ...report,
         overallScore: clamp(report.overallScore),
+        teamworkScore,
+        adaptabilityScore,
+        cultureFitScore,
+        hrReadinessScore,
         missingSkills: report.missingSkills ?? [],
         matchedSkills: report.matchedSkills ?? [],
       },

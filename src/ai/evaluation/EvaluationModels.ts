@@ -165,16 +165,19 @@ export const UNPROFESSIONAL_MARKERS = [
  * the most weight since they're the strongest signal of role fit; the
  * rest reflect delivery quality. */
 export const CATEGORY_WEIGHTS: Record<EvaluationCategory, number> = {
-  communication: 0.12,
-  confidence: 0.08,
-  grammar: 0.1,
-  vocabulary: 0.1,
-  fluency: 0.1,
-  technicalKnowledge: 0.15,
-  problemSolving: 0.15,
-  leadership: 0.08,
-  listening: 0.07,
-  professionalism: 0.05,
+  communication: 0.11,
+  confidence: 0.07,
+  grammar: 0.09,
+  vocabulary: 0.09,
+  fluency: 0.09,
+  technicalKnowledge: 0.13,
+  problemSolving: 0.13,
+  leadership: 0.07,
+  listening: 0.06,
+  professionalism: 0.04,
+  teamwork: 0.04,
+  adaptability: 0.04,
+  cultureFit: 0.04,
 };
 
 export const CATEGORY_LABELS: Record<EvaluationCategory, string> = {
@@ -188,6 +191,9 @@ export const CATEGORY_LABELS: Record<EvaluationCategory, string> = {
   leadership: "Leadership",
   listening: "Listening Skills",
   professionalism: "Professionalism",
+  teamwork: "Teamwork",
+  adaptability: "Adaptability",
+  cultureFit: "Culture Fit",
 };
 
 export const IMPROVEMENT_TIPS: Record<EvaluationCategory, string> = {
@@ -203,6 +209,10 @@ export const IMPROVEMENT_TIPS: Record<EvaluationCategory, string> = {
   leadership: "Highlight moments where you took ownership or guided others.",
   listening: "Make sure your answer directly addresses what was actually asked.",
   professionalism: "Keep language polished and constructive, even when discussing challenges.",
+  teamwork: "Give concrete examples of collaborating with and supporting others.",
+  adaptability: "Show how you've adjusted your approach when circumstances changed.",
+  cultureFit:
+    "Connect your values and working style to what the team/company actually cares about.",
 };
 
 /** Checked in order — the first entry whose `min` the score clears wins,

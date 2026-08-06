@@ -53,6 +53,7 @@ const INTERVIEW_TYPE_DISPLAY: Record<string, string> = {
   manager: "Manager",
   startup: "Startup",
   faang: "FAANG",
+  behavioral: "Behavioral",
 };
 
 const LEARNING_TOPIC_SUGGESTIONS: Record<EvaluationCategory, string[]> = {
@@ -66,6 +67,9 @@ const LEARNING_TOPIC_SUGGESTIONS: Record<EvaluationCategory, string[]> = {
   leadership: ["Leadership storytelling for interviews"],
   listening: ["Active listening & question comprehension"],
   professionalism: ["Professional interview etiquette"],
+  teamwork: ["Collaboration stories using the STAR method"],
+  adaptability: ["Framing change/pivot stories for interviews"],
+  cultureFit: ["Articulating your values and working style clearly"],
 };
 
 function clampScore(score: number): number {
@@ -204,6 +208,23 @@ function ReportContent({
             aiNotes={report.aiNotes}
           />
         </div>
+
+        {session.hr_readiness_score != null && (
+          <div className="mt-6 flex items-center gap-4 rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-xl shadow-blue-950/30 backdrop-blur-xl">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500 to-teal-400 font-display text-lg font-bold text-white">
+              {session.hr_readiness_score}
+            </div>
+            <div>
+              <div className="font-display text-base font-semibold text-white">
+                HR Readiness Score
+              </div>
+              <p className="text-sm text-white/50">
+                Holistic readiness for HR, behavioral, and managerial rounds — distinct from the
+                overall score above.
+              </p>
+            </div>
+          </div>
+        )}
 
         <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2">

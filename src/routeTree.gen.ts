@@ -23,6 +23,7 @@ import { Route as EligibilityRouteImport } from './routes/eligibility'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as FriendsRouteImport } from './routes/friends'
 import { Route as HomeRouteImport } from './routes/home'
+import { Route as HrInterviewRouteImport } from './routes/hr-interview'
 import { Route as InterviewPracticeRouteImport } from './routes/interview-practice'
 import { Route as InterviewVoiceRouteImport } from './routes/interview-voice'
 import { Route as JobPreparationRouteImport } from './routes/job-preparation'
@@ -144,6 +145,11 @@ const FriendsRoute = FriendsRouteImport.update({
 const HomeRoute = HomeRouteImport.update({
   id: '/home',
   path: '/home',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HrInterviewRoute = HrInterviewRouteImport.update({
+  id: '/hr-interview',
+  path: '/hr-interview',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InterviewPracticeRoute = InterviewPracticeRouteImport.update({
@@ -422,6 +428,7 @@ export interface FileRoutesByFullPath {
   '/forgot-password': typeof ForgotPasswordRoute
   '/friends': typeof FriendsRoute
   '/home': typeof HomeRoute
+  '/hr-interview': typeof HrInterviewRoute
   '/interview-practice': typeof InterviewPracticeRoute
   '/interview-voice': typeof InterviewVoiceRoute
   '/job-preparation': typeof JobPreparationRoute
@@ -490,6 +497,7 @@ export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/friends': typeof FriendsRoute
   '/home': typeof HomeRoute
+  '/hr-interview': typeof HrInterviewRoute
   '/interview-practice': typeof InterviewPracticeRoute
   '/interview-voice': typeof InterviewVoiceRoute
   '/job-preparation': typeof JobPreparationRoute
@@ -559,6 +567,7 @@ export interface FileRoutesById {
   '/forgot-password': typeof ForgotPasswordRoute
   '/friends': typeof FriendsRoute
   '/home': typeof HomeRoute
+  '/hr-interview': typeof HrInterviewRoute
   '/interview-practice': typeof InterviewPracticeRoute
   '/interview-voice': typeof InterviewVoiceRoute
   '/job-preparation': typeof JobPreparationRoute
@@ -629,6 +638,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/friends'
     | '/home'
+    | '/hr-interview'
     | '/interview-practice'
     | '/interview-voice'
     | '/job-preparation'
@@ -697,6 +707,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/friends'
     | '/home'
+    | '/hr-interview'
     | '/interview-practice'
     | '/interview-voice'
     | '/job-preparation'
@@ -765,6 +776,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/friends'
     | '/home'
+    | '/hr-interview'
     | '/interview-practice'
     | '/interview-voice'
     | '/job-preparation'
@@ -834,6 +846,7 @@ export interface RootRouteChildren {
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   FriendsRoute: typeof FriendsRoute
   HomeRoute: typeof HomeRoute
+  HrInterviewRoute: typeof HrInterviewRoute
   InterviewPracticeRoute: typeof InterviewPracticeRoute
   InterviewVoiceRoute: typeof InterviewVoiceRoute
   JobPreparationRoute: typeof JobPreparationRoute
@@ -965,6 +978,13 @@ declare module '@tanstack/react-router' {
       path: '/home'
       fullPath: '/home'
       preLoaderRoute: typeof HomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/hr-interview': {
+      id: '/hr-interview'
+      path: '/hr-interview'
+      fullPath: '/hr-interview'
+      preLoaderRoute: typeof HrInterviewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/interview-practice': {
@@ -1419,6 +1439,7 @@ const rootRouteChildren: RootRouteChildren = {
   ForgotPasswordRoute: ForgotPasswordRoute,
   FriendsRoute: FriendsRoute,
   HomeRoute: HomeRoute,
+  HrInterviewRoute: HrInterviewRoute,
   InterviewPracticeRoute: InterviewPracticeRoute,
   InterviewVoiceRoute: InterviewVoiceRoute,
   JobPreparationRoute: JobPreparationRoute,

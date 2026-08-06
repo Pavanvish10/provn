@@ -14,6 +14,7 @@ import {
   Code2,
   MessagesSquare,
   Terminal,
+  UserCheck,
 } from "lucide-react";
 
 import { AppShell } from "@/components/AppNav";
@@ -393,11 +394,18 @@ function ReportDetail({ report }: { report: EligibilityReport }) {
         />
       </div>
 
-      <Link to="/coding-interview">
-        <Button variant="outline">
-          <Terminal className="mr-2 h-4 w-4" /> Practice a real coding interview
-        </Button>
-      </Link>
+      <div className="flex flex-wrap gap-2">
+        <Link to="/coding-interview">
+          <Button variant="outline">
+            <Terminal className="mr-2 h-4 w-4" /> Practice a real coding interview
+          </Button>
+        </Link>
+        <Link to="/hr-interview">
+          <Button variant="outline">
+            <UserCheck className="mr-2 h-4 w-4" /> Practice a real HR interview
+          </Button>
+        </Link>
+      </div>
     </div>
   );
 }

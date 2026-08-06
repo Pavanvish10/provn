@@ -85,7 +85,7 @@ export function buildInterviewContextFromJobAnalysis(jobAnalysis: JobAnalysisRes
 export function useStartVoiceInterview() {
   return useMutation({
     mutationFn: (vars: {
-      interviewType: "hr" | "technical" | "manager" | "startup" | "faang";
+      interviewType: VoiceApiInterviewType;
       company?: string;
       role: string;
       difficulty: "easy" | "medium" | "hard";
@@ -173,7 +173,7 @@ export type VoiceInterviewStats = {
   recent: VoiceInterviewSession[];
 };
 
-// Sprint 14: maps a real `voice_interview_sessions` row's 7 named score
+// Sprint 14: maps a real `voice_interview_sessions` row's named score
 // columns onto `EvaluationReport`'s `CategoryScore[]` shape, so
 // `/interview/report`'s existing cards (ScoreBreakdown, StrengthCard,
 // WeaknessCard, PerformanceTimeline...) can keep rendering the same
@@ -181,7 +181,11 @@ export type VoiceInterviewStats = {
 // changes, from the local EvaluationEngine/DUMMY_EVALUATION_TURNS to a
 // real, persisted, Gemini-scored session. There's no `vocabulary`/
 // `fluency`/`listening` here (Sprint 14's report doesn't score those
-// dimensions) — those three categories just never appear.
+// dimensions) — those three categories just never appear. The
+// teamwork/adaptability/cultureFit entries (Sprint 18) are only ever
+// non-null for hr/behavioral/manager sessions — flatMap in
+// adaptVoiceInterviewReport already drops any null entry, so they simply
+// don't appear on technical/startup/faang reports.
 const SESSION_CATEGORY_MAP: { key: keyof VoiceInterviewSession; category: EvaluationCategory }[] = [
   { key: "communication_score", category: "communication" },
   { key: "confidence_score", category: "confidence" },
@@ -190,6 +194,9 @@ const SESSION_CATEGORY_MAP: { key: keyof VoiceInterviewSession; category: Evalua
   { key: "leadership_score", category: "leadership" },
   { key: "problem_solving_score", category: "problemSolving" },
   { key: "professionalism_score", category: "professionalism" },
+  { key: "teamwork_score", category: "teamwork" },
+  { key: "adaptability_score", category: "adaptability" },
+  { key: "culture_fit_score", category: "cultureFit" },
 ];
 
 function categoryRationale(category: EvaluationCategory, score: number): string {

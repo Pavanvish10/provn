@@ -302,6 +302,47 @@ export const TOPIC_BANK: Record<InterviewType, Record<DifficultyLevel, TopicQues
       },
     ],
   },
+  behavioral: {
+    easy: [
+      {
+        topic: "star-strength",
+        text: "Tell me about a specific project you're proud of — what was your role, and what did you do?",
+      },
+      {
+        topic: "adaptability",
+        text: "Describe a time you had to quickly adapt to a change in plans. What did you do?",
+      },
+      { topic: "teamwork-intro", text: "Tell me about a time you worked well as part of a team." },
+    ],
+    medium: [
+      {
+        topic: "star-conflict",
+        text: "Describe a situation where you disagreed with someone at work. What was the situation, what did you do, and what was the result?",
+      },
+      {
+        topic: "star-failure",
+        text: "Tell me about a time something you were responsible for didn't go as planned. What happened, and what did you learn?",
+      },
+      {
+        topic: "culture-fit",
+        text: "What kind of team environment helps you do your best work, and why?",
+      },
+    ],
+    hard: [
+      {
+        topic: "star-high-stakes",
+        text: "Tell me about the most challenging situation you've navigated professionally — what was at stake, what did you do, and how did it turn out?",
+      },
+      {
+        topic: "adaptability-hard",
+        text: "Describe a time your priorities changed dramatically with little warning. Walk me through how you handled it.",
+      },
+      {
+        topic: "culture-fit-hard",
+        text: "Tell me about a time your values were tested at work. How did you navigate it?",
+      },
+    ],
+  },
 };
 
 // ---------------------------------------------------------------------

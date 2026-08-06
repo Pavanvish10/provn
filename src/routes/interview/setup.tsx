@@ -10,6 +10,7 @@ import {
   Code2,
   FileUp,
   Keyboard,
+  MessageCircle,
   Mic,
   Rocket,
   Sparkles,
@@ -90,6 +91,13 @@ const INTERVIEW_TYPES: InterviewType[] = [
     description: "Leadership and people-management focus.",
     icon: Briefcase,
     gradient: "from-fuchsia-500 to-pink-500",
+  },
+  {
+    id: "Behavioral",
+    label: "Behavioral",
+    description: "Past-experience, STAR-format questions.",
+    icon: MessageCircle,
+    gradient: "from-cyan-500 to-teal-400",
   },
 ];
 
