@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import { AlertTriangle, Loader2, Mic, RotateCcw } from "lucide-react";
@@ -18,14 +18,13 @@ import {
   type InterviewStatus,
 } from "@/components/interview/InterviewStatusBar";
 import { useRealtimeInterview } from "@/hooks/useRealtimeInterview";
+import { TextInterviewRoom } from "@/components/interview/TextInterviewRoom";
 import type { ConversationSetup } from "@/services/realtime/conversationManager";
 import type { RealtimeSessionStatus } from "@/services/realtime/sessionManager";
 import { useInterviewSession } from "@/store/InterviewSessionStore";
 import { InterviewFlowController } from "@/store/InterviewFlowController";
 import { INTERVIEW_ROUTES } from "@/store/InterviewNavigation";
-import type { InterviewBrainPersonalization } from "@/ai/InterviewBrain";
-import { CandidateKnowledgeGraph } from "@/ai/resume/CandidateKnowledgeGraph";
-import { getCompanyProfile } from "@/ai/resume/CompanyProfile";
+import { buildInterviewContextFromJobAnalysis } from "@/lib/voice-interview-client";
 import { requireAuth } from "@/lib/auth-guard";
 
 export const Route = createFileRoute("/interview/room")({
@@ -81,8 +80,30 @@ const STATUS_COPY: Record<RealtimeSessionStatus, string> = {
 };
 
 function InterviewRoomPage() {
-  const navigate = useNavigate();
   const interviewSession = useInterviewSession();
+
+  // Text mode has no camera/mic/realtime session at all — it's a
+  // separate, self-contained component so useRealtimeInterview (which
+  // sets up a SessionManager and asks for mic access) is never even
+  // invoked on that path.
+  if (interviewSession.setup?.mode === "text") {
+    return (
+      <TextInterviewRoom
+        setup={interviewSession.setup}
+        jobAnalysis={interviewSession.jobAnalysis}
+      />
+    );
+  }
+
+  return <VoiceInterviewRoom interviewSession={interviewSession} />;
+}
+
+function VoiceInterviewRoom({
+  interviewSession,
+}: {
+  interviewSession: ReturnType<typeof useInterviewSession>;
+}) {
+  const navigate = useNavigate();
 
   const roomSetup: ConversationSetup = interviewSession.setup
     ? {
@@ -90,38 +111,21 @@ function InterviewRoomPage() {
         company: interviewSession.setup.company ?? undefined,
         role: interviewSession.setup.role,
         difficulty: interviewSession.setup.difficulty,
+        duration: interviewSession.setup.duration,
         language: interviewSession.setup.language,
+        voiceGender: interviewSession.setup.voice,
+        ...buildInterviewContextFromJobAnalysis(interviewSession.jobAnalysis),
       }
     : FALLBACK_SETUP;
   const totalSessionSeconds = (interviewSession.setup?.duration ?? DEFAULT_DURATION_MINUTES) * 60;
 
-  // Sprint 11: ground the live model's questions in a real uploaded
-  // resume when one is available and the chosen company is one of the
-  // supported profiles — otherwise the brain falls back to its generic
-  // topic bank exactly as before.
-  const personalization = useMemo<InterviewBrainPersonalization | undefined>(() => {
-    if (!interviewSession.resumeMock || !interviewSession.setup?.company) return undefined;
-    const companyId = getCompanyProfile(interviewSession.setup.company)?.id;
-    if (!companyId) return undefined;
-    return {
-      companyId,
-      knowledgeGraph: new CandidateKnowledgeGraph(
-        interviewSession.resumeMock,
-        interviewSession.jobDescriptionMock,
-      ),
-    };
-  }, [
-    interviewSession.resumeMock,
-    interviewSession.jobDescriptionMock,
-    interviewSession.setup?.company,
-  ]);
-
-  const session = useRealtimeInterview(roomSetup, personalization);
+  const session = useRealtimeInterview(roomSetup);
 
   const [uiPaused, setUiPaused] = useState(false);
   const [transcriptOpen, setTranscriptOpen] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [secondsRemaining, setSecondsRemaining] = useState(totalSessionSeconds);
+  const [ending, setEnding] = useState(false);
 
   const sessionActive = ACTIVE_STATUSES.includes(session.status);
   const recording = sessionActive && !uiPaused;
@@ -144,6 +148,14 @@ function InterviewRoomPage() {
   useEffect(() => {
     if (sessionActive) InterviewFlowController.beginRoomSession();
   }, [sessionActive]);
+
+  // Sprint 14: as soon as the real interview session exists (the
+  // opening Gemini question came back), record its id so /interview/
+  // report can fetch the real row once the interview ends.
+  useEffect(() => {
+    if (session.voiceSessionId)
+      InterviewFlowController.setVoiceInterviewSessionId(session.voiceSessionId);
+  }, [session.voiceSessionId]);
 
   function handleStart() {
     setUiPaused(false);
@@ -169,10 +181,14 @@ function InterviewRoomPage() {
     toast.info("Settings coming soon");
   }
 
-  function handleEnd() {
+  async function handleEnd() {
+    if (ending) return;
+    setEnding(true);
     const transcriptSnapshot = session.transcript;
+    const sessionId = session.voiceSessionId;
     session.stop();
-    InterviewFlowController.endInterview(transcriptSnapshot);
+    toast.info("Scoring your interview — this takes a few seconds…");
+    await InterviewFlowController.endInterview(transcriptSnapshot, sessionId);
     toast.success("Interview ended — your report is ready.");
     navigate({ to: INTERVIEW_ROUTES.report });
   }

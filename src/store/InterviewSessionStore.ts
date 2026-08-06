@@ -25,6 +25,9 @@ export interface InterviewSetupConfig {
   duration: number;
   language: string;
   voice: string;
+  /** Sprint 14: voice (OpenAI Realtime + camera/mic room) or text (a
+   * plain chat UI on the same room route, no realtime session at all). */
+  mode: "voice" | "text";
 }
 
 export interface InterviewSessionData {
@@ -36,6 +39,10 @@ export interface InterviewSessionData {
   jobAnalysis: JobAnalysisResult | null;
   conversationHistory: TranscriptEntry[];
   evaluationReport: EvaluationReport | null;
+  /** Sprint 14: the real `voice_interview_sessions` row id for the
+   * current attempt — set once the interview engine's opening question
+   * comes back, read by /interview/report to fetch the real session. */
+  voiceInterviewSessionId: string | null;
   startedAt: number | null;
   completedAt: number | null;
 }
@@ -49,6 +56,7 @@ export const DEFAULT_SESSION: InterviewSessionData = {
   jobAnalysis: null,
   conversationHistory: [],
   evaluationReport: null,
+  voiceInterviewSessionId: null,
   startedAt: null,
   completedAt: null,
 };
@@ -131,6 +139,11 @@ class InterviewSessionStoreImpl {
 
   setEvaluationReport(report: EvaluationReport) {
     this.data = { ...this.data, evaluationReport: report };
+    this.emit();
+  }
+
+  setVoiceInterviewSessionId(sessionId: string) {
+    this.data = { ...this.data, voiceInterviewSessionId: sessionId };
     this.emit();
   }
 

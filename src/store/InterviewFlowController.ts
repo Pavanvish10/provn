@@ -4,14 +4,12 @@ import { interviewSessionStore, type InterviewSetupConfig } from "@/store/Interv
 import { clearPersistedSession } from "@/store/SessionPersistence";
 import { FlowValidator } from "@/store/FlowValidator";
 import { INTERVIEW_ROUTES, type InterviewRoutePath } from "@/store/InterviewNavigation";
-import { normalizeInterviewType } from "@/ai/InterviewContext";
 import { ResumeAnalyzer } from "@/ai/resume/ResumeAnalyzer";
 import { JobDescriptionAnalyzer } from "@/ai/resume/JobDescriptionAnalyzer";
 import { ResumeStorageService } from "@/services/resume/ResumeStorageService";
-import { EvaluationEngine, DUMMY_EVALUATION_TURNS } from "@/ai/evaluation/EvaluationEngine";
-import type { EvaluationInput, EvaluationReport } from "@/ai/evaluation/EvaluationTypes";
 import type { TranscriptEntry } from "@/services/realtime/transcriptManager";
 import type { JobAnalysisResult } from "@/services/job/JobAnalysisEngine";
+import { finishVoiceInterviewFn, type VoiceInterviewReport } from "@/lib/voice-interview.server";
 
 // The orchestration layer: the single place that composes
 // InterviewSessionStore (state), FlowValidator (rules), and the AI
@@ -76,29 +74,35 @@ export class InterviewFlowController {
     interviewSessionStore.markInProgress();
   }
 
-  /** Called when the candidate ends the interview room. Captures
-   * whatever transcript exists, runs it through the fully offline Sprint
-   * 8 evaluation engine (contextualized with the real session's role /
-   * company / interview type), and marks the session completed. Always
-   * produces a report — even an empty transcript falls back to the
-   * engine's built-in dummy answers, which is what makes "go through the
-   * whole flow on dummy data" work end to end regardless of whether a
-   * real voice connection ever happened. */
-  static endInterview(transcript: TranscriptEntry[]): EvaluationReport {
+  /** Called once the real interview engine's opening question comes
+   * back (voice mode: from ConversationManager via SessionManager's
+   * emitted state; text mode: directly from startVoiceInterviewFn) —
+   * records the real `voice_interview_sessions` row id so /interview/
+   * report can fetch it once the interview ends. */
+  static setVoiceInterviewSessionId(sessionId: string) {
+    interviewSessionStore.setVoiceInterviewSessionId(sessionId);
+  }
+
+  /** Called when the candidate ends the interview. Captures whatever
+   * realtime transcript exists (display/debugging only), then asks the
+   * real interview engine (Sprint 14) to score the actual session and
+   * generate the final report — the same Gemini call text-mode
+   * interviews use. Returns null (no crash) if no real session was ever
+   * created, e.g. the opening Gemini call failed. */
+  static async endInterview(
+    transcript: TranscriptEntry[],
+    sessionId: string | null,
+  ): Promise<VoiceInterviewReport | null> {
     interviewSessionStore.setConversationHistory(transcript);
 
-    const { setup } = interviewSessionStore.getSnapshot();
-    const turns: EvaluationInput[] = DUMMY_EVALUATION_TURNS.map((turn) => ({
-      ...turn,
-      interviewType: setup ? normalizeInterviewType(setup.interviewType) : turn.interviewType,
-      role: setup?.role ?? turn.role,
-      company: setup?.company ?? turn.company,
-    }));
+    if (!sessionId) {
+      interviewSessionStore.markCompleted();
+      return null;
+    }
 
-    const report = new EvaluationEngine().runTestEvaluation(turns);
-    interviewSessionStore.setEvaluationReport(report);
+    const result = await finishVoiceInterviewFn({ data: { sessionId } });
     interviewSessionStore.markCompleted();
-    return report;
+    return result.error ? null : (result.report ?? null);
   }
 
   static resetInterview() {

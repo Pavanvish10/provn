@@ -19,7 +19,6 @@ import {
 import { RealtimeClient, type RealtimeServerEvent } from "@/services/realtime/realtimeClient";
 import { TranscriptManager, type TranscriptEntry } from "@/services/realtime/transcriptManager";
 import { createRealtimeClientSecretFn } from "@/services/realtime/realtimeSession.server";
-import type { InterviewBrainPersonalization } from "@/ai/InterviewBrain";
 
 export type RealtimeSessionStatus =
   | "idle"
@@ -39,6 +38,11 @@ export interface RealtimeSessionState {
   transcript: TranscriptEntry[];
   questionNumber: number;
   reconnectAttempt: number;
+  /** Sprint 14: the real `voice_interview_sessions` row id, set once the
+   * opening question comes back from the real interview engine — null
+   * until then (or if that call failed and only the fallback directive
+   * played). */
+  voiceSessionId: string | null;
 }
 
 const ACTIVE_STATUSES: RealtimeSessionStatus[] = [
@@ -72,8 +76,8 @@ export class SessionManager {
 
   private listeners = new Set<(state: RealtimeSessionState) => void>();
 
-  constructor(setup: ConversationSetup, personalization?: InterviewBrainPersonalization) {
-    this.conversation = new ConversationManager(setup, personalization);
+  constructor(setup: ConversationSetup) {
+    this.conversation = new ConversationManager(setup);
     this.transcript.subscribe(() => this.emit());
     this.audio.subscribe(() => this.emit());
   }
@@ -92,6 +96,7 @@ export class SessionManager {
       transcript: this.transcript.getEntries(),
       questionNumber: this.conversation.getQuestionNumber(),
       reconnectAttempt: this.reconnectAttempt,
+      voiceSessionId: this.conversation.getSessionId(),
     };
   }
 
@@ -149,7 +154,7 @@ export class SessionManager {
     if (state === "connected") {
       this.reconnectAttempt = 0;
       this.setStatus("connected");
-      this.configureSession();
+      void this.configureSession();
       return;
     }
     if (state === "error") {
@@ -181,21 +186,23 @@ export class SessionManager {
     }, delay);
   }
 
-  private configureSession() {
+  private async configureSession() {
     this.client?.sendEvent({
       type: "session.update",
       session: {
         instructions: this.conversation.getInstructions(),
         // Server VAD still detects when the candidate starts/stops
-        // talking, but doesn't auto-generate a response — the brain
-        // decides what to ask next before every response.create call
-        // below (see sendDirectiveAndRespond).
+        // talking, but doesn't auto-generate a response — the real
+        // interview engine decides what to ask next before every
+        // response.create call below (see sendDirectiveAndRespond).
         turn_detection: { type: "server_vad", create_response: false },
         input_audio_transcription: { model: "whisper-1" },
       },
     });
 
-    const { directive } = this.conversation.startInterview();
+    const { directive } = await this.conversation.startInterview();
+    if (this.stopping) return;
+    this.emit(); // surfaces the real session id (getState -> voiceSessionId) once known
     this.sendDirectiveAndRespond(directive);
   }
 
@@ -218,7 +225,7 @@ export class SessionManager {
   private scheduleAnswerFallback() {
     this.clearAnswerFallback();
     this.answerFallbackTimeout = setTimeout(() => {
-      this.resolveAnswerTurn("");
+      void this.resolveAnswerTurn("");
     }, ANSWER_TRANSCRIPTION_TIMEOUT_MS);
   }
 
@@ -231,14 +238,15 @@ export class SessionManager {
 
   /** Called exactly once per candidate turn — by whichever fires first,
    * the transcription completing or the fallback timeout. */
-  private resolveAnswerTurn(answerText: string) {
+  private async resolveAnswerTurn(answerText: string) {
     if (!this.awaitingAnswer) return;
     this.awaitingAnswer = false;
     this.clearAnswerFallback();
 
-    const { directive } = this.conversation.submitAnswer(
+    const { directive } = await this.conversation.submitAnswer(
       answerText.trim() || "(The candidate's response wasn't captured clearly.)",
     );
+    if (this.stopping) return;
     this.sendDirectiveAndRespond(directive);
   }
 
@@ -261,7 +269,7 @@ export class SessionManager {
       case "conversation.item.input_audio_transcription.completed": {
         const text = readString(event, "transcript");
         this.transcript.finalizeCandidateTurn(text);
-        this.resolveAnswerTurn(text);
+        void this.resolveAnswerTurn(text);
         break;
       }
 

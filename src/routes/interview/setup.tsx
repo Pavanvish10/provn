@@ -9,6 +9,8 @@ import {
   Check,
   Code2,
   FileUp,
+  Keyboard,
+  Mic,
   Rocket,
   Sparkles,
   Users,
@@ -122,6 +124,7 @@ interface SetupState {
   duration: number | null;
   language: string | null;
   voice: string | null;
+  mode: "voice" | "text";
 }
 
 const INITIAL_STATE: SetupState = {
@@ -132,6 +135,7 @@ const INITIAL_STATE: SetupState = {
   duration: null,
   language: null,
   voice: null,
+  mode: "voice",
 };
 
 // The Job Description page (Sprint 12) speaks in its own vocabulary
@@ -216,8 +220,10 @@ function InterviewSetupPage() {
       duration: setup.duration,
       language: setup.language,
       voice: setup.voice,
+      mode: setup.mode,
     });
-    navigate({ to: INTERVIEW_ROUTES.deviceCheck });
+    // Text mode has no camera/mic to check — go straight to the room.
+    navigate({ to: setup.mode === "text" ? INTERVIEW_ROUTES.room : INTERVIEW_ROUTES.deviceCheck });
   }
 
   return (
@@ -278,6 +284,45 @@ function InterviewSetupPage() {
                 )}
               </div>
             ))}
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.05 }}
+          className="mb-6 flex items-center gap-2"
+        >
+          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Interview mode
+          </span>
+          <div className="inline-flex rounded-full border border-white/20 bg-white/60 p-1 backdrop-blur-xl dark:bg-white/5">
+            <button
+              type="button"
+              onClick={() => setSetup((current) => ({ ...current, mode: "voice" }))}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors",
+                setup.mode === "voice"
+                  ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <Mic className="h-3.5 w-3.5" />
+              Voice
+            </button>
+            <button
+              type="button"
+              onClick={() => setSetup((current) => ({ ...current, mode: "text" }))}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors",
+                setup.mode === "text"
+                  ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <Keyboard className="h-3.5 w-3.5" />
+              Text
+            </button>
           </div>
         </motion.div>
 

@@ -4,6 +4,7 @@ import { GoogleGenAI } from "@google/genai";
 
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { GEMINI_MODEL, friendlyGeminiError, withGeminiRetry } from "@/lib/ai.server";
+import type { ResumeAnalysis } from "@/lib/resume.server";
 
 export type InterviewType = "hr" | "technical" | "manager" | "startup" | "faang";
 export type Difficulty = "easy" | "medium" | "hard";
@@ -16,6 +17,13 @@ export type VoiceInterviewQA = {
   answer: string | null;
   askedAt: string;
   answeredAt: string | null;
+  // Sprint 14: per-answer feedback, filled in by respondToVoiceInterviewFn
+  // once the candidate's answer to this question comes back.
+  score?: number;
+  strengths?: string[];
+  weaknesses?: string[];
+  idealAnswer?: string;
+  suggestions?: string[];
 };
 
 export type VoiceInterviewReport = {
@@ -32,7 +40,51 @@ export type VoiceInterviewReport = {
   improvementPlan: string[];
   hiringRecommendation: string;
   summary: string;
+  missingSkills: string[];
+  matchedSkills: string[];
 };
+
+/** Sprint 14: real target-company/role/JD/resume grounding, built once at
+ * session start and persisted (`context_block`) so every later Gemini
+ * call in the session reuses it verbatim instead of re-deriving it or
+ * requiring the client to resend it every turn. */
+function buildContextBlock(params: {
+  jobDescriptionText?: string | null;
+  targetSkills?: string[] | null;
+  resumeAnalysis?: ResumeAnalysis | null;
+}): string | null {
+  const parts: string[] = [];
+  if (params.jobDescriptionText?.trim()) {
+    parts.push(`JOB DESCRIPTION:\n${params.jobDescriptionText.trim().slice(0, 4000)}`);
+  }
+  if (params.targetSkills?.length) {
+    parts.push(`KEY SKILLS THIS ROLE REQUIRES: ${params.targetSkills.slice(0, 30).join(", ")}`);
+  }
+  if (params.resumeAnalysis) {
+    const a = params.resumeAnalysis;
+    const resumeParts: string[] = [];
+    const skills = [...(a.skills ?? []), ...(a.technologies ?? []), ...(a.frameworks ?? [])];
+    if (skills.length) resumeParts.push(`Skills: ${skills.slice(0, 40).join(", ")}`);
+    if (a.experience?.length) {
+      resumeParts.push(
+        `Experience: ${a.experience
+          .slice(0, 5)
+          .map((e) => `${e.title} at ${e.company}${e.summary ? ` — ${e.summary}` : ""}`)
+          .join("; ")}`,
+      );
+    }
+    if (a.projects?.length) {
+      resumeParts.push(
+        `Projects: ${a.projects
+          .slice(0, 5)
+          .map((p) => p.name)
+          .join(", ")}`,
+      );
+    }
+    if (resumeParts.length) parts.push(`CANDIDATE RESUME:\n${resumeParts.join("\n")}`);
+  }
+  return parts.length ? parts.join("\n\n") : null;
+}
 
 const QUESTIONS_BY_DURATION: Record<number, number> = { 15: 4, 30: 6, 45: 8, 60: 10 };
 
@@ -47,7 +99,8 @@ const TYPE_LABEL: Record<InterviewType, string> = {
 const LANGUAGE_INSTRUCTION: Record<Language, string> = {
   english: "Speak and ask questions in English.",
   hindi: "Speak and ask questions in Hindi (Devanagari script).",
-  hinglish: "Speak and ask questions in natural Hinglish (a casual mix of Hindi and English, written in Roman script), the way Indian professionals actually speak in interviews.",
+  hinglish:
+    "Speak and ask questions in natural Hinglish (a casual mix of Hindi and English, written in Roman script), the way Indian professionals actually speak in interviews.",
 };
 
 function personaPrompt(params: {
@@ -56,15 +109,17 @@ function personaPrompt(params: {
   role: string;
   difficulty: Difficulty;
   language: Language;
+  contextBlock?: string | null;
 }) {
-  const companyLine = params.company
-    ? ` at ${params.company}`
+  const companyLine = params.company ? ` at ${params.company}` : "";
+  const contextSection = params.contextBlock
+    ? `\n\nGround your questions in this real context — ask about the candidate's actual projects/skills and the target role's actual requirements where relevant, instead of generic ${TYPE_LABEL[params.interviewType]} questions:\n\n${params.contextBlock}`
     : "";
   return `You are conducting a live, spoken ${TYPE_LABEL[params.interviewType]} interview${companyLine} for a candidate applying for the role of "${params.role}". Difficulty level: ${params.difficulty}.
 
 ${LANGUAGE_INSTRUCTION[params.language]}
 
-Ask one question at a time, exactly the way a real human interviewer would speak it aloud — natural, conversational, never numbered or bulleted. Keep each question to 1-3 sentences. Vary question types appropriately for a ${TYPE_LABEL[params.interviewType]} interview (behavioral, situational, role-specific, and — if technical or FAANG — problem-solving). Never repeat a question you've already asked. Respond with ONLY the question text — no preamble, no markdown, no quotation marks, no "Question 1:" labels.`;
+Ask one question at a time, exactly the way a real human interviewer would speak it aloud — natural, conversational, never numbered or bulleted. Keep each question to 1-3 sentences. Vary question types appropriately for a ${TYPE_LABEL[params.interviewType]} interview (behavioral, situational, role-specific, and — if technical or FAANG — problem-solving). Never repeat a question you've already asked. Respond with ONLY the question text — no preamble, no markdown, no quotation marks, no "Question 1:" labels.${contextSection}`;
 }
 
 function transcriptText(questions: VoiceInterviewQA[]) {
@@ -91,6 +146,11 @@ export const startVoiceInterviewFn = createServerFn({ method: "POST" })
       durationMinutes: z.union([z.literal(15), z.literal(30), z.literal(45), z.literal(60)]),
       language: z.enum(["english", "hindi", "hinglish"]),
       voiceGender: z.enum(["male", "female"]),
+      // Sprint 14: optional real grounding — a Job Description page
+      // analysis (Sprint 12) and/or the candidate's current résumé
+      // analysis (Sprint 13, fetched here server-side by profile id).
+      jobDescriptionText: z.string().trim().max(6000).optional(),
+      targetSkills: z.array(z.string().trim().max(60)).max(40).optional(),
     }),
   )
   .handler(
@@ -102,12 +162,27 @@ export const startVoiceInterviewFn = createServerFn({ method: "POST" })
       const geminiResult = getGemini();
       if ("error" in geminiResult) return { error: geminiResult.error };
 
+      const { data: resume } = await supabase
+        .from("resumes")
+        .select("analysis")
+        .eq("profile_id", auth.user.id)
+        .eq("is_current", true)
+        .maybeSingle();
+      const resumeAnalysis = (resume?.analysis as unknown as ResumeAnalysis | null) ?? null;
+
+      const contextBlock = buildContextBlock({
+        jobDescriptionText: data.jobDescriptionText,
+        targetSkills: data.targetSkills,
+        resumeAnalysis,
+      });
+
       const persona = personaPrompt({
         interviewType: data.interviewType,
         company: data.company ?? null,
         role: data.role,
         difficulty: data.difficulty,
         language: data.language,
+        contextBlock,
       });
 
       let question: string;
@@ -115,7 +190,8 @@ export const startVoiceInterviewFn = createServerFn({ method: "POST" })
         const response = await withGeminiRetry(() =>
           geminiResult.client.models.generateContent({
             model: GEMINI_MODEL,
-            contents: "Begin the interview. Greet the candidate warmly in one short sentence, then ask your first question.",
+            contents:
+              "Begin the interview. Greet the candidate warmly in one short sentence, then ask your first question.",
             config: { systemInstruction: persona },
           }),
         );
@@ -142,6 +218,7 @@ export const startVoiceInterviewFn = createServerFn({ method: "POST" })
           voice_gender: data.voiceGender,
           status: "in_progress",
           questions,
+          context_block: contextBlock,
         })
         .select("id")
         .single();
@@ -152,10 +229,33 @@ export const startVoiceInterviewFn = createServerFn({ method: "POST" })
     },
   );
 
+const RESPOND_PROMPT = (transcript: string, shouldConclude: boolean) => `${transcript}
+
+The candidate just answered the most recent question above. Respond with ONLY a JSON object (no markdown fences, no prose) matching this exact shape:
+
+{
+  "feedback": {
+    "score": number (0-100, quality of this specific answer),
+    "strengths": string[] (1-3 concrete strengths of this answer),
+    "weaknesses": string[] (1-3 concrete weaknesses of this answer),
+    "idealAnswer": string (2-3 sentences describing what a strong answer would have covered),
+    "suggestions": string[] (1-3 specific improvement suggestions for this answer)
+  },
+  "nextQuestion": string (${
+    shouldConclude
+      ? "a brief, warm closing remark, 1-2 sentences, thanking the candidate and letting them know their report is being prepared"
+      : "the next interview question — a different topic or angle than what's already been asked"
+  })
+}
+
+Score honestly based on actual answer quality — do not default to high scores.`;
+
 export const respondToVoiceInterviewFn = createServerFn({ method: "POST" })
   .validator(z.object({ sessionId: z.string().uuid(), answer: z.string().trim().min(1).max(4000) }))
   .handler(
-    async ({ data }): Promise<{ error: string | null; question?: string; readyToFinish?: boolean }> => {
+    async ({
+      data,
+    }): Promise<{ error: string | null; question?: string; readyToFinish?: boolean }> => {
       const supabase = getSupabaseServerClient();
       const { data: auth } = await supabase.auth.getUser();
       if (!auth.user) return { error: "Not signed in." };
@@ -163,7 +263,7 @@ export const respondToVoiceInterviewFn = createServerFn({ method: "POST" })
       const { data: session, error: fetchError } = await supabase
         .from("voice_interview_sessions")
         .select(
-          "id, profile_id, interview_type, company, role, difficulty, duration_minutes, language, questions, status",
+          "id, profile_id, interview_type, company, role, difficulty, duration_minutes, language, questions, status, context_block",
         )
         .eq("id", data.sessionId)
         .single();
@@ -191,26 +291,48 @@ export const respondToVoiceInterviewFn = createServerFn({ method: "POST" })
         role: session.role,
         difficulty: session.difficulty as Difficulty,
         language: session.language as Language,
+        contextBlock: session.context_block,
       });
 
-      const followUp = shouldConclude
-        ? "The interview is now complete. Speak a brief, warm closing remark (1-2 sentences) thanking the candidate and letting them know their report is being prepared. Respond with ONLY that closing remark."
-        : "Based on the conversation so far, ask the next interview question — a different topic or angle than what's already been asked. Respond with ONLY the next question text.";
-
-      let nextText: string;
+      let parsed: {
+        feedback?: {
+          score?: number;
+          strengths?: string[];
+          weaknesses?: string[];
+          idealAnswer?: string;
+          suggestions?: string[];
+        };
+        nextQuestion?: string;
+      };
       try {
         const response = await withGeminiRetry(() =>
           geminiResult.client.models.generateContent({
             model: GEMINI_MODEL,
-            contents: `${transcriptText(questions)}\n\n${followUp}`,
-            config: { systemInstruction: persona },
+            contents: RESPOND_PROMPT(transcriptText(questions), shouldConclude),
+            config: { systemInstruction: persona, responseMimeType: "application/json" },
           }),
         );
-        nextText = (response.text ?? "").trim();
+        const text = (response.text ?? "").trim();
+        if (!text) return { error: "AI interviewer returned no response. Try again." };
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        parsed = JSON.parse(jsonMatch ? jsonMatch[0] : text);
       } catch (err) {
+        if (err instanceof SyntaxError)
+          return { error: "Could not parse the AI's response. Try again." };
         return { error: friendlyGeminiError(err, "voice_interview.respond") };
       }
+
+      const nextText = (parsed.nextQuestion ?? "").trim();
       if (!nextText) return { error: "AI interviewer returned no response. Try again." };
+
+      if (current && parsed.feedback) {
+        const clamp = (n: number | undefined) => Math.max(0, Math.min(100, Math.round(n ?? 0)));
+        current.score = clamp(parsed.feedback.score);
+        current.strengths = parsed.feedback.strengths ?? [];
+        current.weaknesses = parsed.feedback.weaknesses ?? [];
+        current.idealAnswer = parsed.feedback.idealAnswer ?? "";
+        current.suggestions = parsed.feedback.suggestions ?? [];
+      }
 
       if (!shouldConclude) {
         questions.push({
@@ -237,6 +359,7 @@ const REPORT_PROMPT = (
   role: string,
   company: string | null,
   transcript: string,
+  contextBlock: string | null,
 ) => `You are a senior interview coach and hiring panel reviewer. Review this full ${TYPE_LABEL[interviewType]} interview transcript for a candidate targeting the role of "${role}"${company ? ` at ${company}` : ""}, and respond with ONLY a JSON object (no markdown fences, no prose) matching this exact shape:
 
 {
@@ -252,10 +375,12 @@ const REPORT_PROMPT = (
   "weaknesses": string[] (3-5 concrete, honest weaknesses shown in the actual answers),
   "improvementPlan": string[] (3-5 specific, actionable next steps to improve),
   "hiringRecommendation": string (one of exactly: "Strong Hire", "Hire", "Leaning Hire", "Leaning No Hire", "No Hire"),
-  "summary": string (3-5 sentence overall assessment, direct and specific)
+  "summary": string (3-5 sentence overall assessment, direct and specific),
+  "missingSkills": string[] (skills the target role/JD context below calls for that never came up or weren't demonstrated in the candidate's answers — empty array if no JD/role context is available or no gaps found),
+  "matchedSkills": string[] (skills from the candidate's resume/context below that this interview's answers actually demonstrated — empty array if no resume context is available)
 }
 
-Score honestly and realistically based on actual answer quality, depth, and clarity — do not default to high scores. Base every point strictly on what the candidate actually said — never invent claims they didn't make.
+Score honestly and realistically based on actual answer quality, depth, and clarity — do not default to high scores. Base every point strictly on what the candidate actually said — never invent claims they didn't make.${contextBlock ? `\n\nTARGET ROLE / CANDIDATE CONTEXT (use this only for missingSkills/matchedSkills — the scores above must still be based purely on the transcript):\n${contextBlock}` : ""}
 
 TRANSCRIPT:
 """
@@ -294,6 +419,8 @@ export const finishVoiceInterviewFn = createServerFn({ method: "POST" })
           improvementPlan: session.improvement_plan ?? [],
           hiringRecommendation: session.hiring_recommendation ?? "",
           summary: session.summary ?? "",
+          missingSkills: session.missing_skills ?? [],
+          matchedSkills: session.matched_skills ?? [],
         },
       };
     }
@@ -316,6 +443,7 @@ export const finishVoiceInterviewFn = createServerFn({ method: "POST" })
             session.role,
             session.company,
             transcriptText(questions),
+            session.context_block,
           ),
           config: { responseMimeType: "application/json" },
         }),
@@ -354,13 +482,20 @@ export const finishVoiceInterviewFn = createServerFn({ method: "POST" })
         improvement_plan: report.improvementPlan ?? [],
         hiring_recommendation: report.hiringRecommendation ?? "",
         summary: report.summary ?? "",
+        missing_skills: report.missingSkills ?? [],
+        matched_skills: report.matchedSkills ?? [],
       })
       .eq("id", data.sessionId);
     if (updateError) return { error: updateError.message };
 
     return {
       error: null,
-      report: { ...report, overallScore: clamp(report.overallScore) },
+      report: {
+        ...report,
+        overallScore: clamp(report.overallScore),
+        missingSkills: report.missingSkills ?? [],
+        matchedSkills: report.matchedSkills ?? [],
+      },
     };
   });
 

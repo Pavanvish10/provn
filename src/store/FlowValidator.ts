@@ -36,7 +36,9 @@ export class FlowValidator {
         reason: "Complete interview setup first.",
       };
     }
-    if (!session.deviceCheckCompleted) {
+    // Text mode has no camera/mic session to check — device-check is a
+    // voice-mode-only step (see setup.tsx's handleStart).
+    if (session.setup.mode !== "text" && !session.deviceCheckCompleted) {
       return {
         allowed: false,
         redirectTo: INTERVIEW_ROUTES.deviceCheck,
@@ -47,7 +49,10 @@ export class FlowValidator {
   }
 
   static canAccessReport(session: InterviewSessionData): FlowCheckResult {
-    if (session.evaluationReport) return ALLOWED;
+    // Sprint 14: a real report means a real voice_interview_sessions row
+    // exists — replaces the old local-evaluationReport check now that
+    // scoring happens server-side via the real interview engine.
+    if (session.voiceInterviewSessionId) return ALLOWED;
     if (!session.setup) {
       return {
         allowed: false,
@@ -55,7 +60,7 @@ export class FlowValidator {
         reason: "Start an interview before viewing a report.",
       };
     }
-    if (!session.deviceCheckCompleted) {
+    if (session.setup.mode !== "text" && !session.deviceCheckCompleted) {
       return {
         allowed: false,
         redirectTo: INTERVIEW_ROUTES.deviceCheck,

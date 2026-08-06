@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { ConversationSetup } from "@/services/realtime/conversationManager";
 import { SessionManager, type RealtimeSessionState } from "@/services/realtime/sessionManager";
-import type { InterviewBrainPersonalization } from "@/ai/InterviewBrain";
 
 export interface UseRealtimeInterviewResult extends RealtimeSessionState {
   start: () => void;
@@ -12,15 +11,13 @@ export interface UseRealtimeInterviewResult extends RealtimeSessionState {
 
 /** Wires a SessionManager instance into React state. One instance lives
  * for the lifetime of the component; it's torn down (mic released,
- * connection closed) on unmount. `personalization` (Sprint 11) grounds
- * the live model's questions in a real uploaded resume when one is
- * available — see room.tsx for how it's built. */
-export function useRealtimeInterview(
-  setup: ConversationSetup,
-  personalization?: InterviewBrainPersonalization,
-): UseRealtimeInterviewResult {
+ * connection closed) on unmount. Sprint 14: `setup` can carry real JD/
+ * resume context (`jobDescriptionText`/`targetSkills`) so the live
+ * model's questions are genuinely grounded, not just generic-by-role —
+ * see room.tsx for how it's built. */
+export function useRealtimeInterview(setup: ConversationSetup): UseRealtimeInterviewResult {
   const managerRef = useRef<SessionManager | null>(null);
-  if (!managerRef.current) managerRef.current = new SessionManager(setup, personalization);
+  if (!managerRef.current) managerRef.current = new SessionManager(setup);
   const manager = managerRef.current;
 
   const [state, setState] = useState<RealtimeSessionState>(() => manager.getState());

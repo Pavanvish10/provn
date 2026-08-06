@@ -2372,6 +2372,7 @@ export type Database = {
           company: string | null
           completed_at: string | null
           confidence_score: number | null
+          context_block: string | null
           created_at: string
           difficulty: string
           duration_minutes: number
@@ -2382,6 +2383,8 @@ export type Database = {
           interview_type: string
           language: string
           leadership_score: number | null
+          matched_skills: string[] | null
+          missing_skills: string[] | null
           overall_score: number | null
           problem_solving_score: number | null
           professionalism_score: number | null
@@ -2401,6 +2404,7 @@ export type Database = {
           company?: string | null
           completed_at?: string | null
           confidence_score?: number | null
+          context_block?: string | null
           created_at?: string
           difficulty?: string
           duration_minutes?: number
@@ -2411,6 +2415,8 @@ export type Database = {
           interview_type: string
           language?: string
           leadership_score?: number | null
+          matched_skills?: string[] | null
+          missing_skills?: string[] | null
           overall_score?: number | null
           problem_solving_score?: number | null
           professionalism_score?: number | null
@@ -2430,6 +2436,7 @@ export type Database = {
           company?: string | null
           completed_at?: string | null
           confidence_score?: number | null
+          context_block?: string | null
           created_at?: string
           difficulty?: string
           duration_minutes?: number
@@ -2440,6 +2447,8 @@ export type Database = {
           interview_type?: string
           language?: string
           leadership_score?: number | null
+          matched_skills?: string[] | null
+          missing_skills?: string[] | null
           overall_score?: number | null
           problem_solving_score?: number | null
           professionalism_score?: number | null

@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 
 import { OverallScoreCard } from "@/components/interview/report/OverallScoreCard";
 import { ScoreBreakdown } from "@/components/interview/report/ScoreBreakdown";
@@ -21,20 +21,12 @@ import { RetakeInterviewButton } from "@/components/interview/report/RetakeInter
 import { DownloadReportButton } from "@/components/interview/report/DownloadReportButton";
 import { ShareReportButton } from "@/components/interview/report/ShareReportButton";
 
-import { EvaluationEngine, DUMMY_EVALUATION_TURNS } from "@/ai/evaluation/EvaluationEngine";
-import {
-  clampScore,
-  IMPROVEMENT_TIPS,
-  STRENGTH_THRESHOLD,
-  WEAKNESS_THRESHOLD,
-} from "@/ai/evaluation/EvaluationModels";
+import { STRENGTH_THRESHOLD, WEAKNESS_THRESHOLD } from "@/ai/evaluation/EvaluationModels";
 import type { EvaluationCategory } from "@/ai/evaluation/EvaluationTypes";
-import { INTERVIEW_TYPE_LABELS } from "@/ai/InterviewContext";
 import type { DifficultyLevel } from "@/ai/QuestionDifficulty";
-import { ResumeAnalyzer } from "@/ai/resume/ResumeAnalyzer";
-import { JobDescriptionAnalyzer } from "@/ai/resume/JobDescriptionAnalyzer";
-import { CandidateKnowledgeGraph } from "@/ai/resume/CandidateKnowledgeGraph";
 import { getCompanyProfile } from "@/ai/resume/CompanyProfile";
+import { useVoiceInterviewSession, adaptVoiceInterviewReport } from "@/lib/voice-interview-client";
+import type { VoiceInterviewQA } from "@/lib/voice-interview.server";
 import { useInterviewSession } from "@/store/InterviewSessionStore";
 import { InterviewFlowController } from "@/store/InterviewFlowController";
 import { requireAuth } from "@/lib/auth-guard";
@@ -53,6 +45,16 @@ export const Route = createFileRoute("/interview/report")({
   component: InterviewReportPage,
 });
 
+const READINESS_ADJUSTMENT: Record<DifficultyLevel, number> = { easy: 10, medium: 0, hard: -10 };
+
+const INTERVIEW_TYPE_DISPLAY: Record<string, string> = {
+  hr: "HR",
+  technical: "Technical",
+  manager: "Manager",
+  startup: "Startup",
+  faang: "FAANG",
+};
+
 const LEARNING_TOPIC_SUGGESTIONS: Record<EvaluationCategory, string[]> = {
   communication: ["Structuring answers with the STAR method"],
   confidence: ["Assertive communication techniques"],
@@ -66,18 +68,38 @@ const LEARNING_TOPIC_SUGGESTIONS: Record<EvaluationCategory, string[]> = {
   professionalism: ["Professional interview etiquette"],
 };
 
-const READINESS_ADJUSTMENT: Record<DifficultyLevel, number> = { easy: 10, medium: 0, hard: -10 };
+function clampScore(score: number): number {
+  return Math.max(0, Math.min(100, Math.round(score)));
+}
 
 function InterviewReportPage() {
   const interviewSession = useInterviewSession();
+  const {
+    data: session,
+    isLoading,
+    error,
+  } = useVoiceInterviewSession(interviewSession.voiceInterviewSessionId ?? undefined);
 
-  // The route guard only allows this page once a real report exists, but
-  // a fresh test-mode run keeps the page useful on its own (e.g. in
-  // isolation during development) if it's ever reached without one.
-  const report = useMemo(
-    () => interviewSession.evaluationReport ?? new EvaluationEngine().runTestEvaluation(),
-    [interviewSession.evaluationReport],
-  );
+  if (isLoading || !session) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-950">
+        <div className="flex items-center gap-2 text-sm text-white/60">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          {error ? "Could not load this report." : "Loading your report…"}
+        </div>
+      </div>
+    );
+  }
+
+  return <ReportContent session={session} />;
+}
+
+function ReportContent({
+  session,
+}: {
+  session: NonNullable<ReturnType<typeof useVoiceInterviewSession>["data"]>;
+}) {
+  const report = useMemo(() => adaptVoiceInterviewReport(session), [session]);
 
   const strengths = useMemo(
     () =>
@@ -94,38 +116,28 @@ function InterviewReportPage() {
     [report],
   );
 
+  const questions = (session.questions as unknown as VoiceInterviewQA[]) ?? [];
+  const answeredQuestions = questions.filter((q) => q.answer);
+
   const questionEntries = useMemo<QuestionAnalysisEntry[]>(
     () =>
-      report.timeline.map((snapshot, index) => {
-        const turn = DUMMY_EVALUATION_TURNS[index];
-        const weakest = [...snapshot.categoryScores].sort((a, b) => a.score - b.score)[0];
-        return {
-          questionNumber: index + 1,
-          question: turn.question,
-          answer: turn.transcript,
-          score: snapshot.overallScore,
-          feedback: weakest.rationale,
-          improvementTip: IMPROVEMENT_TIPS[weakest.category],
-        };
-      }),
-    [report],
+      answeredQuestions.map((q, index) => ({
+        questionNumber: index + 1,
+        question: q.question,
+        answer: q.answer ?? "",
+        score: q.score ?? report.overallScore,
+        feedback:
+          [q.strengths?.[0], q.weaknesses?.[0]].filter(Boolean).join(" ") ||
+          "No detailed feedback available for this answer.",
+        improvementTip:
+          q.suggestions?.[0] ?? q.idealAnswer ?? "Review this topic before your next interview.",
+      })),
+    [answeredQuestions, report.overallScore],
   );
 
-  const knowledgeGraph = useMemo(() => {
-    const resumeProfile = interviewSession.resumeMock ?? new ResumeAnalyzer().analyzeMock();
-    const jobDescription =
-      interviewSession.jobDescriptionMock ?? new JobDescriptionAnalyzer().analyzeMock();
-    return new CandidateKnowledgeGraph(resumeProfile, jobDescription);
-  }, [interviewSession.resumeMock, interviewSession.jobDescriptionMock]);
-
-  const fallbackTurn = DUMMY_EVALUATION_TURNS[0];
-  const reportContext = {
-    role: interviewSession.setup?.role ?? fallbackTurn.role,
-    company: interviewSession.setup?.company ?? fallbackTurn.company,
-    interviewTypeLabel:
-      interviewSession.setup?.interviewType ?? INTERVIEW_TYPE_LABELS[fallbackTurn.interviewType],
-  };
-  const companyProfile = reportContext.company ? getCompanyProfile(reportContext.company) : null;
+  const interviewTypeLabel =
+    INTERVIEW_TYPE_DISPLAY[session.interview_type] ?? session.interview_type;
+  const companyProfile = session.company ? getCompanyProfile(session.company) : null;
 
   const companyReadiness = clampScore(
     report.overallScore + (companyProfile ? READINESS_ADJUSTMENT[companyProfile.difficulty] : 0),
@@ -185,10 +197,10 @@ function InterviewReportPage() {
           <OverallScoreCard score={report.overallScore} />
           <HiringRecommendation recommendation={report.hiringRecommendation} />
           <InterviewSummary
-            role={reportContext.role}
-            company={reportContext.company}
-            interviewType={reportContext.interviewTypeLabel}
-            questionCount={report.timeline.length}
+            role={session.role}
+            company={session.company}
+            interviewType={interviewTypeLabel}
+            questionCount={answeredQuestions.length}
             aiNotes={report.aiNotes}
           />
         </div>
@@ -201,7 +213,7 @@ function InterviewReportPage() {
             learningTopics={learningTopics}
             nextInterviewDate={nextInterviewDate}
             companyReadiness={companyReadiness}
-            companyName={reportContext.company}
+            companyName={session.company}
           />
         </div>
 
@@ -227,8 +239,8 @@ function InterviewReportPage() {
         <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
           <ImprovementRoadmap improvementAreas={report.improvementAreas} />
           <SkillGapAnalysis
-            matchedSkills={knowledgeGraph.getMatchedSkills()}
-            missingSkills={knowledgeGraph.getMissingSkills()}
+            matchedSkills={session.matched_skills ?? []}
+            missingSkills={session.missing_skills ?? []}
           />
         </div>
 

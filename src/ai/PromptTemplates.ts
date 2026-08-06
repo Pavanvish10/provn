@@ -69,6 +69,19 @@ export function buildRealtimeDirective(params: {
   return `[Interview director's note — do not read this aloud] Ask ${kind} at ${params.difficulty} difficulty, on the topic of "${params.topic}". Phrase it naturally in your own words, close in meaning to: "${params.questionText}"`;
 }
 
+/** Sprint 14: the live-model directive when the question/closing text
+ * itself is already real, Gemini-authored, natural spoken-style content
+ * (from voice-interview.server.ts) rather than a local brain's topic
+ * pick — so there's no topic/difficulty metadata to relay, just an
+ * instruction to deliver this exact real content in the model's own
+ * natural voice. */
+export function buildLiveDirective(text: string, isClosing: boolean): string {
+  const action = isClosing
+    ? "Deliver this closing remark to the candidate"
+    : "Ask the candidate this exact question";
+  return `[Interview director's note — do not read this aloud] ${action}, in your own natural spoken voice, preserving its meaning: "${text}"`;
+}
+
 // ---------------------------------------------------------------------
 // Follow-up ladder — generic, topic-agnostic phrasing used to go one
 // level deeper on whatever the candidate just described.
