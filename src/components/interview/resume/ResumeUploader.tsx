@@ -1,92 +1,75 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { AnimatePresence } from "framer-motion";
 
-import type { ResumeProfile } from "@/ai/resume/ResumeAnalyzer";
-import { ResumeParserService } from "@/services/resume/ResumeParserService";
-import { ResumeValidationService } from "@/services/resume/ResumeValidationService";
+import { adaptResumeAnalysis } from "@/ai/resume/ResumeAnalyzer";
+import type { ResumeAnalysis } from "@/lib/resume.server";
 import {
-  ResumeStorageService,
-  type StoredResumeMeta,
-} from "@/services/resume/ResumeStorageService";
+  useCurrentResume,
+  useUploadResume,
+  useDeleteResume,
+  ACCEPTED_RESUME_MIME_TYPES,
+} from "@/lib/resume-client";
+import { useCurrentUser } from "@/lib/auth-client";
 
 import { ResumeDropzone } from "@/components/interview/resume/ResumeDropzone";
 import { ResumeValidation } from "@/components/interview/resume/ResumeValidation";
-import { UploadProgress } from "@/components/interview/resume/UploadProgress";
-import {
-  ResumeParsingStatus,
-  type ParsingStage,
-} from "@/components/interview/resume/ResumeParsingStatus";
+import { ResumeParsingStatus } from "@/components/interview/resume/ResumeParsingStatus";
 import { ResumePreview } from "@/components/interview/resume/ResumePreview";
 import { ResumeSummary } from "@/components/interview/resume/ResumeSummary";
 import { ResumeErrorCard } from "@/components/interview/resume/ResumeErrorCard";
 
-// The orchestrator: owns the upload/parse state machine and wires the
-// four resume services together. Every other component in this folder is
-// purely presentational and only knows about the slice of state it renders.
+// Sprint 13: this used to drive System A (ResumeParserService — local,
+// PDF/DOCX text always faked with a hardcoded sample). It now drives the
+// same real, DB-persisted Gemini pipeline (`resume-client.ts`/
+// `resume.server.ts`) System B's Profile page already uses, so a resume
+// uploaded here is the same real analysis, not a second parallel copy.
+// The upload+analyze round trip is one real network call with no
+// intermediate progress signal, so unlike System A's old fake byte-level
+// progress bar, this shows one honest "working on it" state throughout.
 
-type UploaderStage = "idle" | "uploading" | "parsing" | "ready" | "error";
+type UploaderStage = "idle" | "parsing" | "ready" | "error";
 
-interface ReadyResume {
-  meta: StoredResumeMeta;
-  profile: ResumeProfile;
-}
+const MIME_TO_LABEL: Record<string, string> = {
+  "application/pdf": "PDF",
+  "application/msword": "DOC",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "DOCX",
+};
 
-export interface ResumeUploaderProps {
-  onParsed?: (result: ReadyResume) => void;
-  onDeleted?: () => void;
-}
-
-function wait(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-export function ResumeUploader({ onParsed, onDeleted }: ResumeUploaderProps) {
-  const parserRef = useRef(new ResumeParserService());
+export function ResumeUploader() {
+  const { data: user } = useCurrentUser();
+  const { data: resume } = useCurrentResume(user?.id);
+  const uploadResume = useUploadResume(user?.id);
+  const deleteResume = useDeleteResume(user?.id);
 
   const [stage, setStage] = useState<UploaderStage>("idle");
   const [filename, setFilename] = useState("");
-  const [progress, setProgress] = useState(0);
-  const [parsingStage, setParsingStage] = useState<ParsingStage>("reading");
   const [errorMessage, setErrorMessage] = useState("");
-  const [resume, setResume] = useState<ReadyResume | null>(null);
 
-  useEffect(() => {
-    const stored = ResumeStorageService.load();
-    if (stored) {
-      setResume(stored);
-      setFilename(stored.meta.filename);
-      setStage("ready");
-    }
-  }, []);
+  const effectiveStage: UploaderStage = resume && stage === "idle" ? "ready" : stage;
 
   async function handleFileSelected(file: File) {
-    const validation = ResumeValidationService.validate(file);
-    if (!validation.valid) {
-      setErrorMessage(validation.errors[0]);
+    if (!ACCEPTED_RESUME_MIME_TYPES.has(file.type)) {
+      setErrorMessage("Unsupported file type. Please upload a PDF, DOC, or DOCX file.");
+      setStage("error");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setErrorMessage("File is too large. Maximum size is 10MB.");
       setStage("error");
       return;
     }
 
     setFilename(file.name);
-    setProgress(0);
-    setStage("uploading");
+    setStage("parsing");
 
     try {
-      const parsed = await parserRef.current.parseFile(file, (event) => {
-        setProgress(event.percent);
-      });
-
-      setStage("parsing");
-      setParsingStage("extracting");
-      await wait(350);
-      setParsingStage("analyzing");
-      await wait(350);
-
-      const meta = ResumeStorageService.save(parsed, file.size);
-      const ready: ReadyResume = { meta, profile: parsed.profile };
-      setResume(ready);
+      const { analysisError } = await uploadResume.mutateAsync(file);
+      if (analysisError) {
+        setErrorMessage(analysisError);
+        setStage("error");
+        return;
+      }
       setStage("ready");
-      onParsed?.(ready);
     } catch (err) {
       setErrorMessage(
         err instanceof Error ? err.message : "Something went wrong while processing this file.",
@@ -99,48 +82,49 @@ export function ResumeUploader({ onParsed, onDeleted }: ResumeUploaderProps) {
     setStage("idle");
   }
 
-  function handleDelete() {
-    ResumeStorageService.clear();
-    setResume(null);
-    setFilename("");
+  async function handleDelete() {
+    if (!resume) return;
+    await deleteResume.mutateAsync(resume);
     setStage("idle");
-    onDeleted?.();
   }
+
+  const profile = resume?.analysis
+    ? adaptResumeAnalysis(resume.analysis as unknown as ResumeAnalysis)
+    : null;
 
   return (
     <div className="space-y-4">
       <AnimatePresence mode="wait">
-        {stage === "idle" && (
+        {effectiveStage === "idle" && (
           <div key="idle" className="space-y-4">
             <ResumeDropzone onFileSelected={handleFileSelected} />
             <ResumeValidation />
           </div>
         )}
 
-        {stage === "uploading" && (
-          <UploadProgress key="uploading" filename={filename} percent={progress} />
-        )}
+        {effectiveStage === "parsing" && <ResumeParsingStatus key="parsing" stage="reading" />}
 
-        {stage === "parsing" && <ResumeParsingStatus key="parsing" stage={parsingStage} />}
-
-        {stage === "ready" && resume && (
+        {effectiveStage === "ready" && resume && (
           <div key="ready" className="space-y-4">
             <ResumePreview
-              filename={resume.meta.filename}
-              sizeBytes={resume.meta.sizeBytes}
-              sourceFormat={resume.meta.sourceFormat}
-              uploadedAt={resume.meta.uploadedAt}
+              filename={resume.file_name ?? filename}
+              sizeBytes={resume.file_size ?? 0}
+              sourceFormat={MIME_TO_LABEL[resume.mime_type ?? ""] ?? "PDF"}
+              uploadedAt={new Date(resume.created_at ?? Date.now()).getTime()}
               onReplace={handleReplace}
               onDelete={handleDelete}
             />
-            <ResumeSummary
-              profile={resume.profile}
-              isMockExtraction={resume.meta.isMockExtraction}
-            />
+            {profile ? (
+              <ResumeSummary profile={profile} isMockExtraction={false} />
+            ) : (
+              <div className="rounded-2xl border border-white/20 bg-white/60 p-6 text-sm text-muted-foreground shadow-sm backdrop-blur-xl dark:bg-white/5">
+                Analysis in progress — check back in a moment.
+              </div>
+            )}
           </div>
         )}
 
-        {stage === "error" && (
+        {effectiveStage === "error" && (
           <ResumeErrorCard key="error" message={errorMessage} onRetry={() => setStage("idle")} />
         )}
       </AnimatePresence>

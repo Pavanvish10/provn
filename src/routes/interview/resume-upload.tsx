@@ -4,8 +4,10 @@ import { ArrowLeft, ArrowRight, Sparkles } from "lucide-react";
 
 import { ResumeUploader } from "@/components/interview/resume/ResumeUploader";
 import { INTERVIEW_ROUTES } from "@/store/InterviewNavigation";
+import { requireAuth } from "@/lib/auth-guard";
 
 export const Route = createFileRoute("/interview/resume-upload")({
+  beforeLoad: requireAuth,
   head: () => ({
     meta: [
       { title: "Upload Your Resume · Provn" },

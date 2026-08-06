@@ -6,6 +6,15 @@ import { analyzeResumeFn } from "@/lib/resume.server";
 
 export type Resume = Database["public"]["Tables"]["resumes"]["Row"];
 
+// Mirrors the `resumes` storage bucket's allowed_mime_types exactly
+// (supabase/migrations/20260727000300_storage_buckets.sql) so callers
+// never accept a file the bucket would actually reject.
+export const ACCEPTED_RESUME_MIME_TYPES = new Set([
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+]);
+
 export function currentResumeQueryKey(profileId: string | undefined) {
   return ["resume", "current", profileId] as const;
 }
@@ -67,6 +76,7 @@ export function useUploadResume(profileId: string | undefined) {
           resume_url: path,
           file_name: file.name,
           file_size: file.size,
+          mime_type: file.type,
           version: (existing?.version ?? 0) + 1,
           is_current: true,
         })

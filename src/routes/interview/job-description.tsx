@@ -24,11 +24,15 @@ import {
   type SampleJobDescription,
 } from "@/services/job/JobDescriptionParser";
 import { JobAnalysisEngine, type JobAnalysisResult } from "@/services/job/JobAnalysisEngine";
-import { ResumeStorageService } from "@/services/resume/ResumeStorageService";
 import { InterviewFlowController } from "@/store/InterviewFlowController";
 import { INTERVIEW_ROUTES } from "@/store/InterviewNavigation";
+import { requireAuth } from "@/lib/auth-guard";
+import { useCurrentUser } from "@/lib/auth-client";
+import { useCurrentResume } from "@/lib/resume-client";
+import type { ResumeAnalysis } from "@/lib/resume.server";
 
 export const Route = createFileRoute("/interview/job-description")({
+  beforeLoad: requireAuth,
   head: () => ({
     meta: [
       { title: "Job Description Analysis · Provn" },
@@ -52,6 +56,8 @@ function wait(ms: number) {
 
 function JobDescriptionPage() {
   const navigate = useNavigate();
+  const { data: user } = useCurrentUser();
+  const { data: resume } = useCurrentResume(user?.id);
 
   const [stage, setStage] = useState<PageStage>("form");
   const [jobDescriptionText, setJobDescriptionText] = useState("");
@@ -88,13 +94,20 @@ function JobDescriptionPage() {
       await wait(ANALYSIS_STEP_DELAY_MS);
     }
 
-    const resumeProfile = ResumeStorageService.load()?.profile ?? null;
+    const analysis = resume?.analysis as unknown as ResumeAnalysis | null;
+    const candidateSkills = analysis
+      ? [
+          ...(analysis.skills ?? []),
+          ...(analysis.technologies ?? []),
+          ...(analysis.frameworks ?? []),
+        ]
+      : null;
     const analysisResult = new JobAnalysisEngine().analyze({
       jobDescriptionText,
       companyId,
       roleId,
       interviewType: interviewType ?? "technical",
-      resumeProfile,
+      candidateSkills,
       difficultyOverride,
     });
 

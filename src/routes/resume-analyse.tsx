@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppNav";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   Briefcase,
   Loader2,
+  Route as RouteIcon,
 } from "lucide-react";
 import { requireAuth } from "@/lib/auth-guard";
 import { useCurrentUser } from "@/lib/auth-client";
@@ -43,6 +44,15 @@ function Resume() {
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<JdMatchResult | null>(null);
+  const [isCached, setIsCached] = useState(false);
+
+  // A past run's report is saved on the résumé row — show it immediately
+  // instead of making the candidate re-run the analysis on every visit.
+  useEffect(() => {
+    if (result || !resume?.jd_match) return;
+    setResult(resume.jd_match as unknown as JdMatchResult);
+    setIsCached(true);
+  }, [resume, result]);
 
   const jdReady = jd.trim().length >= 40;
   const canRun = !!resume && jdReady && !running;
@@ -51,6 +61,7 @@ function Resume() {
     setRunning(true);
     setError(null);
     setResult(null);
+    setIsCached(false);
     try {
       const res = await analyzeResumeAgainstJdFn({ data: { jobDescription: jd } });
       if (res.error) setError(res.error);
@@ -161,20 +172,27 @@ function Resume() {
               <FileSearch className="h-8 w-8 text-muted-foreground" />
               <div className="mt-3 font-display text-xl">Your report will appear here</div>
               <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-                Résumé + JD in. ATS score, matched strengths, gaps against the JD, and specific
-                rewrite prompts out.
+                Résumé + JD in. ATS score, missing skills, strengths, weaknesses, rewrite
+                suggestions, and a prep roadmap out.
               </p>
             </div>
           ) : (
             <div>
-              <div className="flex items-center gap-4">
-                <ScoreRing score={result.score} />
-                <div>
-                  <div className="text-xs uppercase tracking-widest text-muted-foreground">
-                    JD match score
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <ScoreRing score={result.atsScore} />
+                  <div>
+                    <div className="text-xs uppercase tracking-widest text-muted-foreground">
+                      JD match score
+                    </div>
+                    <div className="font-display text-4xl">{result.atsScore}/100</div>
                   </div>
-                  <div className="font-display text-4xl">{result.score}/100</div>
                 </div>
+                {isCached && (
+                  <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+                    From your last analysis
+                  </span>
+                )}
               </div>
               <Section title="What's working" icon={<Check className="h-4 w-4 text-brand" />}>
                 <ul className="space-y-2 text-sm">
@@ -186,11 +204,23 @@ function Resume() {
                 </ul>
               </Section>
               <Section
-                title="Gaps vs this JD"
+                title="Missing skills"
                 icon={<AlertTriangle className="h-4 w-4 text-warning" />}
               >
+                <div className="flex flex-wrap gap-1.5">
+                  {result.missingSkills.map((t) => (
+                    <span
+                      key={t}
+                      className="rounded-full bg-warning/10 px-2.5 py-1 text-xs font-medium text-warning"
+                    >
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              </Section>
+              <Section title="Weaknesses" icon={<AlertTriangle className="h-4 w-4 text-warning" />}>
                 <ul className="space-y-2 text-sm">
-                  {result.gaps.map((t) => (
+                  {result.weaknesses.map((t) => (
                     <li key={t} className="flex gap-2">
                       <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" /> {t}
                     </li>
@@ -202,12 +232,30 @@ function Resume() {
                 icon={<Sparkles className="h-4 w-4 text-brand" />}
               >
                 <ul className="space-y-2 text-sm">
-                  {result.rewrite.map((t) => (
+                  {result.improvementSuggestions.map((t) => (
                     <li key={t} className="flex gap-2">
                       <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-brand" /> {t}
                     </li>
                   ))}
                 </ul>
+              </Section>
+              <Section
+                title="Recommended roadmap"
+                icon={<RouteIcon className="h-4 w-4 text-brand" />}
+              >
+                <ol className="space-y-3">
+                  {result.roadmap.map((step, index) => (
+                    <li key={step.title} className="flex gap-3">
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-soft text-[11px] font-semibold text-brand">
+                        {index + 1}
+                      </span>
+                      <div>
+                        <div className="text-sm font-medium">{step.title}</div>
+                        <div className="text-xs text-muted-foreground">{step.detail}</div>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
               </Section>
 
               <div className="mt-8 rounded-xl border border-brand/40 bg-brand-soft/60 p-5">

@@ -29,8 +29,10 @@ import { InterviewFlowController } from "@/store/InterviewFlowController";
 import { INTERVIEW_ROUTES } from "@/store/InterviewNavigation";
 import { useInterviewSession } from "@/store/InterviewSessionStore";
 import type { JobAnalysisResult } from "@/services/job/JobAnalysisEngine";
+import { requireAuth } from "@/lib/auth-guard";
 
 export const Route = createFileRoute("/interview/setup")({
+  beforeLoad: requireAuth,
   head: () => ({
     meta: [
       { title: "Interview Setup · Provn" },

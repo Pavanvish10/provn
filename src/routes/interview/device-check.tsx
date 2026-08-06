@@ -15,9 +15,13 @@ import { ContinueInterviewButton } from "@/components/interview/ContinueIntervie
 import { useInterviewSession } from "@/store/InterviewSessionStore";
 import { InterviewFlowController } from "@/store/InterviewFlowController";
 import { INTERVIEW_ROUTES } from "@/store/InterviewNavigation";
+import { requireAuth } from "@/lib/auth-guard";
 
 export const Route = createFileRoute("/interview/device-check")({
-  beforeLoad: () => InterviewFlowController.enforceDeviceCheckAccess(),
+  beforeLoad: (args) => {
+    requireAuth(args);
+    InterviewFlowController.enforceDeviceCheckAccess();
+  },
   head: () => ({
     meta: [
       { title: "Device Check · Provn" },

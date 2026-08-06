@@ -1,7 +1,6 @@
 import type { DifficultyLevel } from "@/ai/QuestionDifficulty";
 import type { CompanyProfileData } from "@/ai/resume/CompanyProfile";
 import type { JobDescriptionAnalysis } from "@/ai/resume/JobDescriptionAnalyzer";
-import type { ResumeProfile } from "@/ai/resume/ResumeAnalyzer";
 import { normalizeInterviewType, INTERVIEW_TYPE_LABELS } from "@/ai/InterviewContext";
 import { CompanyKnowledgeBase } from "@/services/job/CompanyKnowledgeBase";
 import { JobDescriptionParser } from "@/services/job/JobDescriptionParser";
@@ -36,7 +35,10 @@ interface AnalyzeInput {
   companyId: string | null;
   roleId: string | null;
   interviewType: string;
-  resumeProfile?: ResumeProfile | null;
+  /** Real skill names from the candidate's DB-persisted resume analysis
+   * (Sprint 13), when one exists. Falls back to the role's core-skill
+   * list so the flow still works end-to-end without an upload. */
+  candidateSkills?: string[] | null;
   difficultyOverride?: DifficultyLevel | null;
 }
 
@@ -46,16 +48,14 @@ export class JobAnalysisEngine {
     companyId,
     roleId,
     interviewType,
-    resumeProfile,
+    candidateSkills: resumeSkills,
     difficultyOverride,
   }: AnalyzeInput): JobAnalysisResult {
     const company = companyId ? CompanyKnowledgeBase.get(companyId) : null;
     const role = roleId ? RoleKnowledgeBase.get(roleId) : null;
     const jobDescription = JobDescriptionParser.parse(jobDescriptionText);
 
-    const candidateSkills = resumeProfile?.skills.length
-      ? resumeProfile.skills.map((skill) => skill.name)
-      : (role?.coreSkills ?? []);
+    const candidateSkills = resumeSkills?.length ? resumeSkills : (role?.coreSkills ?? []);
     const requiredSkills = jobDescription.requiredSkills.length
       ? jobDescription.requiredSkills
       : jobDescription.technologies;

@@ -6,8 +6,10 @@ import { StatsCards } from "@/components/interview/StatsCards";
 import { QuickActions } from "@/components/interview/QuickActions";
 import { RecentInterviews } from "@/components/interview/RecentInterviews";
 import { UpcomingInterview } from "@/components/interview/UpcomingInterview";
+import { requireAuth } from "@/lib/auth-guard";
 
 export const Route = createFileRoute("/interview/")({
+  beforeLoad: requireAuth,
   head: () => ({
     meta: [
       { title: "AI Interview Dashboard · Provn" },

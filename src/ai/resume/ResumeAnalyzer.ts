@@ -3,6 +3,7 @@ import { extractSkills, type ExtractedSkill } from "@/ai/resume/SkillExtractor";
 import { extractProjects, type ExtractedProject } from "@/ai/resume/ProjectExtractor";
 import { extractExperience, type ExtractedExperience } from "@/ai/resume/ExperienceExtractor";
 import { extractEducation, type ExtractedEducation } from "@/ai/resume/EducationExtractor";
+import type { ResumeAnalysis } from "@/lib/resume.server";
 
 // Orchestrates the individual extractors into one complete picture of the
 // candidate — this is the "Extract skills / projects / experience /
@@ -111,4 +112,40 @@ export class ResumeAnalyzer {
   analyzeMock(): ResumeProfile {
     return this.analyze(loadMockResume());
   }
+}
+
+/** Sprint 13: adapts the real, Gemini-derived `ResumeAnalysis` (from
+ * `resume.server.ts` — real PDF/DOCX analysis, DB-persisted) into this
+ * module's `ResumeProfile` shape, so real uploads can flow through the
+ * same `ResumeSummary` UI this local extractor already renders into.
+ * Gemini's analysis doesn't extract contact info, so `contact` is left
+ * null — `ResumeSummary` already handles that ("Name not detected"). */
+export function adaptResumeAnalysis(analysis: ResumeAnalysis): ResumeProfile {
+  return {
+    contact: { name: null, email: null, phone: null },
+    skills: [
+      ...(analysis.skills ?? []).map((name) => ({ name, category: "tool" as const })),
+      ...(analysis.technologies ?? []).map((name) => ({ name, category: "language" as const })),
+      ...(analysis.frameworks ?? []).map((name) => ({ name, category: "framework" as const })),
+      ...(analysis.soft_skills ?? []).map((name) => ({ name, category: "soft" as const })),
+    ],
+    projects: (analysis.projects ?? []).map((p) => ({
+      name: p.name,
+      description: p.description,
+      technologies: [],
+    })),
+    experience: (analysis.experience ?? []).map((e) => ({
+      title: e.title,
+      company: e.company,
+      duration: e.duration || null,
+      highlights: e.summary ? [e.summary] : [],
+    })),
+    education: (analysis.education ?? []).map((e) => ({
+      degree: e.degree,
+      institution: e.institution,
+      year: e.years || null,
+    })),
+    certifications: analysis.certifications ?? [],
+    yearsOfExperience: 0,
+  };
 }

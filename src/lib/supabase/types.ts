@@ -2080,6 +2080,9 @@ export type Database = {
           file_size: number | null
           id: string
           is_current: boolean
+          jd_match: Json | null
+          jd_match_updated_at: string | null
+          mime_type: string | null
           profile_id: string | null
           resume_url: string | null
           storage_path: string | null
@@ -2095,6 +2098,9 @@ export type Database = {
           file_size?: number | null
           id?: string
           is_current?: boolean
+          jd_match?: Json | null
+          jd_match_updated_at?: string | null
+          mime_type?: string | null
           profile_id?: string | null
           resume_url?: string | null
           storage_path?: string | null
@@ -2110,6 +2116,9 @@ export type Database = {
           file_size?: number | null
           id?: string
           is_current?: boolean
+          jd_match?: Json | null
+          jd_match_updated_at?: string | null
+          mime_type?: string | null
           profile_id?: string | null
           resume_url?: string | null
           storage_path?: string | null

@@ -46,7 +46,7 @@ export const analyzeResumeFn = createServerFn({ method: "POST" })
 
     const { data: resume, error: resumeError } = await supabase
       .from("resumes")
-      .select("id, storage_path, profile_id")
+      .select("id, storage_path, profile_id, mime_type")
       .eq("id", data.resumeId)
       .single();
     if (resumeError || !resume) return { error: "Resume not found." };
@@ -75,7 +75,7 @@ export const analyzeResumeFn = createServerFn({ method: "POST" })
         ai.models.generateContent({
           model: GEMINI_MODEL,
           contents: [
-            { inlineData: { mimeType: "application/pdf", data: base64 } },
+            { inlineData: { mimeType: resume.mime_type ?? "application/pdf", data: base64 } },
             ANALYSIS_PROMPT,
           ],
           config: { responseMimeType: "application/json" },
@@ -135,21 +135,25 @@ export const analyzeResumeFn = createServerFn({ method: "POST" })
   });
 
 export type JdMatchResult = {
-  score: number;
+  atsScore: number;
+  missingSkills: string[];
   strengths: string[];
-  gaps: string[];
-  rewrite: string[];
+  weaknesses: string[];
+  improvementSuggestions: string[];
+  roadmap: { title: string; detail: string }[];
 };
 
 const JD_MATCH_PROMPT = (
   jd: string,
-) => `You are an ATS matching engine. Compare the attached resume PDF against this specific job description and respond with ONLY a JSON object (no markdown fences, no prose):
+) => `You are an ATS matching engine. Compare the attached resume against this specific job description and respond with ONLY a JSON object (no markdown fences, no prose):
 
 {
-  "score": number (0-100, realistic JD-fit score),
+  "atsScore": number (0-100, realistic JD-fit score),
+  "missingSkills": string[] (3-6 specific skills/keywords this JD requires that the resume is missing),
   "strengths": string[] (3-5 concrete ways the resume matches this JD),
-  "gaps": string[] (3-5 concrete gaps versus this JD's requirements),
-  "rewrite": string[] (3-5 specific, actionable rewrite suggestions tailored to this JD)
+  "weaknesses": string[] (3-5 concrete weaknesses versus this JD's requirements, beyond just missing skills — e.g. unquantified impact, weak summary, missing relevant sections),
+  "improvementSuggestions": string[] (3-5 specific, actionable rewrite suggestions tailored to this JD),
+  "roadmap": [{ "title": string, "detail": string }] (3-5 ordered preparation steps to close the gaps above before applying/interviewing, most important first)
 }
 
 Base every point strictly on the actual resume content and the job description below — never invent experience.
@@ -174,7 +178,7 @@ export const analyzeResumeAgainstJdFn = createServerFn({ method: "POST" })
 
     const { data: resume } = await supabase
       .from("resumes")
-      .select("storage_path")
+      .select("id, storage_path, mime_type")
       .eq("profile_id", auth.user.id)
       .eq("is_current", true)
       .maybeSingle();
@@ -198,7 +202,7 @@ export const analyzeResumeAgainstJdFn = createServerFn({ method: "POST" })
         ai.models.generateContent({
           model: GEMINI_MODEL,
           contents: [
-            { inlineData: { mimeType: "application/pdf", data: base64 } },
+            { inlineData: { mimeType: resume.mime_type ?? "application/pdf", data: base64 } },
             JD_MATCH_PROMPT(data.jobDescription),
           ],
           config: { responseMimeType: "application/json" },
@@ -211,11 +215,18 @@ export const analyzeResumeAgainstJdFn = createServerFn({ method: "POST" })
 
     if (!text) return { error: "AI analysis returned no result." };
 
+    let result: JdMatchResult;
     try {
       const jsonMatch = text.match(/\{[\s\S]*\}/);
-      const result: JdMatchResult = JSON.parse(jsonMatch ? jsonMatch[0] : text);
-      return { error: null, result };
+      result = JSON.parse(jsonMatch ? jsonMatch[0] : text);
     } catch {
       return { error: "Could not parse AI analysis. Try again." };
     }
+
+    await supabase
+      .from("resumes")
+      .update({ jd_match: result, jd_match_updated_at: new Date().toISOString() })
+      .eq("id", resume.id);
+
+    return { error: null, result };
   });

@@ -45,6 +45,7 @@ import {
   useUploadResume,
   useDeleteResume,
   getSignedResumeUrl,
+  ACCEPTED_RESUME_MIME_TYPES,
   type Resume,
 } from "@/lib/resume-client";
 import {
@@ -514,8 +515,8 @@ function ResumeSection({
   const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.type !== "application/pdf") {
-      setNote("Please upload a PDF.");
+    if (!ACCEPTED_RESUME_MIME_TYPES.has(file.type)) {
+      setNote("Please upload a PDF or Word document (.pdf, .doc, .docx).");
       return;
     }
     setBusy(true);
@@ -551,7 +552,7 @@ function ResumeSection({
       <input
         ref={fileInput}
         type="file"
-        accept="application/pdf"
+        accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         className="hidden"
         onChange={onFile}
       />

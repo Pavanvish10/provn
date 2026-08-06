@@ -37,9 +37,13 @@ import { CandidateKnowledgeGraph } from "@/ai/resume/CandidateKnowledgeGraph";
 import { getCompanyProfile } from "@/ai/resume/CompanyProfile";
 import { useInterviewSession } from "@/store/InterviewSessionStore";
 import { InterviewFlowController } from "@/store/InterviewFlowController";
+import { requireAuth } from "@/lib/auth-guard";
 
 export const Route = createFileRoute("/interview/report")({
-  beforeLoad: () => InterviewFlowController.enforceReportAccess(),
+  beforeLoad: (args) => {
+    requireAuth(args);
+    InterviewFlowController.enforceReportAccess();
+  },
   head: () => ({
     meta: [
       { title: "Interview Report · Provn" },

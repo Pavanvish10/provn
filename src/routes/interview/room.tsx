@@ -26,9 +26,13 @@ import { INTERVIEW_ROUTES } from "@/store/InterviewNavigation";
 import type { InterviewBrainPersonalization } from "@/ai/InterviewBrain";
 import { CandidateKnowledgeGraph } from "@/ai/resume/CandidateKnowledgeGraph";
 import { getCompanyProfile } from "@/ai/resume/CompanyProfile";
+import { requireAuth } from "@/lib/auth-guard";
 
 export const Route = createFileRoute("/interview/room")({
-  beforeLoad: () => InterviewFlowController.enforceRoomAccess(),
+  beforeLoad: (args) => {
+    requireAuth(args);
+    InterviewFlowController.enforceRoomAccess();
+  },
   head: () => ({
     meta: [
       { title: "Interview Room · Provn" },
