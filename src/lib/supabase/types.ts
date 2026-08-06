@@ -168,6 +168,150 @@ export type Database = {
         }
         Relationships: []
       }
+      career_roadmap_tasks: {
+        Row: {
+          category: string | null
+          completed: boolean
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          granularity: string
+          id: string
+          period_index: number
+          roadmap_id: string
+          task_date: string | null
+          title: string
+        }
+        Insert: {
+          category?: string | null
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          granularity: string
+          id?: string
+          period_index: number
+          roadmap_id: string
+          task_date?: string | null
+          title: string
+        }
+        Update: {
+          category?: string | null
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          granularity?: string
+          id?: string
+          period_index?: number
+          roadmap_id?: string
+          task_date?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "career_roadmap_tasks_roadmap_id_fkey"
+            columns: ["roadmap_id"]
+            isOneToOne: false
+            referencedRelation: "career_roadmaps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      career_roadmaps: {
+        Row: {
+          coding_practice_plan: Json
+          company_readiness_score: number
+          created_at: string
+          duration_months: number
+          hiring_readiness_score: number
+          hr_prep_plan: Json
+          id: string
+          interview_prep_plan: Json
+          job_description_text: string | null
+          profile_id: string
+          recommended_projects: Json
+          resume_id: string | null
+          role_readiness_score: number
+          skill_gap: Json
+          start_date: string
+          status: string
+          summary: string | null
+          target_company: string | null
+          target_role: string
+          updated_at: string
+          voice_interview_session_id: string | null
+        }
+        Insert: {
+          coding_practice_plan?: Json
+          company_readiness_score?: number
+          created_at?: string
+          duration_months: number
+          hiring_readiness_score?: number
+          hr_prep_plan?: Json
+          id?: string
+          interview_prep_plan?: Json
+          job_description_text?: string | null
+          profile_id: string
+          recommended_projects?: Json
+          resume_id?: string | null
+          role_readiness_score?: number
+          skill_gap?: Json
+          start_date?: string
+          status?: string
+          summary?: string | null
+          target_company?: string | null
+          target_role: string
+          updated_at?: string
+          voice_interview_session_id?: string | null
+        }
+        Update: {
+          coding_practice_plan?: Json
+          company_readiness_score?: number
+          created_at?: string
+          duration_months?: number
+          hiring_readiness_score?: number
+          hr_prep_plan?: Json
+          id?: string
+          interview_prep_plan?: Json
+          job_description_text?: string | null
+          profile_id?: string
+          recommended_projects?: Json
+          resume_id?: string | null
+          role_readiness_score?: number
+          skill_gap?: Json
+          start_date?: string
+          status?: string
+          summary?: string | null
+          target_company?: string | null
+          target_role?: string
+          updated_at?: string
+          voice_interview_session_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "career_roadmaps_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "career_roadmaps_resume_id_fkey"
+            columns: ["resume_id"]
+            isOneToOne: false
+            referencedRelation: "resumes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "career_roadmaps_voice_interview_session_id_fkey"
+            columns: ["voice_interview_session_id"]
+            isOneToOne: false
+            referencedRelation: "voice_interview_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       challenge_categories: {
         Row: {
           id: string

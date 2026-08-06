@@ -16,6 +16,7 @@ import { Route as ApplyRouteImport } from './routes/apply'
 import { Route as BusinessRouteImport } from './routes/business'
 import { Route as BusinessOnboardingRouteImport } from './routes/business-onboarding'
 import { Route as BusinessSignupRouteImport } from './routes/business-signup'
+import { Route as CareerRoadmapRouteImport } from './routes/career-roadmap'
 import { Route as ChallengesRouteImport } from './routes/challenges'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as FriendsRouteImport } from './routes/friends'
@@ -106,6 +107,11 @@ const BusinessOnboardingRoute = BusinessOnboardingRouteImport.update({
 const BusinessSignupRoute = BusinessSignupRouteImport.update({
   id: '/business-signup',
   path: '/business-signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CareerRoadmapRoute = CareerRoadmapRouteImport.update({
+  id: '/career-roadmap',
+  path: '/career-roadmap',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChallengesRoute = ChallengesRouteImport.update({
@@ -397,6 +403,7 @@ export interface FileRoutesByFullPath {
   '/business': typeof BusinessRouteWithChildren
   '/business-onboarding': typeof BusinessOnboardingRoute
   '/business-signup': typeof BusinessSignupRoute
+  '/career-roadmap': typeof CareerRoadmapRoute
   '/challenges': typeof ChallengesRouteWithChildren
   '/forgot-password': typeof ForgotPasswordRoute
   '/friends': typeof FriendsRoute
@@ -462,6 +469,7 @@ export interface FileRoutesByTo {
   '/business': typeof BusinessRouteWithChildren
   '/business-onboarding': typeof BusinessOnboardingRoute
   '/business-signup': typeof BusinessSignupRoute
+  '/career-roadmap': typeof CareerRoadmapRoute
   '/challenges': typeof ChallengesRouteWithChildren
   '/forgot-password': typeof ForgotPasswordRoute
   '/friends': typeof FriendsRoute
@@ -528,6 +536,7 @@ export interface FileRoutesById {
   '/business': typeof BusinessRouteWithChildren
   '/business-onboarding': typeof BusinessOnboardingRoute
   '/business-signup': typeof BusinessSignupRoute
+  '/career-roadmap': typeof CareerRoadmapRoute
   '/challenges': typeof ChallengesRouteWithChildren
   '/forgot-password': typeof ForgotPasswordRoute
   '/friends': typeof FriendsRoute
@@ -595,6 +604,7 @@ export interface FileRouteTypes {
     | '/business'
     | '/business-onboarding'
     | '/business-signup'
+    | '/career-roadmap'
     | '/challenges'
     | '/forgot-password'
     | '/friends'
@@ -660,6 +670,7 @@ export interface FileRouteTypes {
     | '/business'
     | '/business-onboarding'
     | '/business-signup'
+    | '/career-roadmap'
     | '/challenges'
     | '/forgot-password'
     | '/friends'
@@ -725,6 +736,7 @@ export interface FileRouteTypes {
     | '/business'
     | '/business-onboarding'
     | '/business-signup'
+    | '/career-roadmap'
     | '/challenges'
     | '/forgot-password'
     | '/friends'
@@ -791,6 +803,7 @@ export interface RootRouteChildren {
   BusinessRoute: typeof BusinessRouteWithChildren
   BusinessOnboardingRoute: typeof BusinessOnboardingRoute
   BusinessSignupRoute: typeof BusinessSignupRoute
+  CareerRoadmapRoute: typeof CareerRoadmapRoute
   ChallengesRoute: typeof ChallengesRouteWithChildren
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   FriendsRoute: typeof FriendsRoute
@@ -877,6 +890,13 @@ declare module '@tanstack/react-router' {
       path: '/business-signup'
       fullPath: '/business-signup'
       preLoaderRoute: typeof BusinessSignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/career-roadmap': {
+      id: '/career-roadmap'
+      path: '/career-roadmap'
+      fullPath: '/career-roadmap'
+      preLoaderRoute: typeof CareerRoadmapRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/challenges': {
@@ -1352,6 +1372,7 @@ const rootRouteChildren: RootRouteChildren = {
   BusinessRoute: BusinessRouteWithChildren,
   BusinessOnboardingRoute: BusinessOnboardingRoute,
   BusinessSignupRoute: BusinessSignupRoute,
+  CareerRoadmapRoute: CareerRoadmapRoute,
   ChallengesRoute: ChallengesRouteWithChildren,
   ForgotPasswordRoute: ForgotPasswordRoute,
   FriendsRoute: FriendsRoute,

@@ -9,6 +9,7 @@ import {
   Bell,
   FileSearch,
   BookOpen,
+  Compass,
   Briefcase,
   Building2,
   UserCircle2,
@@ -34,6 +35,7 @@ const itemsBeforeBusiness = [
   { to: "/challenges", label: "Daily Challenges", icon: Code2, badge: null },
   { to: "/notifications", label: "Notifications", icon: Bell, badge: "notifications" },
   { to: "/resume-analyse", label: "Resume Analyse", icon: FileSearch, badge: null },
+  { to: "/career-roadmap", label: "Career Roadmap", icon: Compass, badge: null },
   { to: "/job-preparation", label: "Job Prep", icon: BookOpen, badge: null },
   { to: "/apply", label: "Apply", icon: Briefcase, badge: null },
 ] as const;

@@ -278,6 +278,11 @@ function Resume() {
                       <Briefcase className="mr-2 h-4 w-4" /> Go to Apply
                     </Button>
                   </Link>
+                  <Link to="/career-roadmap">
+                    <Button size="lg" variant="outline">
+                      <RouteIcon className="mr-2 h-4 w-4" /> Build your personalized roadmap
+                    </Button>
+                  </Link>
                 </div>
               </div>
             </div>
