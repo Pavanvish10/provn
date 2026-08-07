@@ -86,20 +86,15 @@ function useCompanyDashboardStats(companyId: string | undefined) {
 
 function BusinessDashboard() {
   const { data: user } = useCurrentUser();
-  const { data: membership, isLoading } = useMyCompany(user?.id);
+  // Deliberately not branching structure on `isLoading` — the same query
+  // can resolve between the SSR flush and the client's first hydration
+  // paint, causing a hydration mismatch. `membership` stays undefined in
+  // both the loading and genuinely-no-company cases, so the empty-state
+  // branch below covers both without a separate spinner tree.
+  const { data: membership } = useMyCompany(user?.id);
   const companyId = membership?.company.id;
   const { data: stats } = useCompanyDashboardStats(companyId);
   const { data: recentJobs } = useCompanyJobs(companyId);
-
-  if (isLoading) {
-    return (
-      <BusinessShell>
-        <div className="flex h-64 items-center justify-center text-muted-foreground">
-          <Loader2 className="h-5 w-5 animate-spin" />
-        </div>
-      </BusinessShell>
-    );
-  }
 
   if (!membership) {
     return (

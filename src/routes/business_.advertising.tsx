@@ -4,7 +4,7 @@ import { ArrowLeft, Megaphone, Target, Eye, MousePointerClick } from "lucide-rea
 import { Button } from "@/components/ui/button";
 import { requireBusinessAccount } from "@/lib/auth-guard";
 
-export const Route = createFileRoute("/business/advertising")({
+export const Route = createFileRoute("/business_/advertising")({
   beforeLoad: requireBusinessAccount,
   head: () => ({
     meta: [

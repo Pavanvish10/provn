@@ -4,7 +4,7 @@ import { ArrowLeft, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { requireBusinessAccount } from "@/lib/auth-guard";
 
-export const Route = createFileRoute("/business/sales")({
+export const Route = createFileRoute("/business_/sales")({
   beforeLoad: requireBusinessAccount,
   head: () => ({
     meta: [

@@ -32,7 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export const Route = createFileRoute("/business/profile")({
+export const Route = createFileRoute("/business_/profile")({
   beforeLoad: requireBusinessAccount,
   head: () => ({ meta: [{ title: "Company Profile · Provn Business" }] }),
   component: CompanyProfilePage,
@@ -42,7 +42,10 @@ const COMPANY_SIZES = ["1-10", "11-50", "51-200", "201-500", "501-1000", "1000+"
 
 function CompanyProfilePage() {
   const { data: user } = useCurrentUser();
-  const { data: membership, isLoading } = useMyCompany(user?.id);
+  // Deliberately not branching structure on `isLoading` (hydration-mismatch
+  // risk — see business.tsx); `membership` stays undefined during loading
+  // too, so the `!company` branch below covers both cases.
+  const { data: membership } = useMyCompany(user?.id);
   const companyId = membership?.company.id;
   const { data: jobs } = useCompanyJobs(companyId);
   const { data: followerCount } = useCompanyFollowerCount(companyId);
@@ -75,16 +78,6 @@ function CompanyProfilePage() {
     setLogoPreview(company.logo);
     setCoverPreview(company.cover_image);
     setHydratedFor(company.id);
-  }
-
-  if (isLoading) {
-    return (
-      <BusinessShell>
-        <div className="flex h-64 items-center justify-center text-muted-foreground">
-          <Loader2 className="h-5 w-5 animate-spin" />
-        </div>
-      </BusinessShell>
-    );
   }
 
   if (!company) {

@@ -52,7 +52,7 @@ import {
   type JobFormInput,
 } from "@/lib/company-client";
 
-export const Route = createFileRoute("/business/jobs")({
+export const Route = createFileRoute("/business_/jobs")({
   beforeLoad: requireBusinessAccount,
   head: () => ({
     meta: [
@@ -76,20 +76,13 @@ const WORK_MODES: { value: string; label: string }[] = [
 
 function BusinessJobs() {
   const { data: user } = useCurrentUser();
-  const { data: membership, isLoading: loadingMembership } = useMyCompany(user?.id);
+  // Deliberately not branching structure on `isLoading` (hydration-mismatch
+  // risk — see business.tsx); `membership` stays undefined during loading
+  // too, so the empty-state branch below covers both cases.
+  const { data: membership } = useMyCompany(user?.id);
   const companyId = membership?.company.id;
 
   const { data: jobs = [], isLoading: loadingJobs } = useCompanyJobs(companyId);
-
-  if (loadingMembership) {
-    return (
-      <BusinessShell>
-        <div className="flex h-64 items-center justify-center text-muted-foreground">
-          <Loader2 className="h-5 w-5 animate-spin" />
-        </div>
-      </BusinessShell>
-    );
-  }
 
   if (!membership) {
     return (

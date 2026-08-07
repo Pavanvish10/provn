@@ -18,7 +18,7 @@ import { useCurrentUser } from "@/lib/auth-client";
 import { useMyCompany } from "@/lib/company-client";
 import { useBusinessAnalytics } from "@/lib/business-analytics-client";
 
-export const Route = createFileRoute("/business/analytics")({
+export const Route = createFileRoute("/business_/analytics")({
   beforeLoad: requireBusinessAccount,
   head: () => ({ meta: [{ title: "Analytics · Provn Business" }] }),
   component: BusinessAnalyticsPage,

@@ -35,7 +35,7 @@ import {
 import { useStartConversation } from "@/lib/messages-client";
 import { MessageForm } from "@/components/business/MessageForm";
 
-export const Route = createFileRoute("/business/sourcing")({
+export const Route = createFileRoute("/business_/sourcing")({
   beforeLoad: requireBusinessAccount,
   head: () => ({
     meta: [

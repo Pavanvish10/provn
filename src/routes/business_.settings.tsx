@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export const Route = createFileRoute("/business/settings")({
+export const Route = createFileRoute("/business_/settings")({
   beforeLoad: requireBusinessAccount,
   head: () => ({ meta: [{ title: "Settings · Provn Business" }] }),
   component: BusinessSettings,

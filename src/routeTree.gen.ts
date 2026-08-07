@@ -59,17 +59,17 @@ import { Route as AdminReportsRouteImport } from './routes/admin.reports'
 import { Route as AdminRoadmapsRouteImport } from './routes/admin.roadmaps'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
-import { Route as BusinessAdvertisingRouteImport } from './routes/business.advertising'
-import { Route as BusinessAnalyticsRouteImport } from './routes/business.analytics'
-import { Route as BusinessApplicantsRouteImport } from './routes/business.applicants'
-import { Route as BusinessJobsRouteImport } from './routes/business.jobs'
-import { Route as BusinessMarketingRouteImport } from './routes/business.marketing'
-import { Route as BusinessNotificationsRouteImport } from './routes/business.notifications'
-import { Route as BusinessProfileRouteImport } from './routes/business.profile'
-import { Route as BusinessSalesRouteImport } from './routes/business.sales'
-import { Route as BusinessSettingsRouteImport } from './routes/business.settings'
-import { Route as BusinessSourcingRouteImport } from './routes/business.sourcing'
-import { Route as BusinessSubscriptionRouteImport } from './routes/business.subscription'
+import { Route as BusinessAdvertisingRouteImport } from './routes/business_.advertising'
+import { Route as BusinessAnalyticsRouteImport } from './routes/business_.analytics'
+import { Route as BusinessApplicantsRouteImport } from './routes/business_.applicants'
+import { Route as BusinessJobsRouteImport } from './routes/business_.jobs'
+import { Route as BusinessMarketingRouteImport } from './routes/business_.marketing'
+import { Route as BusinessNotificationsRouteImport } from './routes/business_.notifications'
+import { Route as BusinessProfileRouteImport } from './routes/business_.profile'
+import { Route as BusinessSalesRouteImport } from './routes/business_.sales'
+import { Route as BusinessSettingsRouteImport } from './routes/business_.settings'
+import { Route as BusinessSourcingRouteImport } from './routes/business_.sourcing'
+import { Route as BusinessSubscriptionRouteImport } from './routes/business_.subscription'
 import { Route as CCompanyIdRouteImport } from './routes/c.$companyId'
 import { Route as ChallengesSlugRouteImport } from './routes/challenges.$slug'
 import { Route as InterviewIndexRouteImport } from './routes/interview/index'
@@ -333,59 +333,59 @@ const AuthCallbackRoute = AuthCallbackRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const BusinessAdvertisingRoute = BusinessAdvertisingRouteImport.update({
-  id: '/advertising',
-  path: '/advertising',
-  getParentRoute: () => BusinessRoute,
+  id: '/business_/advertising',
+  path: '/business/advertising',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const BusinessAnalyticsRoute = BusinessAnalyticsRouteImport.update({
-  id: '/analytics',
-  path: '/analytics',
-  getParentRoute: () => BusinessRoute,
+  id: '/business_/analytics',
+  path: '/business/analytics',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const BusinessApplicantsRoute = BusinessApplicantsRouteImport.update({
-  id: '/applicants',
-  path: '/applicants',
-  getParentRoute: () => BusinessRoute,
+  id: '/business_/applicants',
+  path: '/business/applicants',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const BusinessJobsRoute = BusinessJobsRouteImport.update({
-  id: '/jobs',
-  path: '/jobs',
-  getParentRoute: () => BusinessRoute,
+  id: '/business_/jobs',
+  path: '/business/jobs',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const BusinessMarketingRoute = BusinessMarketingRouteImport.update({
-  id: '/marketing',
-  path: '/marketing',
-  getParentRoute: () => BusinessRoute,
+  id: '/business_/marketing',
+  path: '/business/marketing',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const BusinessNotificationsRoute = BusinessNotificationsRouteImport.update({
-  id: '/notifications',
-  path: '/notifications',
-  getParentRoute: () => BusinessRoute,
+  id: '/business_/notifications',
+  path: '/business/notifications',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const BusinessProfileRoute = BusinessProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
-  getParentRoute: () => BusinessRoute,
+  id: '/business_/profile',
+  path: '/business/profile',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const BusinessSalesRoute = BusinessSalesRouteImport.update({
-  id: '/sales',
-  path: '/sales',
-  getParentRoute: () => BusinessRoute,
+  id: '/business_/sales',
+  path: '/business/sales',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const BusinessSettingsRoute = BusinessSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => BusinessRoute,
+  id: '/business_/settings',
+  path: '/business/settings',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const BusinessSourcingRoute = BusinessSourcingRouteImport.update({
-  id: '/sourcing',
-  path: '/sourcing',
-  getParentRoute: () => BusinessRoute,
+  id: '/business_/sourcing',
+  path: '/business/sourcing',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const BusinessSubscriptionRoute = BusinessSubscriptionRouteImport.update({
-  id: '/subscription',
-  path: '/subscription',
-  getParentRoute: () => BusinessRoute,
+  id: '/business_/subscription',
+  path: '/business/subscription',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const CCompanyIdRoute = CCompanyIdRouteImport.update({
   id: '/c/$companyId',
@@ -449,7 +449,7 @@ export interface FileRoutesByFullPath {
   '/analytics': typeof AnalyticsRoute
   '/applied-jobs': typeof AppliedJobsRoute
   '/apply': typeof ApplyRoute
-  '/business': typeof BusinessRouteWithChildren
+  '/business': typeof BusinessRoute
   '/business-onboarding': typeof BusinessOnboardingRoute
   '/business-signup': typeof BusinessSignupRoute
   '/career-roadmap': typeof CareerRoadmapRoute
@@ -523,7 +523,7 @@ export interface FileRoutesByTo {
   '/analytics': typeof AnalyticsRoute
   '/applied-jobs': typeof AppliedJobsRoute
   '/apply': typeof ApplyRoute
-  '/business': typeof BusinessRouteWithChildren
+  '/business': typeof BusinessRoute
   '/business-onboarding': typeof BusinessOnboardingRoute
   '/business-signup': typeof BusinessSignupRoute
   '/career-roadmap': typeof CareerRoadmapRoute
@@ -598,7 +598,7 @@ export interface FileRoutesById {
   '/analytics': typeof AnalyticsRoute
   '/applied-jobs': typeof AppliedJobsRoute
   '/apply': typeof ApplyRoute
-  '/business': typeof BusinessRouteWithChildren
+  '/business': typeof BusinessRoute
   '/business-onboarding': typeof BusinessOnboardingRoute
   '/business-signup': typeof BusinessSignupRoute
   '/career-roadmap': typeof CareerRoadmapRoute
@@ -643,17 +643,17 @@ export interface FileRoutesById {
   '/admin/roadmaps': typeof AdminRoadmapsRoute
   '/admin/users': typeof AdminUsersRoute
   '/auth/callback': typeof AuthCallbackRoute
-  '/business/advertising': typeof BusinessAdvertisingRoute
-  '/business/analytics': typeof BusinessAnalyticsRoute
-  '/business/applicants': typeof BusinessApplicantsRoute
-  '/business/jobs': typeof BusinessJobsRoute
-  '/business/marketing': typeof BusinessMarketingRoute
-  '/business/notifications': typeof BusinessNotificationsRoute
-  '/business/profile': typeof BusinessProfileRoute
-  '/business/sales': typeof BusinessSalesRoute
-  '/business/settings': typeof BusinessSettingsRoute
-  '/business/sourcing': typeof BusinessSourcingRoute
-  '/business/subscription': typeof BusinessSubscriptionRoute
+  '/business_/advertising': typeof BusinessAdvertisingRoute
+  '/business_/analytics': typeof BusinessAnalyticsRoute
+  '/business_/applicants': typeof BusinessApplicantsRoute
+  '/business_/jobs': typeof BusinessJobsRoute
+  '/business_/marketing': typeof BusinessMarketingRoute
+  '/business_/notifications': typeof BusinessNotificationsRoute
+  '/business_/profile': typeof BusinessProfileRoute
+  '/business_/sales': typeof BusinessSalesRoute
+  '/business_/settings': typeof BusinessSettingsRoute
+  '/business_/sourcing': typeof BusinessSourcingRoute
+  '/business_/subscription': typeof BusinessSubscriptionRoute
   '/c/$companyId': typeof CCompanyIdRoute
   '/challenges/$slug': typeof ChallengesSlugRoute
   '/interview/device-check': typeof InterviewDeviceCheckRoute
@@ -867,17 +867,17 @@ export interface FileRouteTypes {
     | '/admin/roadmaps'
     | '/admin/users'
     | '/auth/callback'
-    | '/business/advertising'
-    | '/business/analytics'
-    | '/business/applicants'
-    | '/business/jobs'
-    | '/business/marketing'
-    | '/business/notifications'
-    | '/business/profile'
-    | '/business/sales'
-    | '/business/settings'
-    | '/business/sourcing'
-    | '/business/subscription'
+    | '/business_/advertising'
+    | '/business_/analytics'
+    | '/business_/applicants'
+    | '/business_/jobs'
+    | '/business_/marketing'
+    | '/business_/notifications'
+    | '/business_/profile'
+    | '/business_/sales'
+    | '/business_/settings'
+    | '/business_/sourcing'
+    | '/business_/subscription'
     | '/c/$companyId'
     | '/challenges/$slug'
     | '/interview/device-check'
@@ -897,7 +897,7 @@ export interface RootRouteChildren {
   AnalyticsRoute: typeof AnalyticsRoute
   AppliedJobsRoute: typeof AppliedJobsRoute
   ApplyRoute: typeof ApplyRoute
-  BusinessRoute: typeof BusinessRouteWithChildren
+  BusinessRoute: typeof BusinessRoute
   BusinessOnboardingRoute: typeof BusinessOnboardingRoute
   BusinessSignupRoute: typeof BusinessSignupRoute
   CareerRoadmapRoute: typeof CareerRoadmapRoute
@@ -933,6 +933,17 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ValuePropRoute: typeof ValuePropRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
+  BusinessAdvertisingRoute: typeof BusinessAdvertisingRoute
+  BusinessAnalyticsRoute: typeof BusinessAnalyticsRoute
+  BusinessApplicantsRoute: typeof BusinessApplicantsRoute
+  BusinessJobsRoute: typeof BusinessJobsRoute
+  BusinessMarketingRoute: typeof BusinessMarketingRoute
+  BusinessNotificationsRoute: typeof BusinessNotificationsRoute
+  BusinessProfileRoute: typeof BusinessProfileRoute
+  BusinessSalesRoute: typeof BusinessSalesRoute
+  BusinessSettingsRoute: typeof BusinessSettingsRoute
+  BusinessSourcingRoute: typeof BusinessSourcingRoute
+  BusinessSubscriptionRoute: typeof BusinessSubscriptionRoute
   CCompanyIdRoute: typeof CCompanyIdRoute
   InterviewDeviceCheckRoute: typeof InterviewDeviceCheckRoute
   InterviewJobDescriptionRoute: typeof InterviewJobDescriptionRoute
@@ -1297,82 +1308,82 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/business/advertising': {
-      id: '/business/advertising'
-      path: '/advertising'
+    '/business_/advertising': {
+      id: '/business_/advertising'
+      path: '/business/advertising'
       fullPath: '/business/advertising'
       preLoaderRoute: typeof BusinessAdvertisingRouteImport
-      parentRoute: typeof BusinessRoute
+      parentRoute: typeof rootRouteImport
     }
-    '/business/analytics': {
-      id: '/business/analytics'
-      path: '/analytics'
+    '/business_/analytics': {
+      id: '/business_/analytics'
+      path: '/business/analytics'
       fullPath: '/business/analytics'
       preLoaderRoute: typeof BusinessAnalyticsRouteImport
-      parentRoute: typeof BusinessRoute
+      parentRoute: typeof rootRouteImport
     }
-    '/business/applicants': {
-      id: '/business/applicants'
-      path: '/applicants'
+    '/business_/applicants': {
+      id: '/business_/applicants'
+      path: '/business/applicants'
       fullPath: '/business/applicants'
       preLoaderRoute: typeof BusinessApplicantsRouteImport
-      parentRoute: typeof BusinessRoute
+      parentRoute: typeof rootRouteImport
     }
-    '/business/jobs': {
-      id: '/business/jobs'
-      path: '/jobs'
+    '/business_/jobs': {
+      id: '/business_/jobs'
+      path: '/business/jobs'
       fullPath: '/business/jobs'
       preLoaderRoute: typeof BusinessJobsRouteImport
-      parentRoute: typeof BusinessRoute
+      parentRoute: typeof rootRouteImport
     }
-    '/business/marketing': {
-      id: '/business/marketing'
-      path: '/marketing'
+    '/business_/marketing': {
+      id: '/business_/marketing'
+      path: '/business/marketing'
       fullPath: '/business/marketing'
       preLoaderRoute: typeof BusinessMarketingRouteImport
-      parentRoute: typeof BusinessRoute
+      parentRoute: typeof rootRouteImport
     }
-    '/business/notifications': {
-      id: '/business/notifications'
-      path: '/notifications'
+    '/business_/notifications': {
+      id: '/business_/notifications'
+      path: '/business/notifications'
       fullPath: '/business/notifications'
       preLoaderRoute: typeof BusinessNotificationsRouteImport
-      parentRoute: typeof BusinessRoute
+      parentRoute: typeof rootRouteImport
     }
-    '/business/profile': {
-      id: '/business/profile'
-      path: '/profile'
+    '/business_/profile': {
+      id: '/business_/profile'
+      path: '/business/profile'
       fullPath: '/business/profile'
       preLoaderRoute: typeof BusinessProfileRouteImport
-      parentRoute: typeof BusinessRoute
+      parentRoute: typeof rootRouteImport
     }
-    '/business/sales': {
-      id: '/business/sales'
-      path: '/sales'
+    '/business_/sales': {
+      id: '/business_/sales'
+      path: '/business/sales'
       fullPath: '/business/sales'
       preLoaderRoute: typeof BusinessSalesRouteImport
-      parentRoute: typeof BusinessRoute
+      parentRoute: typeof rootRouteImport
     }
-    '/business/settings': {
-      id: '/business/settings'
-      path: '/settings'
+    '/business_/settings': {
+      id: '/business_/settings'
+      path: '/business/settings'
       fullPath: '/business/settings'
       preLoaderRoute: typeof BusinessSettingsRouteImport
-      parentRoute: typeof BusinessRoute
+      parentRoute: typeof rootRouteImport
     }
-    '/business/sourcing': {
-      id: '/business/sourcing'
-      path: '/sourcing'
+    '/business_/sourcing': {
+      id: '/business_/sourcing'
+      path: '/business/sourcing'
       fullPath: '/business/sourcing'
       preLoaderRoute: typeof BusinessSourcingRouteImport
-      parentRoute: typeof BusinessRoute
+      parentRoute: typeof rootRouteImport
     }
-    '/business/subscription': {
-      id: '/business/subscription'
-      path: '/subscription'
+    '/business_/subscription': {
+      id: '/business_/subscription'
+      path: '/business/subscription'
       fullPath: '/business/subscription'
       preLoaderRoute: typeof BusinessSubscriptionRouteImport
-      parentRoute: typeof BusinessRoute
+      parentRoute: typeof rootRouteImport
     }
     '/c/$companyId': {
       id: '/c/$companyId'
@@ -1480,38 +1491,6 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
-interface BusinessRouteChildren {
-  BusinessAdvertisingRoute: typeof BusinessAdvertisingRoute
-  BusinessAnalyticsRoute: typeof BusinessAnalyticsRoute
-  BusinessApplicantsRoute: typeof BusinessApplicantsRoute
-  BusinessJobsRoute: typeof BusinessJobsRoute
-  BusinessMarketingRoute: typeof BusinessMarketingRoute
-  BusinessNotificationsRoute: typeof BusinessNotificationsRoute
-  BusinessProfileRoute: typeof BusinessProfileRoute
-  BusinessSalesRoute: typeof BusinessSalesRoute
-  BusinessSettingsRoute: typeof BusinessSettingsRoute
-  BusinessSourcingRoute: typeof BusinessSourcingRoute
-  BusinessSubscriptionRoute: typeof BusinessSubscriptionRoute
-}
-
-const BusinessRouteChildren: BusinessRouteChildren = {
-  BusinessAdvertisingRoute: BusinessAdvertisingRoute,
-  BusinessAnalyticsRoute: BusinessAnalyticsRoute,
-  BusinessApplicantsRoute: BusinessApplicantsRoute,
-  BusinessJobsRoute: BusinessJobsRoute,
-  BusinessMarketingRoute: BusinessMarketingRoute,
-  BusinessNotificationsRoute: BusinessNotificationsRoute,
-  BusinessProfileRoute: BusinessProfileRoute,
-  BusinessSalesRoute: BusinessSalesRoute,
-  BusinessSettingsRoute: BusinessSettingsRoute,
-  BusinessSourcingRoute: BusinessSourcingRoute,
-  BusinessSubscriptionRoute: BusinessSubscriptionRoute,
-}
-
-const BusinessRouteWithChildren = BusinessRoute._addFileChildren(
-  BusinessRouteChildren,
-)
-
 interface ChallengesRouteChildren {
   ChallengesSlugRoute: typeof ChallengesSlugRoute
 }
@@ -1530,7 +1509,7 @@ const rootRouteChildren: RootRouteChildren = {
   AnalyticsRoute: AnalyticsRoute,
   AppliedJobsRoute: AppliedJobsRoute,
   ApplyRoute: ApplyRoute,
-  BusinessRoute: BusinessRouteWithChildren,
+  BusinessRoute: BusinessRoute,
   BusinessOnboardingRoute: BusinessOnboardingRoute,
   BusinessSignupRoute: BusinessSignupRoute,
   CareerRoadmapRoute: CareerRoadmapRoute,
@@ -1566,6 +1545,17 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   ValuePropRoute: ValuePropRoute,
   AuthCallbackRoute: AuthCallbackRoute,
+  BusinessAdvertisingRoute: BusinessAdvertisingRoute,
+  BusinessAnalyticsRoute: BusinessAnalyticsRoute,
+  BusinessApplicantsRoute: BusinessApplicantsRoute,
+  BusinessJobsRoute: BusinessJobsRoute,
+  BusinessMarketingRoute: BusinessMarketingRoute,
+  BusinessNotificationsRoute: BusinessNotificationsRoute,
+  BusinessProfileRoute: BusinessProfileRoute,
+  BusinessSalesRoute: BusinessSalesRoute,
+  BusinessSettingsRoute: BusinessSettingsRoute,
+  BusinessSourcingRoute: BusinessSourcingRoute,
+  BusinessSubscriptionRoute: BusinessSubscriptionRoute,
   CCompanyIdRoute: CCompanyIdRoute,
   InterviewDeviceCheckRoute: InterviewDeviceCheckRoute,
   InterviewJobDescriptionRoute: InterviewJobDescriptionRoute,

@@ -3,17 +3,27 @@ import { useMemo, useState } from "react";
 import { z } from "zod";
 import {
   ArrowLeft,
+  Bookmark,
+  BookmarkCheck,
   Building2,
   CalendarClock,
   Check,
+  Code2,
+  Compass,
   ExternalLink,
+  Eye,
   FileText,
   Filter,
+  Gauge,
+  History,
   Loader2,
   MessageSquare,
   Send,
+  ShieldAlert,
   ShieldCheck,
   Sparkles,
+  StickyNote,
+  UserCheck,
   UserPlus,
   Users,
 } from "lucide-react";
@@ -24,6 +34,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -38,6 +49,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { requireBusinessAccount } from "@/lib/auth-guard";
 import { useCurrentUser } from "@/lib/auth-client";
@@ -49,6 +61,12 @@ import {
   useScheduleInterview,
   useBestMatches,
   useInviteToApply,
+  useCandidateBookmarks,
+  useToggleCandidateBookmark,
+  useApplicationNotes,
+  useAddApplicationNote,
+  useApplicationStatusHistory,
+  useCandidateResumeDetail,
   type Job,
   type KanbanApplicant,
   type BestMatchCandidate,
@@ -62,7 +80,7 @@ const searchSchema = z.object({
   tab: z.enum(["board", "matches"]).optional(),
 });
 
-export const Route = createFileRoute("/business/applicants")({
+export const Route = createFileRoute("/business_/applicants")({
   validateSearch: searchSchema,
   beforeLoad: requireBusinessAccount,
   head: () => ({
@@ -109,7 +127,10 @@ const COLUMNS: { key: string; label: string; statuses: string[]; dropStatus: str
 
 function Applicants() {
   const { data: user } = useCurrentUser();
-  const { data: membership, isLoading: loadingMembership } = useMyCompany(user?.id);
+  // Deliberately not branching structure on `isLoading` (hydration-mismatch
+  // risk — see business.tsx); `membership` stays undefined during loading
+  // too, so the empty-state branch below covers both cases.
+  const { data: membership } = useMyCompany(user?.id);
   const companyId = membership?.company.id;
 
   const navigate = useNavigate({ from: Route.fullPath });
@@ -126,16 +147,6 @@ function Applicants() {
   const setTab = (t: "board" | "matches") => {
     navigate({ search: (prev) => ({ ...prev, tab: t === "board" ? undefined : t }) });
   };
-
-  if (loadingMembership) {
-    return (
-      <BusinessShell>
-        <div className="flex h-64 items-center justify-center text-muted-foreground">
-          <Loader2 className="h-5 w-5 animate-spin" />
-        </div>
-      </BusinessShell>
-    );
-  }
 
   if (!membership) {
     return (
@@ -242,11 +253,16 @@ function KanbanBoardPanel({
 }) {
   const { data: applications = [], isLoading } = useCompanyApplications(companyId, jobId);
   const updateStatus = useUpdateApplicationStatus(jobId, companyId);
+  const { data: bookmarks = new Set<string>() } = useCandidateBookmarks(companyId);
+  const toggleBookmark = useToggleCandidateBookmark(companyId, userId);
 
   const [minAts, setMinAts] = useState("");
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [locationQuery, setLocationQuery] = useState("");
   const [collegeQuery, setCollegeQuery] = useState("");
+  const [gradYear, setGradYear] = useState("");
+  const [interviewCompletedOnly, setInterviewCompletedOnly] = useState(false);
+  const [roadmapActiveOnly, setRoadmapActiveOnly] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
 
   const allSkills = useMemo(() => {
@@ -262,15 +278,28 @@ function KanbanBoardPanel({
     const minAtsNum = minAts.trim() ? Number(minAts) : null;
     const loc = locationQuery.trim().toLowerCase();
     const col = collegeQuery.trim().toLowerCase();
+    const gradYearNum = gradYear.trim() ? Number(gradYear) : null;
     return applications.filter((a) => {
       if (minAtsNum !== null && (a.atsScore ?? -1) < minAtsNum) return false;
       if (selectedSkills.length > 0 && !selectedSkills.every((s) => a.verifiedSkills.includes(s)))
         return false;
       if (loc && !(a.applicant?.location ?? "").toLowerCase().includes(loc)) return false;
       if (col && !(a.applicant?.college ?? "").toLowerCase().includes(col)) return false;
+      if (gradYearNum !== null && a.applicant?.graduation_year !== gradYearNum) return false;
+      if (interviewCompletedOnly && !a.interviewCompleted) return false;
+      if (roadmapActiveOnly && !a.roadmapActive) return false;
       return true;
     });
-  }, [applications, minAts, selectedSkills, locationQuery, collegeQuery]);
+  }, [
+    applications,
+    minAts,
+    selectedSkills,
+    locationQuery,
+    collegeQuery,
+    gradYear,
+    interviewCompletedOnly,
+    roadmapActiveOnly,
+  ]);
 
   const columns = COLUMNS.map((col) => ({
     ...col,
@@ -281,7 +310,10 @@ function KanbanBoardPanel({
     (minAts.trim() ? 1 : 0) +
     selectedSkills.length +
     (locationQuery.trim() ? 1 : 0) +
-    (collegeQuery.trim() ? 1 : 0);
+    (collegeQuery.trim() ? 1 : 0) +
+    (gradYear.trim() ? 1 : 0) +
+    (interviewCompletedOnly ? 1 : 0) +
+    (roadmapActiveOnly ? 1 : 0);
 
   return (
     <div>
@@ -330,6 +362,30 @@ function KanbanBoardPanel({
                   placeholder="e.g. IIT"
                 />
               </Field>
+              <Field label="Graduation year">
+                <Input
+                  type="number"
+                  value={gradYear}
+                  onChange={(e) => setGradYear(e.target.value)}
+                  placeholder="e.g. 2026"
+                />
+              </Field>
+            </div>
+            <div className="flex flex-wrap gap-4">
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={interviewCompletedOnly}
+                  onCheckedChange={(v) => setInterviewCompletedOnly(v === true)}
+                />
+                Interview completed
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={roadmapActiveOnly}
+                  onCheckedChange={(v) => setRoadmapActiveOnly(v === true)}
+                />
+                Active roadmap
+              </label>
             </div>
             {allSkills.length > 0 && (
               <div>
@@ -380,6 +436,8 @@ function KanbanBoardPanel({
               updateStatus={updateStatus}
               userId={userId}
               companyId={companyId}
+              bookmarks={bookmarks}
+              toggleBookmark={toggleBookmark}
             />
           ))}
         </div>
@@ -393,11 +451,15 @@ function KanbanColumn({
   updateStatus,
   userId,
   companyId,
+  bookmarks,
+  toggleBookmark,
 }: {
   col: { key: string; label: string; items: KanbanApplicant[]; dropStatus: string };
   updateStatus: ReturnType<typeof useUpdateApplicationStatus>;
   userId: string | undefined;
   companyId: string | undefined;
+  bookmarks: Set<string>;
+  toggleBookmark: ReturnType<typeof useToggleCandidateBookmark>;
 }) {
   const [isOver, setIsOver] = useState(false);
 
@@ -440,6 +502,8 @@ function KanbanColumn({
               userId={userId}
               companyId={companyId}
               updateStatus={updateStatus}
+              bookmarks={bookmarks}
+              toggleBookmark={toggleBookmark}
             />
           ))
         )}
@@ -453,16 +517,22 @@ function ApplicantCard({
   userId,
   companyId,
   updateStatus,
+  bookmarks,
+  toggleBookmark,
 }: {
   app: KanbanApplicant;
   userId: string | undefined;
   companyId: string | undefined;
   updateStatus: ReturnType<typeof useUpdateApplicationStatus>;
+  bookmarks: Set<string>;
+  toggleBookmark: ReturnType<typeof useToggleCandidateBookmark>;
 }) {
   const scheduleInterview = useScheduleInterview(app.jobId, userId, companyId);
   const startConversation = useStartConversation(userId);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [messageOpen, setMessageOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const isBookmarked = app.applicant ? bookmarks.has(app.applicant.id) : false;
 
   const openResume = async () => {
     if (!app.resumeStoragePath) return;
@@ -499,6 +569,22 @@ function ApplicantCard({
             {app.applicant?.college || "College not set"}
           </div>
         </div>
+        <button
+          type="button"
+          className="shrink-0 text-muted-foreground hover:text-brand"
+          disabled={!app.applicant || toggleBookmark.isPending}
+          onClick={() =>
+            app.applicant &&
+            toggleBookmark.mutate({ profileId: app.applicant.id, bookmarked: isBookmarked })
+          }
+          title={isBookmarked ? "Remove bookmark" : "Bookmark candidate"}
+        >
+          {isBookmarked ? (
+            <BookmarkCheck className="h-4 w-4 text-brand" />
+          ) : (
+            <Bookmark className="h-4 w-4" />
+          )}
+        </button>
         {app.jobMatchPercentage != null && (
           <div className="shrink-0 text-right">
             <div className="font-display text-base leading-none text-brand">
@@ -509,11 +595,21 @@ function ApplicantCard({
         )}
       </div>
 
-      <div className="mt-1.5 flex items-center gap-2 text-[11px] text-muted-foreground">
+      <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
         <span>ATS: {app.atsScore != null ? Math.round(app.atsScore) : "—"}</span>
         {app.status === "viewed" && (
           <Badge variant="secondary" className="text-[9px]">
             Seen
+          </Badge>
+        )}
+        {app.interviewCompleted && (
+          <Badge variant="secondary" className="gap-0.5 text-[9px]">
+            <UserCheck className="h-2.5 w-2.5" /> Interviewed
+          </Badge>
+        )}
+        {app.roadmapActive && (
+          <Badge variant="secondary" className="gap-0.5 text-[9px]">
+            <Compass className="h-2.5 w-2.5" /> Active roadmap
           </Badge>
         )}
       </div>
@@ -593,6 +689,14 @@ function ApplicantCard({
       </div>
 
       <div className="mt-1.5 flex flex-wrap gap-1">
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-6 gap-1 px-1.5 text-[10px]"
+          onClick={() => setDetailOpen(true)}
+        >
+          <Eye className="h-3 w-3" /> Details
+        </Button>
         {app.status !== "shortlisted" && (
           <Button
             size="sm"
@@ -650,6 +754,292 @@ function ApplicantCard({
           </DialogContent>
         </Dialog>
       </div>
+
+      <CandidateDetailDrawer
+        app={app}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+        userId={userId}
+      />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------
+// Candidate detail drawer — resume preview, ATS report, interview
+// analytics, skill-gap summary, recruiter notes, and status history.
+// ---------------------------------------------------------------------
+
+function CandidateDetailDrawer({
+  app,
+  open,
+  onOpenChange,
+  userId,
+}: {
+  app: KanbanApplicant;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  userId: string | undefined;
+}) {
+  const { data: resumeDetail, isLoading: resumeLoading } = useCandidateResumeDetail(
+    app.applicant?.id,
+    open,
+  );
+  const { data: notes = [], isLoading: notesLoading } = useApplicationNotes(
+    open ? app.id : undefined,
+  );
+  const addNote = useAddApplicationNote(app.id);
+  const { data: history = [], isLoading: historyLoading } = useApplicationStatusHistory(
+    open ? app.id : undefined,
+  );
+  const [noteText, setNoteText] = useState("");
+  const [resumeUrl, setResumeUrl] = useState<string | null>(null);
+
+  const openResumePreview = async () => {
+    if (!resumeDetail?.storage_path) return;
+    const url = await getSignedResumeUrl(resumeDetail.storage_path);
+    setResumeUrl(url);
+  };
+
+  const submitNote = async () => {
+    if (!userId || !noteText.trim()) return;
+    await addNote.mutateAsync({ authorId: userId, body: noteText });
+    setNoteText("");
+  };
+
+  const analysis = resumeDetail?.analysis as { ats_feedback?: string[] } | null;
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-xl">
+        <SheetHeader>
+          <SheetTitle>{app.applicant?.full_name ?? "Candidate"}</SheetTitle>
+        </SheetHeader>
+
+        <div className="mt-4 space-y-5">
+          <div className="flex items-start gap-3">
+            <img
+              src={
+                app.applicant?.avatar_url ||
+                `https://api.dicebear.com/9.x/notionists/svg?seed=${app.applicant?.id ?? app.id}`
+              }
+              alt=""
+              className="h-14 w-14 shrink-0 rounded-full bg-muted"
+            />
+            <div className="min-w-0">
+              <div className="font-medium">{app.applicant?.full_name ?? "Unknown candidate"}</div>
+              <div className="text-xs text-muted-foreground">
+                {app.applicant?.target_role || "Target role not set"} ·{" "}
+                {app.applicant?.college || "College not set"}
+                {app.applicant?.graduation_year
+                  ? ` · Class of ${app.applicant.graduation_year}`
+                  : ""}
+              </div>
+              <div className="mt-1 flex flex-wrap gap-2 text-xs">
+                {app.applicant?.github_url && (
+                  <a
+                    href={app.applicant.github_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-brand hover:underline"
+                  >
+                    GitHub
+                  </a>
+                )}
+                {app.applicant?.portfolio_url && (
+                  <a
+                    href={app.applicant.portfolio_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-brand hover:underline"
+                  >
+                    Portfolio
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <section>
+            <SectionHeading icon={<Gauge className="h-3.5 w-3.5" />} title="Resume & ATS report" />
+            {resumeLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            ) : !resumeDetail ? (
+              <p className="text-xs text-muted-foreground">No resume on file yet.</p>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg font-semibold">
+                    {resumeDetail.ats_score != null ? `${resumeDetail.ats_score}/100` : "—"}
+                  </span>
+                  <span className="text-xs text-muted-foreground">ATS score</span>
+                  {resumeDetail.storage_path && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="ml-auto h-6 text-[10px]"
+                      onClick={openResumePreview}
+                    >
+                      Preview resume
+                    </Button>
+                  )}
+                </div>
+                {analysis?.ats_feedback && analysis.ats_feedback.length > 0 && (
+                  <ul className="list-disc space-y-0.5 pl-4 text-xs text-muted-foreground">
+                    {analysis.ats_feedback.slice(0, 5).map((f, i) => (
+                      <li key={i}>{f}</li>
+                    ))}
+                  </ul>
+                )}
+                {resumeUrl && (
+                  <iframe
+                    src={resumeUrl}
+                    title="Resume preview"
+                    className="h-64 w-full rounded-lg border border-border"
+                  />
+                )}
+              </div>
+            )}
+          </section>
+
+          <section>
+            <SectionHeading icon={<Code2 className="h-3.5 w-3.5" />} title="Interview analytics" />
+            {!app.interviewCompleted ? (
+              <p className="text-xs text-muted-foreground">
+                No completed interviews yet — AI interview data isn't available for this candidate.
+              </p>
+            ) : (
+              <div className="flex gap-4 text-sm">
+                <div>
+                  <div className="text-xs text-muted-foreground">Coding</div>
+                  <div className="font-semibold">{app.bestCodingScore ?? "—"}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground">HR</div>
+                  <div className="font-semibold">{app.bestHrScore ?? "—"}</div>
+                </div>
+              </div>
+            )}
+          </section>
+
+          <section>
+            <SectionHeading
+              icon={<ShieldAlert className="h-3.5 w-3.5" />}
+              title="Skill-gap summary"
+            />
+            {app.jobTags.length === 0 ? (
+              <p className="text-xs text-muted-foreground">
+                This job has no required skills tagged.
+              </p>
+            ) : (
+              <div className="space-y-1.5">
+                <SkillGapRow label="Matched" skills={app.matchedSkills} variant="secondary" />
+                <SkillGapRow label="Partial" skills={app.partialSkills} variant="outline" />
+                <SkillGapRow label="Missing" skills={app.missingSkills} variant="destructive" />
+              </div>
+            )}
+          </section>
+
+          <section>
+            <SectionHeading icon={<StickyNote className="h-3.5 w-3.5" />} title="Recruiter notes" />
+            {notesLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            ) : (
+              <div className="space-y-2">
+                {notes.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">No notes yet.</p>
+                ) : (
+                  notes.map((n) => (
+                    <div key={n.id} className="rounded-lg border border-border p-2 text-xs">
+                      <div className="mb-0.5 text-[10px] text-muted-foreground">
+                        {n.author?.full_name ?? "Teammate"} ·{" "}
+                        {new Date(n.created_at).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </div>
+                      {n.body}
+                    </div>
+                  ))
+                )}
+                <div className="flex gap-1.5">
+                  <Textarea
+                    value={noteText}
+                    onChange={(e) => setNoteText(e.target.value)}
+                    placeholder="Add a note about this candidate…"
+                    className="min-h-[60px] text-xs"
+                  />
+                </div>
+                <Button
+                  size="sm"
+                  className="h-7 text-xs"
+                  disabled={!noteText.trim() || addNote.isPending}
+                  onClick={submitNote}
+                >
+                  {addNote.isPending ? <Loader2 className="mr-1.5 h-3 w-3 animate-spin" /> : null}
+                  Add note
+                </Button>
+              </div>
+            )}
+          </section>
+
+          <section>
+            <SectionHeading icon={<History className="h-3.5 w-3.5" />} title="Status history" />
+            {historyLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            ) : history.length === 0 ? (
+              <p className="text-xs text-muted-foreground">No status changes recorded yet.</p>
+            ) : (
+              <ol className="space-y-1.5 text-xs">
+                {history.map((h) => (
+                  <li key={h.id} className="flex items-center gap-1.5 text-muted-foreground">
+                    <span className="capitalize">{h.from_status ?? "—"}</span>
+                    <span>→</span>
+                    <span className="font-medium capitalize text-foreground">{h.to_status}</span>
+                    <span className="ml-auto text-[10px]">
+                      {new Date(h.created_at).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                      })}
+                      {h.changedByProfile?.full_name ? ` · ${h.changedByProfile.full_name}` : ""}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </section>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function SectionHeading({ icon, title }: { icon: React.ReactNode; title: string }) {
+  return (
+    <div className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      {icon} {title}
+    </div>
+  );
+}
+
+function SkillGapRow({
+  label,
+  skills,
+  variant,
+}: {
+  label: string;
+  skills: string[];
+  variant: "secondary" | "outline" | "destructive";
+}) {
+  if (skills.length === 0) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-1.5 text-xs">
+      <span className="w-14 shrink-0 text-muted-foreground">{label}:</span>
+      {skills.map((s) => (
+        <Badge key={s} variant={variant} className="text-[10px]">
+          {s}
+        </Badge>
+      ))}
     </div>
   );
 }

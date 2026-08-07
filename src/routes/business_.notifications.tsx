@@ -41,7 +41,7 @@ import {
 } from "@/components/ui/select";
 import { formatTimeAgo } from "@/lib/utils";
 
-export const Route = createFileRoute("/business/notifications")({
+export const Route = createFileRoute("/business_/notifications")({
   beforeLoad: requireBusinessAccount,
   head: () => ({ meta: [{ title: "Notifications · Provn Business" }] }),
   component: BusinessNotifications,

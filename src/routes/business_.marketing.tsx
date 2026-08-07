@@ -4,7 +4,7 @@ import { ArrowLeft, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { requireBusinessAccount } from "@/lib/auth-guard";
 
-export const Route = createFileRoute("/business/marketing")({
+export const Route = createFileRoute("/business_/marketing")({
   beforeLoad: requireBusinessAccount,
   head: () => ({
     meta: [

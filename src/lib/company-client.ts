@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { Database } from "@/lib/supabase/types";
-import { rankCandidates, type Candidate } from "@/lib/matching";
+import { rankCandidates, scoreCandidate, type Candidate } from "@/lib/matching";
 import {
   sendApplicationStatusEmailFn,
   sendInterviewScheduledEmailFn,
@@ -738,10 +738,22 @@ export type KanbanApplicant = {
     | "github_url"
     | "portfolio_url"
     | "location"
+    | "graduation_year"
   > | null;
   verifiedSkills: string[];
   topProjects: ProjectRow[];
   resumeStoragePath: string | null;
+  // Sprint 25 additions — sourced from the recruiter-visibility RLS
+  // policies added alongside this candidate-tools migration (career_roadmaps,
+  // coding_interview_sessions, voice_interview_sessions), scoped to
+  // candidates who applied to this company's jobs.
+  interviewCompleted: boolean;
+  bestCodingScore: number | null;
+  bestHrScore: number | null;
+  roadmapActive: boolean;
+  matchedSkills: string[];
+  partialSkills: string[];
+  missingSkills: string[];
 };
 
 export function companyApplicationsQueryKey(
@@ -789,33 +801,54 @@ export function useCompanyApplications(companyId: string | undefined, jobId?: st
 
       const applicantIds = Array.from(new Set(apps.map((a) => a.applicant_id)));
 
-      const [profilesRes, skillsRes, resumesRes, projectsRes] = await Promise.all([
-        supabase
-          .from("profiles")
-          .select(
-            "id, full_name, username, avatar_url, college, target_role, github_url, portfolio_url, location",
-          )
-          .in("id", applicantIds),
-        supabase
-          .from("skills")
-          .select("profile_id, skill_name")
-          .in("profile_id", applicantIds)
-          .eq("verified", true),
-        supabase
-          .from("resumes")
-          .select("profile_id, storage_path")
-          .in("profile_id", applicantIds)
-          .eq("is_current", true),
-        supabase
-          .from("projects")
-          .select("*")
-          .in("profile_id", applicantIds)
-          .order("created_at", { ascending: false }),
-      ]);
+      const [profilesRes, skillsRes, resumesRes, projectsRes, codingRes, voiceRes, roadmapsRes] =
+        await Promise.all([
+          supabase
+            .from("profiles")
+            .select(
+              "id, full_name, username, avatar_url, college, target_role, github_url, portfolio_url, location, graduation_year",
+            )
+            .in("id", applicantIds),
+          supabase
+            .from("skills")
+            .select("profile_id, skill_name")
+            .in("profile_id", applicantIds)
+            .eq("verified", true),
+          supabase
+            .from("resumes")
+            .select("profile_id, storage_path")
+            .in("profile_id", applicantIds)
+            .eq("is_current", true),
+          supabase
+            .from("projects")
+            .select("*")
+            .in("profile_id", applicantIds)
+            .order("created_at", { ascending: false }),
+          // Recruiter-visibility RLS (candidate-tools migration) scopes these
+          // three to applicants of this company's jobs only — no broader grant.
+          supabase
+            .from("coding_interview_sessions")
+            .select("profile_id, overall_score")
+            .in("profile_id", applicantIds)
+            .eq("status", "evaluated"),
+          supabase
+            .from("voice_interview_sessions")
+            .select("profile_id, overall_score")
+            .in("profile_id", applicantIds)
+            .eq("status", "completed"),
+          supabase
+            .from("career_roadmaps")
+            .select("profile_id, status")
+            .in("profile_id", applicantIds)
+            .eq("status", "active"),
+        ]);
       if (profilesRes.error) throw profilesRes.error;
       if (skillsRes.error) throw skillsRes.error;
       if (resumesRes.error) throw resumesRes.error;
       if (projectsRes.error) throw projectsRes.error;
+      // coding/voice/roadmap errors are swallowed, not thrown — same
+      // reasoning as challenge_submissions/mock_interviews above: a
+      // signal being unavailable shouldn't break the whole board.
 
       const profileMap = new Map((profilesRes.data ?? []).map((p) => [p.id, p]));
 
@@ -837,28 +870,191 @@ export function useCompanyApplications(companyId: string | undefined, jobId?: st
         projectsByProfile.set(p.profile_id, list);
       }
 
+      const bestCodingByProfile = new Map<string, number>();
+      for (const s of codingRes.data ?? []) {
+        if (s.overall_score == null) continue;
+        const cur = bestCodingByProfile.get(s.profile_id) ?? -1;
+        if (s.overall_score > cur) bestCodingByProfile.set(s.profile_id, s.overall_score);
+      }
+      const bestHrByProfile = new Map<string, number>();
+      for (const s of voiceRes.data ?? []) {
+        if (s.overall_score == null) continue;
+        const cur = bestHrByProfile.get(s.profile_id) ?? -1;
+        if (s.overall_score > cur) bestHrByProfile.set(s.profile_id, s.overall_score);
+      }
+      const activeRoadmapProfiles = new Set((roadmapsRes.data ?? []).map((r) => r.profile_id));
+
       return apps
         .map((a) => {
           const info = jobInfoMap.get(a.job_id);
+          const jobTags = info?.tags ?? [];
+          const verifiedSkills = skillsByProfile.get(a.applicant_id) ?? [];
+          const { matched, partial } = scoreCandidate(
+            {
+              id: a.applicant_id,
+              name: "",
+              avatar: "",
+              headline: "",
+              location: "",
+              years: 0,
+              verifiedSkills,
+              streak: 0,
+            },
+            jobTags,
+          );
+          const missing = jobTags.filter((t) => !matched.includes(t) && !partial.includes(t));
+          const bestCoding = bestCodingByProfile.get(a.applicant_id) ?? null;
+          const bestHr = bestHrByProfile.get(a.applicant_id) ?? null;
           return {
             id: a.id,
             jobId: a.job_id,
             jobTitle: info?.title ?? "Untitled role",
-            jobTags: info?.tags ?? [],
+            jobTags,
             status: a.status,
             appliedAt: a.applied_at,
             atsScore: a.ats_score,
             skillsScore: a.skills_score,
             jobMatchPercentage: a.job_match_percentage,
             applicant: profileMap.get(a.applicant_id) ?? null,
-            verifiedSkills: skillsByProfile.get(a.applicant_id) ?? [],
+            verifiedSkills,
             topProjects: (projectsByProfile.get(a.applicant_id) ?? []).slice(0, 3),
             resumeStoragePath: resumeMap.get(a.applicant_id) ?? null,
+            interviewCompleted: bestCoding != null || bestHr != null,
+            bestCodingScore: bestCoding,
+            bestHrScore: bestHr,
+            roadmapActive: activeRoadmapProfiles.has(a.applicant_id),
+            matchedSkills: matched,
+            partialSkills: partial,
+            missingSkills: missing,
           };
         })
         .sort((x, y) => (y.jobMatchPercentage ?? -1) - (x.jobMatchPercentage ?? -1));
     },
     enabled: !!companyId,
+  });
+}
+
+// ---------------------------------------------------------------------
+// Recruiter notes on a candidate's application
+// ---------------------------------------------------------------------
+
+export type ApplicationNote = Database["public"]["Tables"]["application_notes"]["Row"] & {
+  author: Pick<ProfileRow, "id" | "full_name" | "avatar_url"> | null;
+};
+
+export function applicationNotesQueryKey(applicationId: string | undefined) {
+  return ["application-notes", applicationId] as const;
+}
+
+export function useApplicationNotes(applicationId: string | undefined) {
+  return useQuery({
+    queryKey: applicationNotesQueryKey(applicationId),
+    queryFn: async (): Promise<ApplicationNote[]> => {
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase
+        .from("application_notes")
+        .select("*, author:profiles(id, full_name, avatar_url)")
+        .eq("application_id", applicationId!)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as ApplicationNote[];
+    },
+    enabled: !!applicationId,
+  });
+}
+
+export function useAddApplicationNote(applicationId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ authorId, body }: { authorId: string; body: string }) => {
+      const supabase = getSupabaseBrowserClient();
+      const { error } = await supabase
+        .from("application_notes")
+        .insert({ application_id: applicationId!, author_id: authorId, body: body.trim() });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: applicationNotesQueryKey(applicationId) });
+    },
+  });
+}
+
+// ---------------------------------------------------------------------
+// Application status history (audit trail) — populated by a DB trigger,
+// read-only from the client.
+// ---------------------------------------------------------------------
+
+export type ApplicationStatusHistoryEntry =
+  Database["public"]["Tables"]["application_status_history"]["Row"] & {
+    changedByProfile: Pick<ProfileRow, "id" | "full_name"> | null;
+  };
+
+export function useApplicationStatusHistory(applicationId: string | undefined) {
+  return useQuery({
+    queryKey: ["application-status-history", applicationId],
+    queryFn: async (): Promise<ApplicationStatusHistoryEntry[]> => {
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase
+        .from("application_status_history")
+        .select("*, changedByProfile:profiles(id, full_name)")
+        .eq("application_id", applicationId!)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as ApplicationStatusHistoryEntry[];
+    },
+    enabled: !!applicationId,
+  });
+}
+
+// ---------------------------------------------------------------------
+// Recruiter bookmark of a candidate — independent of pipeline status.
+// ---------------------------------------------------------------------
+
+export function candidateBookmarksQueryKey(companyId: string | undefined) {
+  return ["candidate-bookmarks", companyId] as const;
+}
+
+export function useCandidateBookmarks(companyId: string | undefined) {
+  return useQuery({
+    queryKey: candidateBookmarksQueryKey(companyId),
+    queryFn: async (): Promise<Set<string>> => {
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase
+        .from("candidate_bookmarks")
+        .select("profile_id")
+        .eq("company_id", companyId!);
+      if (error) throw error;
+      return new Set((data ?? []).map((r) => r.profile_id));
+    },
+    enabled: !!companyId,
+  });
+}
+
+export function useToggleCandidateBookmark(
+  companyId: string | undefined,
+  userId: string | undefined,
+) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ profileId, bookmarked }: { profileId: string; bookmarked: boolean }) => {
+      const supabase = getSupabaseBrowserClient();
+      if (bookmarked) {
+        const { error } = await supabase
+          .from("candidate_bookmarks")
+          .delete()
+          .eq("company_id", companyId!)
+          .eq("profile_id", profileId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("candidate_bookmarks")
+          .insert({ company_id: companyId!, profile_id: profileId, created_by: userId ?? null });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: candidateBookmarksQueryKey(companyId) });
+    },
   });
 }
 
@@ -1080,5 +1276,29 @@ export function useScheduleInterview(
         queryClient.invalidateQueries({ queryKey: ["company-applications", companyId] });
       }
     },
+  });
+}
+
+// ---------------------------------------------------------------------
+// Candidate detail drawer — on-demand resume ATS report (the Kanban
+// board itself only carries storage_path, not the full ATS breakdown).
+// Covered by the existing resumes_recruiter_view RLS policy.
+// ---------------------------------------------------------------------
+
+export function useCandidateResumeDetail(profileId: string | undefined, enabled: boolean) {
+  return useQuery({
+    queryKey: ["candidate-resume-detail", profileId],
+    queryFn: async () => {
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase
+        .from("resumes")
+        .select("ats_score, analysis, storage_path")
+        .eq("profile_id", profileId!)
+        .eq("is_current", true)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: enabled && !!profileId,
   });
 }

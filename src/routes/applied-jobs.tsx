@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Briefcase, MapPin, Bookmark, Loader2, Check, ExternalLink } from "lucide-react";
+import { Briefcase, MapPin, Bookmark, Check, ExternalLink } from "lucide-react";
 import { AppShell } from "@/components/AppNav";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -41,8 +41,13 @@ function formatSalary(min: number | null, max: number | null, currency: string) 
 
 function AppliedJobs() {
   const { data: user } = useCurrentUser();
-  const { data: applications, isLoading: applicationsLoading } = useMyApplications(user?.id);
-  const { data: savedJobs, isLoading: savedLoading } = useSavedJobs(user?.id);
+  // Deliberately not branching structure on `isLoading` — the same query
+  // can resolve between the SSR flush and the client's first hydration
+  // paint, causing a hydration mismatch (see business.tsx for the same
+  // fix). `applications`/`savedJobs` stay undefined in both the loading
+  // and genuinely-empty cases, so the empty-state branches below cover both.
+  const { data: applications } = useMyApplications(user?.id);
+  const { data: savedJobs } = useSavedJobs(user?.id);
   const unsaveJob = useUnsaveJob(user?.id);
 
   return (
@@ -56,11 +61,7 @@ function AppliedJobs() {
 
       <section className="mb-10">
         <h2 className="mb-3 font-display text-xl">Your applications</h2>
-        {applicationsLoading ? (
-          <div className="flex h-24 items-center justify-center text-muted-foreground">
-            <Loader2 className="h-5 w-5 animate-spin" />
-          </div>
-        ) : !applications || applications.length === 0 ? (
+        {!applications || applications.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border bg-card p-8 text-center">
             <Briefcase className="mx-auto h-7 w-7 text-muted-foreground" />
             <p className="mt-2 text-sm text-muted-foreground">
@@ -78,10 +79,13 @@ function AppliedJobs() {
                 className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4"
               >
                 <div className="min-w-0">
-                  <div className="text-xs text-muted-foreground">
-                    Applied {new Date(app.applied_at).toLocaleDateString()}
+                  <h3 className="truncate font-display text-base leading-tight">
+                    {app.jobs?.title ?? "Untitled role"}
+                  </h3>
+                  <div className="mt-0.5 text-xs text-muted-foreground">
+                    {app.jobs?.companies?.company_name ?? "Company"} · Applied{" "}
+                    {new Date(app.applied_at).toLocaleDateString()}
                   </div>
-                  <div className="mt-0.5 text-xs text-muted-foreground">Job ID: {app.job_id}</div>
                 </div>
                 <span
                   className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-medium uppercase tracking-widest ${
@@ -100,11 +104,7 @@ function AppliedJobs() {
         <h2 className="mb-3 flex items-center gap-2 font-display text-xl">
           <Bookmark className="h-4 w-4 text-brand" /> Saved jobs
         </h2>
-        {savedLoading ? (
-          <div className="flex h-24 items-center justify-center text-muted-foreground">
-            <Loader2 className="h-5 w-5 animate-spin" />
-          </div>
-        ) : !savedJobs || savedJobs.length === 0 ? (
+        {!savedJobs || savedJobs.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground">
             No saved jobs yet — tap the bookmark icon on any job to save it for later.
           </div>

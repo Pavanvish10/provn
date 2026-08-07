@@ -49,9 +49,11 @@ export function useMyApplications(profileId: string | undefined) {
     queryKey: ["job-applications", profileId],
     queryFn: async () => {
       const supabase = getSupabaseBrowserClient();
+      // Sprint 25: joins job title/company so the student's application
+      // tracking page can show a real role name instead of a raw job_id.
       const { data, error } = await supabase
         .from("job_applications")
-        .select("*")
+        .select("*, jobs(title, companies(company_name))")
         .eq("applicant_id", profileId!);
       if (error) throw error;
       return data;

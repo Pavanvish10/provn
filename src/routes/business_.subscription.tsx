@@ -7,7 +7,7 @@ import { useCurrentUser } from "@/lib/auth-client";
 import { usePremiumStatus } from "@/lib/premium-client";
 import { Button } from "@/components/ui/button";
 
-export const Route = createFileRoute("/business/subscription")({
+export const Route = createFileRoute("/business_/subscription")({
   beforeLoad: requireBusinessAccount,
   head: () => ({ meta: [{ title: "Subscription · Provn Business" }] }),
   component: BusinessSubscription,
