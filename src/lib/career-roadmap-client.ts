@@ -10,6 +10,12 @@ export type CareerRoadmapTask = Database["public"]["Tables"]["career_roadmap_tas
 export type RoadmapPlanItem = { title: string; detail: string };
 export type RoadmapProjectItem = { title: string; description: string; skillsPracticed: string[] };
 export type RoadmapSkillGap = { matched: string[]; missing: string[]; priority: string[] };
+export type RoadmapMockInterviewEntry = {
+  weekNumber: number;
+  type: "coding" | "hr";
+  title: string;
+  description: string;
+};
 
 export function useMyCareerRoadmap(profileId: string | undefined) {
   return useQuery({
@@ -24,6 +30,26 @@ export function useMyCareerRoadmap(profileId: string | undefined) {
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!profileId,
+  });
+}
+
+// Sprint 22: surfaces roadmap history — archived rows already existed
+// (regenerating always archived the prior active roadmap rather than
+// deleting it), this just makes them browsable.
+export function useCareerRoadmapHistory(profileId: string | undefined) {
+  return useQuery({
+    queryKey: ["career-roadmap-history", profileId],
+    queryFn: async () => {
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase
+        .from("career_roadmaps")
+        .select("*")
+        .eq("profile_id", profileId!)
+        .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },
@@ -128,6 +154,13 @@ export function useCareerRoadmapProgress(roadmap: CareerRoadmap | null | undefin
         estimatedCompletionDate = projected;
       }
 
+      let predictedReadinessDate: Date | null = null;
+      if (roadmap!.predicted_readiness_weeks != null) {
+        const predicted = new Date(startDate);
+        predicted.setDate(predicted.getDate() + roadmap!.predicted_readiness_weeks * 7);
+        predictedReadinessDate = predicted;
+      }
+
       return {
         total: totalCount,
         completed: completedCount,
@@ -135,6 +168,7 @@ export function useCareerRoadmapProgress(roadmap: CareerRoadmap | null | undefin
         percentage: pct,
         targetCompletionDate: targetDate,
         estimatedCompletionDate,
+        predictedReadinessDate,
       };
     },
     enabled: !!roadmap?.id,

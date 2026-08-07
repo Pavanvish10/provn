@@ -26,7 +26,9 @@ export type CompanyId =
   | "infosys"
   | "wipro"
   | "accenture"
-  | "capgemini";
+  | "capgemini"
+  | "cred"
+  | "meesho";
 
 export interface CompanyProfileData {
   id: CompanyId;
@@ -224,6 +226,22 @@ export const COMPANY_PROFILES: Record<CompanyId, CompanyProfileData> = {
     difficulty: "easy",
     leadershipPrinciples: ["Honesty", "Boldness", "Trust", "Freedom"],
     preferredTopics: ["fundamentals", "client communication", "adaptability"],
+  },
+  cred: {
+    id: "cred",
+    name: "CRED",
+    interviewStyle: "Design-and-quality obsessed fintech, high bar on craftsmanship and ownership.",
+    difficulty: "hard",
+    leadershipPrinciples: ["Obsess Over Craft", "Ownership", "Speed with Quality"],
+    preferredTopics: ["fintech reliability", "system design", "product craftsmanship", "scale"],
+  },
+  meesho: {
+    id: "meesho",
+    name: "Meesho",
+    interviewStyle: "Fast-paced e-commerce at scale, strong bias toward data-driven decisions.",
+    difficulty: "medium",
+    leadershipPrinciples: ["Customer Obsession", "Bias for Action", "Data-Driven Decisions"],
+    preferredTopics: ["e-commerce scale", "system design", "product metrics", "ownership"],
   },
 };
 

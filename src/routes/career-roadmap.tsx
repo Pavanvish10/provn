@@ -16,6 +16,11 @@ import {
   Gauge,
   Terminal,
   UserCheck,
+  Award,
+  RefreshCw,
+  History,
+  CalendarCheck,
+  ArrowLeft,
 } from "lucide-react";
 
 import { AppShell } from "@/components/AppNav";
@@ -44,10 +49,12 @@ import {
   useCareerRoadmapDailyTasks,
   useCareerRoadmapProgress,
   useToggleCareerRoadmapTask,
+  useCareerRoadmapHistory,
   type CareerRoadmap,
   type RoadmapPlanItem,
   type RoadmapProjectItem,
   type RoadmapSkillGap,
+  type RoadmapMockInterviewEntry,
 } from "@/lib/career-roadmap-client";
 
 export const Route = createFileRoute("/career-roadmap")({
@@ -69,11 +76,33 @@ function CareerRoadmapPage() {
   const { data: user } = useCurrentUser();
   const { data: profile } = useProfile(user?.id);
   const { data: roadmap } = useMyCareerRoadmap(user?.id);
+  const { data: history } = useCareerRoadmapHistory(user?.id);
+  const [viewingHistoryId, setViewingHistoryId] = useState<string | null>(null);
+
+  const viewingHistoryRoadmap = viewingHistoryId
+    ? (history?.find((r) => r.id === viewingHistoryId) ?? null)
+    : null;
+
+  if (viewingHistoryRoadmap) {
+    return (
+      <AppShell>
+        <RoadmapHistoryDetail
+          roadmap={viewingHistoryRoadmap}
+          onBack={() => setViewingHistoryId(null)}
+        />
+      </AppShell>
+    );
+  }
 
   if (!roadmap) {
     return (
       <AppShell>
         <RoadmapSetup profileId={user?.id} defaultRole={profile?.target_role ?? ""} />
+        {history && history.length > 0 && (
+          <div className="mx-auto mt-8 max-w-3xl">
+            <HistoryPanel history={history} activeId={null} onView={setViewingHistoryId} />
+          </div>
+        )}
       </AppShell>
     );
   }
@@ -81,6 +110,11 @@ function CareerRoadmapPage() {
   return (
     <AppShell>
       <RoadmapDashboard roadmap={roadmap} profileId={user?.id} />
+      {history && history.length > 1 && (
+        <div className="mt-8">
+          <HistoryPanel history={history} activeId={roadmap.id} onView={setViewingHistoryId} />
+        </div>
+      )}
     </AppShell>
   );
 }
@@ -258,6 +292,10 @@ function RoadmapDashboard({
   const codingPlan = (roadmap.coding_practice_plan as unknown as RoadmapPlanItem[]) ?? [];
   const hrPlan = (roadmap.hr_prep_plan as unknown as RoadmapPlanItem[]) ?? [];
   const interviewPlan = (roadmap.interview_prep_plan as unknown as RoadmapPlanItem[]) ?? [];
+  const certificationsPlan = (roadmap.certifications_plan as unknown as RoadmapPlanItem[]) ?? [];
+  const revisionPlan = (roadmap.revision_plan as unknown as RoadmapPlanItem[]) ?? [];
+  const mockInterviewSchedule =
+    (roadmap.mock_interview_schedule as unknown as RoadmapMockInterviewEntry[]) ?? [];
 
   return (
     <div className="space-y-6">
@@ -315,6 +353,7 @@ function RoadmapDashboard({
         <Progress value={progress?.percentage ?? 0} className="mt-2" />
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
           <span>{progress?.percentage ?? 0}% complete</span>
+          <span>{progress?.remaining ?? 0} tasks remaining</span>
           <span>
             Estimated completion:{" "}
             {progress?.estimatedCompletionDate.toLocaleDateString("en-US", {
@@ -323,6 +362,16 @@ function RoadmapDashboard({
               year: "numeric",
             }) ?? "—"}
           </span>
+          {progress?.predictedReadinessDate && (
+            <span>
+              Predicted interview-ready:{" "}
+              {progress.predictedReadinessDate.toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })}
+            </span>
+          )}
         </div>
       </div>
 
@@ -534,6 +583,17 @@ function RoadmapDashboard({
           title="Interview prep plan"
           items={interviewPlan}
         />
+        <PlanCard
+          icon={<Award className="h-4 w-4 text-brand" />}
+          title="Certifications plan"
+          items={certificationsPlan}
+        />
+        <PlanCard
+          icon={<RefreshCw className="h-4 w-4 text-brand" />}
+          title="Revision plan"
+          items={revisionPlan}
+        />
+        <MockInterviewScheduleCard entries={mockInterviewSchedule} />
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -580,6 +640,256 @@ function PlanCard({
         ))}
         {items.length === 0 && <p className="text-sm text-muted-foreground">Nothing planned.</p>}
       </ol>
+    </div>
+  );
+}
+
+function MockInterviewScheduleCard({ entries }: { entries: RoadmapMockInterviewEntry[] }) {
+  return (
+    <div className="rounded-2xl border border-border bg-card p-6">
+      <div className="flex items-center gap-2 text-sm font-semibold">
+        <CalendarCheck className="h-4 w-4 text-brand" /> Mock interview schedule
+      </div>
+      <ul className="mt-4 space-y-2">
+        {entries.length === 0 && (
+          <p className="text-sm text-muted-foreground">No checkpoints scheduled.</p>
+        )}
+        {entries
+          .slice()
+          .sort((a, b) => a.weekNumber - b.weekNumber)
+          .map((entry, i) => (
+            <li key={i} className="flex items-center gap-3 rounded-xl border border-border p-3">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-soft text-[11px] font-bold text-brand">
+                {entry.weekNumber}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-sm font-medium">{entry.title}</p>
+                  <Badge variant="outline" className="text-[10px] capitalize">
+                    {entry.type}
+                  </Badge>
+                </div>
+                {entry.description && (
+                  <p className="mt-0.5 text-xs text-muted-foreground">{entry.description}</p>
+                )}
+              </div>
+              <Link to={entry.type === "hr" ? "/hr-interview" : "/coding-interview"}>
+                <Button size="sm" variant="outline">
+                  Practice
+                </Button>
+              </Link>
+            </li>
+          ))}
+      </ul>
+    </div>
+  );
+}
+
+function HistoryPanel({
+  history,
+  activeId,
+  onView,
+}: {
+  history: CareerRoadmap[];
+  activeId: string | null;
+  onView: (id: string) => void;
+}) {
+  const entries = history.filter((r) => r.id !== activeId);
+  if (entries.length === 0) return null;
+  return (
+    <div className="rounded-2xl border border-border bg-card p-6">
+      <div className="flex items-center gap-2 text-sm font-semibold">
+        <History className="h-4 w-4 text-brand" /> Roadmap history
+      </div>
+      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {entries.map((r) => (
+          <button
+            key={r.id}
+            type="button"
+            onClick={() => onView(r.id)}
+            className="rounded-xl border border-border p-4 text-left transition hover:border-foreground/20 hover:shadow-sm"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm font-medium">
+                {r.target_role}
+                {r.target_company ? ` @ ${r.target_company}` : ""}
+              </span>
+              <Badge variant="secondary" className="text-[10px] capitalize">
+                {r.status}
+              </Badge>
+            </div>
+            <div className="mt-1 text-xs text-muted-foreground">
+              {r.duration_months}-month plan · started{" "}
+              {new Date(r.start_date).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })}
+            </div>
+            <div className="mt-2 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+              <span>Role {r.role_readiness_score}%</span>
+              <span>Company {r.company_readiness_score}%</span>
+              <span>Hiring {r.hiring_readiness_score}%</span>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function RoadmapHistoryDetail({ roadmap, onBack }: { roadmap: CareerRoadmap; onBack: () => void }) {
+  const skillGap = (roadmap.skill_gap as unknown as RoadmapSkillGap) ?? {
+    matched: [],
+    missing: [],
+    priority: [],
+  };
+  const projects = (roadmap.recommended_projects as unknown as RoadmapProjectItem[]) ?? [];
+  const codingPlan = (roadmap.coding_practice_plan as unknown as RoadmapPlanItem[]) ?? [];
+  const hrPlan = (roadmap.hr_prep_plan as unknown as RoadmapPlanItem[]) ?? [];
+  const interviewPlan = (roadmap.interview_prep_plan as unknown as RoadmapPlanItem[]) ?? [];
+  const certificationsPlan = (roadmap.certifications_plan as unknown as RoadmapPlanItem[]) ?? [];
+  const revisionPlan = (roadmap.revision_plan as unknown as RoadmapPlanItem[]) ?? [];
+  const mockInterviewSchedule =
+    (roadmap.mock_interview_schedule as unknown as RoadmapMockInterviewEntry[]) ?? [];
+
+  return (
+    <div className="space-y-6">
+      <button
+        type="button"
+        onClick={onBack}
+        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+      >
+        <ArrowLeft className="h-4 w-4" /> Back
+      </button>
+
+      <div>
+        <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground">
+          <span>
+            {roadmap.duration_months}-month plan · started{" "}
+            {new Date(roadmap.start_date).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            })}
+          </span>
+          <Badge variant="secondary" className="text-[10px] capitalize">
+            {roadmap.status}
+          </Badge>
+        </div>
+        <h1 className="mt-1 font-display text-3xl tracking-tight sm:text-4xl">
+          {roadmap.target_role}
+          {roadmap.target_company ? ` @ ${roadmap.target_company}` : ""}
+        </h1>
+      </div>
+
+      {roadmap.summary && (
+        <div className="rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">
+          {roadmap.summary}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 gap-4 rounded-2xl border border-border bg-card p-6 sm:grid-cols-3">
+        <ScoreBar label="Role readiness" value={roadmap.role_readiness_score} />
+        <ScoreBar label="Company readiness" value={roadmap.company_readiness_score} />
+        <ScoreBar label="Hiring readiness" value={roadmap.hiring_readiness_score} />
+      </div>
+
+      <div className="rounded-2xl border border-border bg-card p-6">
+        <div className="flex items-center gap-2 text-sm font-semibold">
+          <Target className="h-4 w-4 text-brand" /> Skill gap
+        </div>
+        <div className="mt-4 space-y-3">
+          <div>
+            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Matched
+            </div>
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {skillGap.matched.length === 0 ? (
+                <span className="text-xs text-muted-foreground">None yet.</span>
+              ) : (
+                skillGap.matched.map((s) => (
+                  <Badge key={s} variant="secondary">
+                    {s}
+                  </Badge>
+                ))
+              )}
+            </div>
+          </div>
+          <div>
+            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Missing (priority first)
+            </div>
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {skillGap.missing.length === 0 ? (
+                <span className="text-xs text-muted-foreground">No gaps found.</span>
+              ) : (
+                [
+                  ...skillGap.priority,
+                  ...skillGap.missing.filter((s) => !skillGap.priority.includes(s)),
+                ].map((s) => (
+                  <Badge key={s} variant="destructive">
+                    {s}
+                  </Badge>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-border bg-card p-6">
+        <div className="flex items-center gap-2 text-sm font-semibold">
+          <FolderKanban className="h-4 w-4 text-brand" /> Recommended projects
+        </div>
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {projects.map((p) => (
+            <div key={p.title} className="rounded-xl border border-border p-4">
+              <p className="text-sm font-medium">{p.title}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{p.description}</p>
+              <div className="mt-2 flex flex-wrap gap-1">
+                {p.skillsPracticed?.map((s) => (
+                  <Badge key={s} variant="secondary" className="text-[10px]">
+                    {s}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          ))}
+          {projects.length === 0 && (
+            <p className="text-sm text-muted-foreground">No projects suggested.</p>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <PlanCard
+          icon={<Code2 className="h-4 w-4 text-brand" />}
+          title="Coding practice plan"
+          items={codingPlan}
+        />
+        <PlanCard
+          icon={<HeartHandshake className="h-4 w-4 text-brand" />}
+          title="HR prep plan"
+          items={hrPlan}
+        />
+        <PlanCard
+          icon={<MessagesSquare className="h-4 w-4 text-brand" />}
+          title="Interview prep plan"
+          items={interviewPlan}
+        />
+        <PlanCard
+          icon={<Award className="h-4 w-4 text-brand" />}
+          title="Certifications plan"
+          items={certificationsPlan}
+        />
+        <PlanCard
+          icon={<RefreshCw className="h-4 w-4 text-brand" />}
+          title="Revision plan"
+          items={revisionPlan}
+        />
+        <MockInterviewScheduleCard entries={mockInterviewSchedule} />
+      </div>
     </div>
   );
 }

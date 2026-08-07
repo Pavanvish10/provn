@@ -220,18 +220,25 @@ export type Database = {
       }
       career_roadmaps: {
         Row: {
+          certifications_plan: Json
+          coding_interview_session_id: string | null
           coding_practice_plan: Json
           company_readiness_score: number
           created_at: string
           duration_months: number
+          eligibility_report_id: string | null
           hiring_readiness_score: number
+          hr_interview_session_id: string | null
           hr_prep_plan: Json
           id: string
           interview_prep_plan: Json
           job_description_text: string | null
+          mock_interview_schedule: Json
+          predicted_readiness_weeks: number | null
           profile_id: string
           recommended_projects: Json
           resume_id: string | null
+          revision_plan: Json
           role_readiness_score: number
           skill_gap: Json
           start_date: string
@@ -243,18 +250,25 @@ export type Database = {
           voice_interview_session_id: string | null
         }
         Insert: {
+          certifications_plan?: Json
+          coding_interview_session_id?: string | null
           coding_practice_plan?: Json
           company_readiness_score?: number
           created_at?: string
           duration_months: number
+          eligibility_report_id?: string | null
           hiring_readiness_score?: number
+          hr_interview_session_id?: string | null
           hr_prep_plan?: Json
           id?: string
           interview_prep_plan?: Json
           job_description_text?: string | null
+          mock_interview_schedule?: Json
+          predicted_readiness_weeks?: number | null
           profile_id: string
           recommended_projects?: Json
           resume_id?: string | null
+          revision_plan?: Json
           role_readiness_score?: number
           skill_gap?: Json
           start_date?: string
@@ -266,18 +280,25 @@ export type Database = {
           voice_interview_session_id?: string | null
         }
         Update: {
+          certifications_plan?: Json
+          coding_interview_session_id?: string | null
           coding_practice_plan?: Json
           company_readiness_score?: number
           created_at?: string
           duration_months?: number
+          eligibility_report_id?: string | null
           hiring_readiness_score?: number
+          hr_interview_session_id?: string | null
           hr_prep_plan?: Json
           id?: string
           interview_prep_plan?: Json
           job_description_text?: string | null
+          mock_interview_schedule?: Json
+          predicted_readiness_weeks?: number | null
           profile_id?: string
           recommended_projects?: Json
           resume_id?: string | null
+          revision_plan?: Json
           role_readiness_score?: number
           skill_gap?: Json
           start_date?: string
@@ -289,6 +310,27 @@ export type Database = {
           voice_interview_session_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "career_roadmaps_coding_interview_session_id_fkey"
+            columns: ["coding_interview_session_id"]
+            isOneToOne: false
+            referencedRelation: "coding_interview_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "career_roadmaps_eligibility_report_id_fkey"
+            columns: ["eligibility_report_id"]
+            isOneToOne: false
+            referencedRelation: "eligibility_reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "career_roadmaps_hr_interview_session_id_fkey"
+            columns: ["hr_interview_session_id"]
+            isOneToOne: false
+            referencedRelation: "voice_interview_sessions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "career_roadmaps_profile_id_fkey"
             columns: ["profile_id"]

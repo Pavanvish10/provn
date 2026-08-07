@@ -15,10 +15,25 @@ import type { Database } from "@/lib/supabase/types";
 // candidate — grounded in their real resume analysis (Sprint 13), their
 // most recent completed interview report (Sprint 14), a target
 // company/role, and an optional job description.
+//
+// Sprint 22 deepens this same roadmap rather than building a fifth
+// parallel "prepare for a target company/role" system: adds a
+// certifications plan, a revision plan, a mock-interview schedule, and a
+// predicted-readiness estimate, and pulls in the candidate's most recent
+// coding interview (Sprint 17), HR interview (Sprint 18), and latest
+// skill-gap check (Sprint 21) as extra grounding signals. Roadmap
+// history already existed (archived rows are kept, never deleted) —
+// this sprint surfaces it in the UI rather than duplicating storage.
 
 type PlanItem = { title: string; detail: string };
 type ProjectItem = { title: string; description: string; skillsPracticed: string[] };
 type MilestoneItem = { month: number; title: string; description: string };
+type MockInterviewScheduleEntry = {
+  weekNumber: number;
+  type: "coding" | "hr";
+  title: string;
+  description: string;
+};
 type DailyTaskTemplate = {
   dayOfWeek: number;
   title: string;
@@ -38,6 +53,10 @@ type GeneratedRoadmap = {
   codingPracticePlan: PlanItem[];
   hrPrepPlan: PlanItem[];
   interviewPrepPlan: PlanItem[];
+  certificationsPlan: PlanItem[];
+  revisionPlan: PlanItem[];
+  mockInterviewSchedule: MockInterviewScheduleEntry[];
+  predictedReadinessWeeks: number;
   monthlyMilestones: MilestoneItem[];
   weeklyPhaseTemplates: PhaseTemplate[];
   summary: string;
@@ -77,8 +96,9 @@ const ROADMAP_PROMPT = (params: {
   targetRole: string;
   targetCompany: string | null;
   durationMonths: number;
+  totalWeeks: number;
   contextBlock: string;
-}) => `You are a senior career coach building a personalized, month-by-month preparation plan for a candidate targeting the role of "${params.targetRole}"${params.targetCompany ? ` at ${params.targetCompany}` : ""}, over a ${params.durationMonths}-month timeline.
+}) => `You are a senior career coach building a personalized, month-by-month preparation plan for a candidate targeting the role of "${params.targetRole}"${params.targetCompany ? ` at ${params.targetCompany}` : ""}, over a ${params.durationMonths}-month (${params.totalWeeks}-week) timeline.
 
 ${params.contextBlock}
 
@@ -96,6 +116,12 @@ Respond with ONLY a JSON object (no markdown fences, no prose) matching this exa
   "codingPracticePlan": [ { "title": string, "detail": string } ] (4-6 concrete steps, e.g. topics/problem categories to drill),
   "hrPrepPlan": [ { "title": string, "detail": string } ] (3-5 concrete steps for behavioral/HR readiness),
   "interviewPrepPlan": [ { "title": string, "detail": string } ] (3-5 concrete steps for the technical/role interview itself),
+  "certificationsPlan": [ { "title": string (a real, recognized certification name), "detail": string (why it helps and roughly when to pursue it) } ] (0-4 items, empty array if none would meaningfully help),
+  "revisionPlan": [ { "title": string, "detail": string } ] (3-5 steps for how the candidate should revisit/reinforce earlier material later in the plan, not just learn new things once),
+  "mockInterviewSchedule": [
+    { "weekNumber": number (1 through ${params.totalWeeks}), "type": string (exactly "coding" or "hr"), "title": string, "description": string }
+  ] (3-6 checkpoints spaced sensibly across the ${params.totalWeeks}-week plan — a mix of coding and hr type, more frequent near the end),
+  "predictedReadinessWeeks": number (1 through ${params.totalWeeks} — your honest estimate of how many weeks into this plan the candidate would realistically be interview-ready for this specific company/role, based on their current scores below — do not always default to the full duration),
   "monthlyMilestones": [
     { "month": number (1 through ${params.durationMonths}, one entry per month, no skipping), "title": string, "description": string }
   ] (exactly ${params.durationMonths} entries),
@@ -132,6 +158,22 @@ function buildContextBlock(params: {
     missing_skills: string[] | null;
   } | null;
   jdSkills: { required: string[]; preferred: string[] } | null;
+  codingInterview: {
+    overall_score: number | null;
+    correctness_score: number | null;
+    optimization_score: number | null;
+  } | null;
+  hrInterview: {
+    overall_score: number | null;
+    communication_score: number | null;
+    hr_readiness_score: number | null;
+  } | null;
+  eligibility: {
+    missing_skills: string[];
+    missing_soft_skills: string[] | null;
+    dsa_level: number | null;
+    system_design_readiness: number | null;
+  } | null;
   scores: { role: number; company: number; hiring: number };
 }): string {
   const parts: string[] = [];
@@ -185,6 +227,35 @@ function buildContextBlock(params: {
     );
   } else {
     parts.push("MOST RECENT MOCK INTERVIEW: none completed yet — plan should include taking one.");
+  }
+
+  if (params.codingInterview) {
+    const ci = params.codingInterview;
+    parts.push(
+      `MOST RECENT CODING INTERVIEW: overall ${ci.overall_score ?? "n/a"}/100, correctness ${ci.correctness_score ?? "n/a"}/100, optimization ${ci.optimization_score ?? "n/a"}/100.`,
+    );
+  } else {
+    parts.push("MOST RECENT CODING INTERVIEW: none completed yet — plan should include one.");
+  }
+
+  if (params.hrInterview) {
+    const hi = params.hrInterview;
+    parts.push(
+      `MOST RECENT HR/BEHAVIORAL INTERVIEW: overall ${hi.overall_score ?? "n/a"}/100, communication ${hi.communication_score ?? "n/a"}/100, HR readiness ${hi.hr_readiness_score ?? "n/a"}/100.`,
+    );
+  } else {
+    parts.push(
+      "MOST RECENT HR/BEHAVIORAL INTERVIEW: none completed yet — plan should include one.",
+    );
+  }
+
+  if (params.eligibility) {
+    const el = params.eligibility;
+    parts.push(
+      `LATEST SKILL GAP CHECK: missing technical skills: ${el.missing_skills.join(", ") || "none flagged"}. Missing soft skills: ${(el.missing_soft_skills ?? []).join(", ") || "none flagged"}. DSA level ${el.dsa_level ?? "n/a"}/100, system design readiness ${el.system_design_readiness ?? "n/a"}/100.`,
+    );
+  } else {
+    parts.push("LATEST SKILL GAP CHECK: none run yet.");
   }
 
   parts.push(
@@ -260,6 +331,33 @@ export const generateCareerRoadmapFn = createServerFn({ method: "POST" })
       .limit(1)
       .maybeSingle();
 
+    const { data: codingInterview } = await supabase
+      .from("coding_interview_sessions")
+      .select("id, overall_score, correctness_score, optimization_score")
+      .eq("profile_id", auth.user.id)
+      .eq("status", "evaluated")
+      .order("completed_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const { data: hrInterview } = await supabase
+      .from("voice_interview_sessions")
+      .select("id, overall_score, communication_score, hr_readiness_score")
+      .eq("profile_id", auth.user.id)
+      .eq("status", "completed")
+      .in("interview_type", ["hr", "behavioral", "manager"])
+      .order("completed_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const { data: eligibility } = await supabase
+      .from("eligibility_reports")
+      .select("id, missing_skills, missing_soft_skills, dsa_level, system_design_readiness")
+      .eq("profile_id", auth.user.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
     let jdSkills: { required: string[]; preferred: string[] } | null = null;
     let skillMatchPercent: number | null = null;
     if (data.jobDescriptionText?.trim()) {
@@ -282,6 +380,8 @@ export const generateCareerRoadmapFn = createServerFn({ method: "POST" })
       meanOf([atsScore, skillMatchPercent, interviewOverall]),
     );
 
+    const totalWeeks = Math.ceil((data.durationMonths * 4.345) / 1);
+
     const contextBlock = buildContextBlock({
       targetRole: data.targetRole,
       targetCompany: data.targetCompany ?? null,
@@ -290,6 +390,9 @@ export const generateCareerRoadmapFn = createServerFn({ method: "POST" })
       resumeAnalysis,
       latestSession: latestSession ?? null,
       jdSkills,
+      codingInterview: codingInterview ?? null,
+      hrInterview: hrInterview ?? null,
+      eligibility: eligibility ?? null,
       scores: {
         role: roleReadinessScore,
         company: companyReadinessScore,
@@ -306,6 +409,7 @@ export const generateCareerRoadmapFn = createServerFn({ method: "POST" })
             targetRole: data.targetRole,
             targetCompany: companyProfile?.name ?? data.targetCompany ?? null,
             durationMonths: data.durationMonths,
+            totalWeeks,
             contextBlock,
           }),
           config: { responseMimeType: "application/json" },
@@ -361,6 +465,17 @@ export const generateCareerRoadmapFn = createServerFn({ method: "POST" })
         coding_practice_plan: generated.codingPracticePlan ?? [],
         hr_prep_plan: generated.hrPrepPlan ?? [],
         interview_prep_plan: generated.interviewPrepPlan ?? [],
+        certifications_plan: generated.certificationsPlan ?? [],
+        revision_plan: generated.revisionPlan ?? [],
+        mock_interview_schedule: generated.mockInterviewSchedule ?? [],
+        predicted_readiness_weeks:
+          Number.isFinite(generated.predictedReadinessWeeks) &&
+          generated.predictedReadinessWeeks > 0
+            ? Math.min(totalWeeks, Math.round(generated.predictedReadinessWeeks))
+            : null,
+        coding_interview_session_id: codingInterview?.id ?? null,
+        hr_interview_session_id: hrInterview?.id ?? null,
+        eligibility_report_id: eligibility?.id ?? null,
         summary: generated.summary ?? null,
         status: "active",
       })
@@ -370,7 +485,6 @@ export const generateCareerRoadmapFn = createServerFn({ method: "POST" })
       return { error: insertError?.message ?? "Could not save the roadmap." };
 
     const startDate = new Date(inserted.start_date);
-    const totalWeeks = Math.ceil((data.durationMonths * 4.345) / 1);
     type TaskInsert = Database["public"]["Tables"]["career_roadmap_tasks"]["Insert"];
     const taskRows: TaskInsert[] = [];
 
