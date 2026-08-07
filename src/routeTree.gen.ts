@@ -20,6 +20,8 @@ import { Route as BusinessSignupRouteImport } from './routes/business-signup'
 import { Route as CareerRoadmapRouteImport } from './routes/career-roadmap'
 import { Route as ChallengesRouteImport } from './routes/challenges'
 import { Route as CodingInterviewRouteImport } from './routes/coding-interview'
+import { Route as CollegeRouteImport } from './routes/college'
+import { Route as DrivesRouteImport } from './routes/drives'
 import { Route as EligibilityRouteImport } from './routes/eligibility'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as FriendsRouteImport } from './routes/friends'
@@ -35,6 +37,7 @@ import { Route as LocationRouteImport } from './routes/location'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MentorRouteImport } from './routes/mentor'
 import { Route as MessagesRouteImport } from './routes/messages'
+import { Route as MyDrivesRouteImport } from './routes/my-drives'
 import { Route as MyInterviewsRouteImport } from './routes/my-interviews'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as PlanRouteImport } from './routes/plan'
@@ -72,6 +75,8 @@ import { Route as BusinessSourcingRouteImport } from './routes/business_.sourcin
 import { Route as BusinessSubscriptionRouteImport } from './routes/business_.subscription'
 import { Route as CCompanyIdRouteImport } from './routes/c.$companyId'
 import { Route as ChallengesSlugRouteImport } from './routes/challenges.$slug'
+import { Route as CollegeDriveDriveIdRouteImport } from './routes/college-drive.$driveId'
+import { Route as DriveDriveIdRouteImport } from './routes/drive.$driveId'
 import { Route as InterviewIndexRouteImport } from './routes/interview/index'
 import { Route as InterviewDeviceCheckRouteImport } from './routes/interview/device-check'
 import { Route as InterviewJobDescriptionRouteImport } from './routes/interview/job-description'
@@ -135,6 +140,16 @@ const ChallengesRoute = ChallengesRouteImport.update({
 const CodingInterviewRoute = CodingInterviewRouteImport.update({
   id: '/coding-interview',
   path: '/coding-interview',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CollegeRoute = CollegeRouteImport.update({
+  id: '/college',
+  path: '/college',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DrivesRoute = DrivesRouteImport.update({
+  id: '/drives',
+  path: '/drives',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EligibilityRoute = EligibilityRouteImport.update({
@@ -210,6 +225,11 @@ const MentorRoute = MentorRouteImport.update({
 const MessagesRoute = MessagesRouteImport.update({
   id: '/messages',
   path: '/messages',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MyDrivesRoute = MyDrivesRouteImport.update({
+  id: '/my-drives',
+  path: '/my-drives',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MyInterviewsRoute = MyInterviewsRouteImport.update({
@@ -397,6 +417,16 @@ const ChallengesSlugRoute = ChallengesSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => ChallengesRoute,
 } as any)
+const CollegeDriveDriveIdRoute = CollegeDriveDriveIdRouteImport.update({
+  id: '/college-drive/$driveId',
+  path: '/college-drive/$driveId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DriveDriveIdRoute = DriveDriveIdRouteImport.update({
+  id: '/drive/$driveId',
+  path: '/drive/$driveId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const InterviewIndexRoute = InterviewIndexRouteImport.update({
   id: '/interview/',
   path: '/interview/',
@@ -455,6 +485,8 @@ export interface FileRoutesByFullPath {
   '/career-roadmap': typeof CareerRoadmapRoute
   '/challenges': typeof ChallengesRouteWithChildren
   '/coding-interview': typeof CodingInterviewRoute
+  '/college': typeof CollegeRoute
+  '/drives': typeof DrivesRoute
   '/eligibility': typeof EligibilityRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/friends': typeof FriendsRoute
@@ -470,6 +502,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/mentor': typeof MentorRoute
   '/messages': typeof MessagesRoute
+  '/my-drives': typeof MyDrivesRoute
   '/my-interviews': typeof MyInterviewsRoute
   '/notifications': typeof NotificationsRoute
   '/plan': typeof PlanRoute
@@ -507,6 +540,8 @@ export interface FileRoutesByFullPath {
   '/business/subscription': typeof BusinessSubscriptionRoute
   '/c/$companyId': typeof CCompanyIdRoute
   '/challenges/$slug': typeof ChallengesSlugRoute
+  '/college-drive/$driveId': typeof CollegeDriveDriveIdRoute
+  '/drive/$driveId': typeof DriveDriveIdRoute
   '/interview/device-check': typeof InterviewDeviceCheckRoute
   '/interview/job-description': typeof InterviewJobDescriptionRoute
   '/interview/report': typeof InterviewReportRoute
@@ -529,6 +564,8 @@ export interface FileRoutesByTo {
   '/career-roadmap': typeof CareerRoadmapRoute
   '/challenges': typeof ChallengesRouteWithChildren
   '/coding-interview': typeof CodingInterviewRoute
+  '/college': typeof CollegeRoute
+  '/drives': typeof DrivesRoute
   '/eligibility': typeof EligibilityRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/friends': typeof FriendsRoute
@@ -544,6 +581,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/mentor': typeof MentorRoute
   '/messages': typeof MessagesRoute
+  '/my-drives': typeof MyDrivesRoute
   '/my-interviews': typeof MyInterviewsRoute
   '/notifications': typeof NotificationsRoute
   '/plan': typeof PlanRoute
@@ -581,6 +619,8 @@ export interface FileRoutesByTo {
   '/business/subscription': typeof BusinessSubscriptionRoute
   '/c/$companyId': typeof CCompanyIdRoute
   '/challenges/$slug': typeof ChallengesSlugRoute
+  '/college-drive/$driveId': typeof CollegeDriveDriveIdRoute
+  '/drive/$driveId': typeof DriveDriveIdRoute
   '/interview/device-check': typeof InterviewDeviceCheckRoute
   '/interview/job-description': typeof InterviewJobDescriptionRoute
   '/interview/report': typeof InterviewReportRoute
@@ -604,6 +644,8 @@ export interface FileRoutesById {
   '/career-roadmap': typeof CareerRoadmapRoute
   '/challenges': typeof ChallengesRouteWithChildren
   '/coding-interview': typeof CodingInterviewRoute
+  '/college': typeof CollegeRoute
+  '/drives': typeof DrivesRoute
   '/eligibility': typeof EligibilityRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/friends': typeof FriendsRoute
@@ -619,6 +661,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/mentor': typeof MentorRoute
   '/messages': typeof MessagesRoute
+  '/my-drives': typeof MyDrivesRoute
   '/my-interviews': typeof MyInterviewsRoute
   '/notifications': typeof NotificationsRoute
   '/plan': typeof PlanRoute
@@ -656,6 +699,8 @@ export interface FileRoutesById {
   '/business_/subscription': typeof BusinessSubscriptionRoute
   '/c/$companyId': typeof CCompanyIdRoute
   '/challenges/$slug': typeof ChallengesSlugRoute
+  '/college-drive/$driveId': typeof CollegeDriveDriveIdRoute
+  '/drive/$driveId': typeof DriveDriveIdRoute
   '/interview/device-check': typeof InterviewDeviceCheckRoute
   '/interview/job-description': typeof InterviewJobDescriptionRoute
   '/interview/report': typeof InterviewReportRoute
@@ -680,6 +725,8 @@ export interface FileRouteTypes {
     | '/career-roadmap'
     | '/challenges'
     | '/coding-interview'
+    | '/college'
+    | '/drives'
     | '/eligibility'
     | '/forgot-password'
     | '/friends'
@@ -695,6 +742,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/mentor'
     | '/messages'
+    | '/my-drives'
     | '/my-interviews'
     | '/notifications'
     | '/plan'
@@ -732,6 +780,8 @@ export interface FileRouteTypes {
     | '/business/subscription'
     | '/c/$companyId'
     | '/challenges/$slug'
+    | '/college-drive/$driveId'
+    | '/drive/$driveId'
     | '/interview/device-check'
     | '/interview/job-description'
     | '/interview/report'
@@ -754,6 +804,8 @@ export interface FileRouteTypes {
     | '/career-roadmap'
     | '/challenges'
     | '/coding-interview'
+    | '/college'
+    | '/drives'
     | '/eligibility'
     | '/forgot-password'
     | '/friends'
@@ -769,6 +821,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/mentor'
     | '/messages'
+    | '/my-drives'
     | '/my-interviews'
     | '/notifications'
     | '/plan'
@@ -806,6 +859,8 @@ export interface FileRouteTypes {
     | '/business/subscription'
     | '/c/$companyId'
     | '/challenges/$slug'
+    | '/college-drive/$driveId'
+    | '/drive/$driveId'
     | '/interview/device-check'
     | '/interview/job-description'
     | '/interview/report'
@@ -828,6 +883,8 @@ export interface FileRouteTypes {
     | '/career-roadmap'
     | '/challenges'
     | '/coding-interview'
+    | '/college'
+    | '/drives'
     | '/eligibility'
     | '/forgot-password'
     | '/friends'
@@ -843,6 +900,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/mentor'
     | '/messages'
+    | '/my-drives'
     | '/my-interviews'
     | '/notifications'
     | '/plan'
@@ -880,6 +938,8 @@ export interface FileRouteTypes {
     | '/business_/subscription'
     | '/c/$companyId'
     | '/challenges/$slug'
+    | '/college-drive/$driveId'
+    | '/drive/$driveId'
     | '/interview/device-check'
     | '/interview/job-description'
     | '/interview/report'
@@ -903,6 +963,8 @@ export interface RootRouteChildren {
   CareerRoadmapRoute: typeof CareerRoadmapRoute
   ChallengesRoute: typeof ChallengesRouteWithChildren
   CodingInterviewRoute: typeof CodingInterviewRoute
+  CollegeRoute: typeof CollegeRoute
+  DrivesRoute: typeof DrivesRoute
   EligibilityRoute: typeof EligibilityRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   FriendsRoute: typeof FriendsRoute
@@ -918,6 +980,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   MentorRoute: typeof MentorRoute
   MessagesRoute: typeof MessagesRoute
+  MyDrivesRoute: typeof MyDrivesRoute
   MyInterviewsRoute: typeof MyInterviewsRoute
   NotificationsRoute: typeof NotificationsRoute
   PlanRoute: typeof PlanRoute
@@ -945,6 +1008,8 @@ export interface RootRouteChildren {
   BusinessSourcingRoute: typeof BusinessSourcingRoute
   BusinessSubscriptionRoute: typeof BusinessSubscriptionRoute
   CCompanyIdRoute: typeof CCompanyIdRoute
+  CollegeDriveDriveIdRoute: typeof CollegeDriveDriveIdRoute
+  DriveDriveIdRoute: typeof DriveDriveIdRoute
   InterviewDeviceCheckRoute: typeof InterviewDeviceCheckRoute
   InterviewJobDescriptionRoute: typeof InterviewJobDescriptionRoute
   InterviewReportRoute: typeof InterviewReportRoute
@@ -1033,6 +1098,20 @@ declare module '@tanstack/react-router' {
       path: '/coding-interview'
       fullPath: '/coding-interview'
       preLoaderRoute: typeof CodingInterviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/college': {
+      id: '/college'
+      path: '/college'
+      fullPath: '/college'
+      preLoaderRoute: typeof CollegeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/drives': {
+      id: '/drives'
+      path: '/drives'
+      fullPath: '/drives'
+      preLoaderRoute: typeof DrivesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/eligibility': {
@@ -1138,6 +1217,13 @@ declare module '@tanstack/react-router' {
       path: '/messages'
       fullPath: '/messages'
       preLoaderRoute: typeof MessagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/my-drives': {
+      id: '/my-drives'
+      path: '/my-drives'
+      fullPath: '/my-drives'
+      preLoaderRoute: typeof MyDrivesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/my-interviews': {
@@ -1399,6 +1485,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChallengesSlugRouteImport
       parentRoute: typeof ChallengesRoute
     }
+    '/college-drive/$driveId': {
+      id: '/college-drive/$driveId'
+      path: '/college-drive/$driveId'
+      fullPath: '/college-drive/$driveId'
+      preLoaderRoute: typeof CollegeDriveDriveIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/drive/$driveId': {
+      id: '/drive/$driveId'
+      path: '/drive/$driveId'
+      fullPath: '/drive/$driveId'
+      preLoaderRoute: typeof DriveDriveIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/interview/': {
       id: '/interview/'
       path: '/interview'
@@ -1515,6 +1615,8 @@ const rootRouteChildren: RootRouteChildren = {
   CareerRoadmapRoute: CareerRoadmapRoute,
   ChallengesRoute: ChallengesRouteWithChildren,
   CodingInterviewRoute: CodingInterviewRoute,
+  CollegeRoute: CollegeRoute,
+  DrivesRoute: DrivesRoute,
   EligibilityRoute: EligibilityRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   FriendsRoute: FriendsRoute,
@@ -1530,6 +1632,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   MentorRoute: MentorRoute,
   MessagesRoute: MessagesRoute,
+  MyDrivesRoute: MyDrivesRoute,
   MyInterviewsRoute: MyInterviewsRoute,
   NotificationsRoute: NotificationsRoute,
   PlanRoute: PlanRoute,
@@ -1557,6 +1660,8 @@ const rootRouteChildren: RootRouteChildren = {
   BusinessSourcingRoute: BusinessSourcingRoute,
   BusinessSubscriptionRoute: BusinessSubscriptionRoute,
   CCompanyIdRoute: CCompanyIdRoute,
+  CollegeDriveDriveIdRoute: CollegeDriveDriveIdRoute,
+  DriveDriveIdRoute: DriveDriveIdRoute,
   InterviewDeviceCheckRoute: InterviewDeviceCheckRoute,
   InterviewJobDescriptionRoute: InterviewJobDescriptionRoute,
   InterviewReportRoute: InterviewReportRoute,

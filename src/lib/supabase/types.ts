@@ -962,6 +962,86 @@ export type Database = {
           },
         ];
       };
+      college_admins: {
+        Row: {
+          college_id: string;
+          id: string;
+          invited_at: string;
+          joined_at: string | null;
+          profile_id: string;
+          role: string;
+        };
+        Insert: {
+          college_id: string;
+          id?: string;
+          invited_at?: string;
+          joined_at?: string | null;
+          profile_id: string;
+          role?: string;
+        };
+        Update: {
+          college_id?: string;
+          id?: string;
+          invited_at?: string;
+          joined_at?: string | null;
+          profile_id?: string;
+          role?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "college_admins_college_id_fkey";
+            columns: ["college_id"];
+            isOneToOne: false;
+            referencedRelation: "colleges";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "college_admins_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      colleges: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          location: string | null;
+          name: string;
+          verified: boolean;
+          website: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          location?: string | null;
+          name: string;
+          verified?: boolean;
+          website?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          location?: string | null;
+          name?: string;
+          verified?: boolean;
+          website?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "colleges_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       companies: {
         Row: {
           company_name: string | null;
@@ -1490,6 +1570,157 @@ export type Database = {
             columns: ["session_id"];
             isOneToOne: false;
             referencedRelation: "daily_challenge_sessions";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      drive_applications: {
+        Row: {
+          ai_fit_score: number | null;
+          applied_at: string;
+          drive_id: string;
+          eligibility_snapshot: Json;
+          id: string;
+          status: string;
+          student_id: string;
+          updated_at: string;
+          withdrawn_at: string | null;
+        };
+        Insert: {
+          ai_fit_score?: number | null;
+          applied_at?: string;
+          drive_id: string;
+          eligibility_snapshot?: Json;
+          id?: string;
+          status?: string;
+          student_id: string;
+          updated_at?: string;
+          withdrawn_at?: string | null;
+        };
+        Update: {
+          ai_fit_score?: number | null;
+          applied_at?: string;
+          drive_id?: string;
+          eligibility_snapshot?: Json;
+          id?: string;
+          status?: string;
+          student_id?: string;
+          updated_at?: string;
+          withdrawn_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "drive_applications_drive_id_fkey";
+            columns: ["drive_id"];
+            isOneToOne: false;
+            referencedRelation: "placement_drives";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "drive_applications_student_id_fkey";
+            columns: ["student_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      drive_notifications: {
+        Row: {
+          application_id: string | null;
+          created_at: string;
+          drive_id: string | null;
+          id: string;
+          is_read: boolean;
+          message: string;
+          recipient_id: string;
+          type: string;
+        };
+        Insert: {
+          application_id?: string | null;
+          created_at?: string;
+          drive_id?: string | null;
+          id?: string;
+          is_read?: boolean;
+          message: string;
+          recipient_id: string;
+          type: string;
+        };
+        Update: {
+          application_id?: string | null;
+          created_at?: string;
+          drive_id?: string | null;
+          id?: string;
+          is_read?: boolean;
+          message?: string;
+          recipient_id?: string;
+          type?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "drive_notifications_application_id_fkey";
+            columns: ["application_id"];
+            isOneToOne: false;
+            referencedRelation: "drive_applications";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "drive_notifications_drive_id_fkey";
+            columns: ["drive_id"];
+            isOneToOne: false;
+            referencedRelation: "placement_drives";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "drive_notifications_recipient_id_fkey";
+            columns: ["recipient_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      drive_shortlists: {
+        Row: {
+          application_id: string;
+          created_at: string;
+          fit_score: number | null;
+          id: string;
+          notes: string | null;
+          shortlisted_by: string | null;
+          stage: string;
+        };
+        Insert: {
+          application_id: string;
+          created_at?: string;
+          fit_score?: number | null;
+          id?: string;
+          notes?: string | null;
+          shortlisted_by?: string | null;
+          stage?: string;
+        };
+        Update: {
+          application_id?: string;
+          created_at?: string;
+          fit_score?: number | null;
+          id?: string;
+          notes?: string | null;
+          shortlisted_by?: string | null;
+          stage?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "drive_shortlists_application_id_fkey";
+            columns: ["application_id"];
+            isOneToOne: false;
+            referencedRelation: "drive_applications";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "drive_shortlists_shortlisted_by_fkey";
+            columns: ["shortlisted_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
             referencedColumns: ["id"];
           },
         ];
@@ -2364,6 +2595,109 @@ export type Database = {
           },
         ];
       };
+      placement_drives: {
+        Row: {
+          allowed_branches: string[];
+          allowed_graduation_years: number[];
+          application_deadline: string | null;
+          closed_at: string | null;
+          college_id: string;
+          company_id: string | null;
+          company_name_override: string | null;
+          created_at: string;
+          created_by: string | null;
+          currency: string;
+          eligibility_notes: string | null;
+          employment_type: string | null;
+          id: string;
+          interview_date: string | null;
+          location: string | null;
+          max_applicants: number | null;
+          min_cgpa: number | null;
+          min_year_of_study: number | null;
+          package_max: number | null;
+          package_min: number | null;
+          role: string;
+          status: string;
+          test_date: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          allowed_branches?: string[];
+          allowed_graduation_years?: number[];
+          application_deadline?: string | null;
+          closed_at?: string | null;
+          college_id: string;
+          company_id?: string | null;
+          company_name_override?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          currency?: string;
+          eligibility_notes?: string | null;
+          employment_type?: string | null;
+          id?: string;
+          interview_date?: string | null;
+          location?: string | null;
+          max_applicants?: number | null;
+          min_cgpa?: number | null;
+          min_year_of_study?: number | null;
+          package_max?: number | null;
+          package_min?: number | null;
+          role: string;
+          status?: string;
+          test_date?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          allowed_branches?: string[];
+          allowed_graduation_years?: number[];
+          application_deadline?: string | null;
+          closed_at?: string | null;
+          college_id?: string;
+          company_id?: string | null;
+          company_name_override?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          currency?: string;
+          eligibility_notes?: string | null;
+          employment_type?: string | null;
+          id?: string;
+          interview_date?: string | null;
+          location?: string | null;
+          max_applicants?: number | null;
+          min_cgpa?: number | null;
+          min_year_of_study?: number | null;
+          package_max?: number | null;
+          package_min?: number | null;
+          role?: string;
+          status?: string;
+          test_date?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "placement_drives_college_id_fkey";
+            columns: ["college_id"];
+            isOneToOne: false;
+            referencedRelation: "colleges";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "placement_drives_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "placement_drives_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       post_comments: {
         Row: {
           author_id: string;
@@ -2589,6 +2923,7 @@ export type Database = {
           avatar_url: string | null;
           bio: string | null;
           branch: string | null;
+          cgpa: number | null;
           coins: number;
           college: string | null;
           created_at: string | null;
@@ -2635,6 +2970,7 @@ export type Database = {
           avatar_url?: string | null;
           bio?: string | null;
           branch?: string | null;
+          cgpa?: number | null;
           coins?: number;
           college?: string | null;
           created_at?: string | null;
@@ -2681,6 +3017,7 @@ export type Database = {
           avatar_url?: string | null;
           bio?: string | null;
           branch?: string | null;
+          cgpa?: number | null;
           coins?: number;
           college?: string | null;
           created_at?: string | null;
@@ -3504,6 +3841,10 @@ export type Database = {
       grant_badge: {
         Args: { p_code: string; p_profile_id: string };
         Returns: undefined;
+      };
+      has_college_role: {
+        Args: { p_college_id: string; p_roles: string[] };
+        Returns: boolean;
       };
       has_company_role: {
         Args: { p_company_id: string; p_roles: string[] };

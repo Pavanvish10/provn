@@ -45,7 +45,9 @@ export function requireGuest({ context }: GuardArgs) {
       to: context.user.onboardingCompleted
         ? context.user.accountType === "company"
           ? "/business"
-          : "/home"
+          : context.user.accountType === "college"
+            ? "/college"
+            : "/home"
         : onboardingEntryFor(context.user),
     });
   }
@@ -79,6 +81,19 @@ export function requireBusinessAccount({ context, location }: GuardArgs) {
     throw redirect({ to: "/login", search: { redirect: location.href } });
   }
   if (context.user.accountType !== "company") {
+    throw redirect({ to: "/home" });
+  }
+  if (!context.user.onboardingCompleted && !isOnboardingPath(context.user, location.pathname)) {
+    throw redirect({ to: onboardingEntryFor(context.user) });
+  }
+}
+
+/** Gates the college admin dashboard: only "college" accounts may enter. */
+export function requireCollegeAccount({ context, location }: GuardArgs) {
+  if (!context.user) {
+    throw redirect({ to: "/login", search: { redirect: location.href } });
+  }
+  if (context.user.accountType !== "college") {
     throw redirect({ to: "/home" });
   }
   if (!context.user.onboardingCompleted && !isOnboardingPath(context.user, location.pathname)) {

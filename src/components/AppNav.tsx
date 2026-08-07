@@ -24,6 +24,7 @@ import {
   ShieldCheck,
   BarChart3,
   Sparkles,
+  GraduationCap,
 } from "lucide-react";
 import { useState } from "react";
 import { Wordmark } from "./Logo";
@@ -49,6 +50,7 @@ const itemsBeforeBusiness = [
   { to: "/hr-interview", label: "HR Interview", icon: UserCheck, badge: null },
   { to: "/analytics", label: "Analytics", icon: BarChart3, badge: null },
   { to: "/mentor", label: "Mentor", icon: Sparkles, badge: null },
+  { to: "/drives", label: "Campus Drives", icon: GraduationCap, badge: null },
   { to: "/job-recommendations", label: "Job Matches", icon: Target, badge: null },
   { to: "/job-preparation", label: "Job Prep", icon: BookOpen, badge: null },
   { to: "/apply", label: "Apply", icon: Briefcase, badge: null },

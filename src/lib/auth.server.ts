@@ -79,7 +79,7 @@ export type AuthUser = {
   username: string | null;
   avatarUrl: string | null;
   role: "user" | "recruiter" | "company_admin" | "admin";
-  accountType: "student" | "company";
+  accountType: "student" | "company" | "college";
   onboardingCompleted: boolean;
 };
 
