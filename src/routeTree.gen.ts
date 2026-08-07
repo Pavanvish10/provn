@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as AppliedJobsRouteImport } from './routes/applied-jobs'
 import { Route as ApplyRouteImport } from './routes/apply'
 import { Route as BusinessRouteImport } from './routes/business'
@@ -78,6 +79,7 @@ import { Route as InterviewResumeUploadRouteImport } from './routes/interview/re
 import { Route as InterviewRoomRouteImport } from './routes/interview/room'
 import { Route as InterviewSetupRouteImport } from './routes/interview/setup'
 import { Route as UUsernameRouteImport } from './routes/u.$username'
+import { Route as AnalyticsSharedTokenRouteImport } from './routes/analytics_.shared.$token'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -87,6 +89,11 @@ const IndexRoute = IndexRouteImport.update({
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AnalyticsRoute = AnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppliedJobsRoute = AppliedJobsRouteImport.update({
@@ -424,10 +431,16 @@ const UUsernameRoute = UUsernameRouteImport.update({
   path: '/u/$username',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AnalyticsSharedTokenRoute = AnalyticsSharedTokenRouteImport.update({
+  id: '/analytics_/shared/$token',
+  path: '/analytics/shared/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/analytics': typeof AnalyticsRoute
   '/applied-jobs': typeof AppliedJobsRoute
   '/apply': typeof ApplyRoute
   '/business': typeof BusinessRouteWithChildren
@@ -495,10 +508,12 @@ export interface FileRoutesByFullPath {
   '/interview/setup': typeof InterviewSetupRoute
   '/u/$username': typeof UUsernameRoute
   '/interview/': typeof InterviewIndexRoute
+  '/analytics/shared/$token': typeof AnalyticsSharedTokenRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/analytics': typeof AnalyticsRoute
   '/applied-jobs': typeof AppliedJobsRoute
   '/apply': typeof ApplyRoute
   '/business': typeof BusinessRouteWithChildren
@@ -566,11 +581,13 @@ export interface FileRoutesByTo {
   '/interview/setup': typeof InterviewSetupRoute
   '/u/$username': typeof UUsernameRoute
   '/interview': typeof InterviewIndexRoute
+  '/analytics/shared/$token': typeof AnalyticsSharedTokenRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/analytics': typeof AnalyticsRoute
   '/applied-jobs': typeof AppliedJobsRoute
   '/apply': typeof ApplyRoute
   '/business': typeof BusinessRouteWithChildren
@@ -638,12 +655,14 @@ export interface FileRoutesById {
   '/interview/setup': typeof InterviewSetupRoute
   '/u/$username': typeof UUsernameRoute
   '/interview/': typeof InterviewIndexRoute
+  '/analytics_/shared/$token': typeof AnalyticsSharedTokenRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/admin'
+    | '/analytics'
     | '/applied-jobs'
     | '/apply'
     | '/business'
@@ -711,10 +730,12 @@ export interface FileRouteTypes {
     | '/interview/setup'
     | '/u/$username'
     | '/interview/'
+    | '/analytics/shared/$token'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/admin'
+    | '/analytics'
     | '/applied-jobs'
     | '/apply'
     | '/business'
@@ -782,10 +803,12 @@ export interface FileRouteTypes {
     | '/interview/setup'
     | '/u/$username'
     | '/interview'
+    | '/analytics/shared/$token'
   id:
     | '__root__'
     | '/'
     | '/admin'
+    | '/analytics'
     | '/applied-jobs'
     | '/apply'
     | '/business'
@@ -853,11 +876,13 @@ export interface FileRouteTypes {
     | '/interview/setup'
     | '/u/$username'
     | '/interview/'
+    | '/analytics_/shared/$token'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
+  AnalyticsRoute: typeof AnalyticsRoute
   AppliedJobsRoute: typeof AppliedJobsRoute
   ApplyRoute: typeof ApplyRoute
   BusinessRoute: typeof BusinessRouteWithChildren
@@ -904,6 +929,7 @@ export interface RootRouteChildren {
   InterviewSetupRoute: typeof InterviewSetupRoute
   UUsernameRoute: typeof UUsernameRoute
   InterviewIndexRoute: typeof InterviewIndexRoute
+  AnalyticsSharedTokenRoute: typeof AnalyticsSharedTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -920,6 +946,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/analytics': {
+      id: '/analytics'
+      path: '/analytics'
+      fullPath: '/analytics'
+      preLoaderRoute: typeof AnalyticsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/applied-jobs': {
@@ -1391,6 +1424,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UUsernameRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/analytics_/shared/$token': {
+      id: '/analytics_/shared/$token'
+      path: '/analytics/shared/$token'
+      fullPath: '/analytics/shared/$token'
+      preLoaderRoute: typeof AnalyticsSharedTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -1467,6 +1507,7 @@ const ChallengesRouteWithChildren = ChallengesRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
+  AnalyticsRoute: AnalyticsRoute,
   AppliedJobsRoute: AppliedJobsRoute,
   ApplyRoute: ApplyRoute,
   BusinessRoute: BusinessRouteWithChildren,
@@ -1513,6 +1554,7 @@ const rootRouteChildren: RootRouteChildren = {
   InterviewSetupRoute: InterviewSetupRoute,
   UUsernameRoute: UUsernameRoute,
   InterviewIndexRoute: InterviewIndexRoute,
+  AnalyticsSharedTokenRoute: AnalyticsSharedTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

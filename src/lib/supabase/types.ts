@@ -147,6 +147,47 @@ export type Database = {
           },
         ]
       }
+      analytics_snapshots: {
+        Row: {
+          created_at: string
+          id: string
+          insights: Json
+          is_public: boolean
+          metrics: Json
+          profile_id: string
+          share_token: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          insights?: Json
+          is_public?: boolean
+          metrics?: Json
+          profile_id: string
+          share_token?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          insights?: Json
+          is_public?: boolean
+          metrics?: Json
+          profile_id?: string
+          share_token?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_snapshots_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       badge_definitions: {
         Row: {
           code: string
