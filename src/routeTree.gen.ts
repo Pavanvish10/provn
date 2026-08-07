@@ -33,6 +33,7 @@ import { Route as LeaderboardRouteImport } from './routes/leaderboard'
 import { Route as LiveResumeRouteImport } from './routes/live-resume'
 import { Route as LocationRouteImport } from './routes/location'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as MentorRouteImport } from './routes/mentor'
 import { Route as MessagesRouteImport } from './routes/messages'
 import { Route as MyInterviewsRouteImport } from './routes/my-interviews'
 import { Route as NotificationsRouteImport } from './routes/notifications'
@@ -199,6 +200,11 @@ const LocationRoute = LocationRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MentorRoute = MentorRouteImport.update({
+  id: '/mentor',
+  path: '/mentor',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MessagesRoute = MessagesRouteImport.update({
@@ -462,6 +468,7 @@ export interface FileRoutesByFullPath {
   '/live-resume': typeof LiveResumeRoute
   '/location': typeof LocationRoute
   '/login': typeof LoginRoute
+  '/mentor': typeof MentorRoute
   '/messages': typeof MessagesRoute
   '/my-interviews': typeof MyInterviewsRoute
   '/notifications': typeof NotificationsRoute
@@ -535,6 +542,7 @@ export interface FileRoutesByTo {
   '/live-resume': typeof LiveResumeRoute
   '/location': typeof LocationRoute
   '/login': typeof LoginRoute
+  '/mentor': typeof MentorRoute
   '/messages': typeof MessagesRoute
   '/my-interviews': typeof MyInterviewsRoute
   '/notifications': typeof NotificationsRoute
@@ -609,6 +617,7 @@ export interface FileRoutesById {
   '/live-resume': typeof LiveResumeRoute
   '/location': typeof LocationRoute
   '/login': typeof LoginRoute
+  '/mentor': typeof MentorRoute
   '/messages': typeof MessagesRoute
   '/my-interviews': typeof MyInterviewsRoute
   '/notifications': typeof NotificationsRoute
@@ -684,6 +693,7 @@ export interface FileRouteTypes {
     | '/live-resume'
     | '/location'
     | '/login'
+    | '/mentor'
     | '/messages'
     | '/my-interviews'
     | '/notifications'
@@ -757,6 +767,7 @@ export interface FileRouteTypes {
     | '/live-resume'
     | '/location'
     | '/login'
+    | '/mentor'
     | '/messages'
     | '/my-interviews'
     | '/notifications'
@@ -830,6 +841,7 @@ export interface FileRouteTypes {
     | '/live-resume'
     | '/location'
     | '/login'
+    | '/mentor'
     | '/messages'
     | '/my-interviews'
     | '/notifications'
@@ -904,6 +916,7 @@ export interface RootRouteChildren {
   LiveResumeRoute: typeof LiveResumeRoute
   LocationRoute: typeof LocationRoute
   LoginRoute: typeof LoginRoute
+  MentorRoute: typeof MentorRoute
   MessagesRoute: typeof MessagesRoute
   MyInterviewsRoute: typeof MyInterviewsRoute
   NotificationsRoute: typeof NotificationsRoute
@@ -1100,6 +1113,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mentor': {
+      id: '/mentor'
+      path: '/mentor'
+      fullPath: '/mentor'
+      preLoaderRoute: typeof MentorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/messages': {
@@ -1529,6 +1549,7 @@ const rootRouteChildren: RootRouteChildren = {
   LiveResumeRoute: LiveResumeRoute,
   LocationRoute: LocationRoute,
   LoginRoute: LoginRoute,
+  MentorRoute: MentorRoute,
   MessagesRoute: MessagesRoute,
   MyInterviewsRoute: MyInterviewsRoute,
   NotificationsRoute: NotificationsRoute,
