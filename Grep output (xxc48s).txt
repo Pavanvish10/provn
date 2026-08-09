@@ -1,0 +1,9 @@
+5:import { getSupabaseServerClient } from "@/lib/supabase/server";
+30:type SupabaseServer = ReturnType<typeof getSupabaseServerClient>;
+165:    const supabase = getSupabaseServerClient();
+177:    const supabase = getSupabaseServerClient();
+224:    const supabase = getSupabaseServerClient();
+271:    const supabase = getSupabaseServerClient();
+303:    const supabase = getSupabaseServerClient();
+325:    const supabase = getSupabaseServerClient();
+391:    const supabase = getSupabaseServerClient();
