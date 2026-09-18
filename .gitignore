@@ -32,6 +32,10 @@ dist-ssr
 .vscode/*
 !.vscode/extensions.json
 .idea
+
+# Claude Code local session state
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
 .DS_Store
 *.suo
 *.ntvs*
