@@ -3809,6 +3809,162 @@ export type Database = {
           },
         ]
       }
+      courses: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          currency: string
+          description: string | null
+          id: string
+          is_active: boolean
+          price_cents: number
+          sort_order: number
+          thumbnail_url: string | null
+          title: string
+          updated_at: string
+          video_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          price_cents: number
+          sort_order?: number
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string
+          video_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          price_cents?: number
+          sort_order?: number
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string
+          video_url?: string | null
+        }
+        Relationships: []
+      }
+      course_purchases: {
+        Row: {
+          course_id: string
+          id: string
+          payment_id: string | null
+          profile_id: string
+          purchased_at: string
+        }
+        Insert: {
+          course_id: string
+          id?: string
+          payment_id?: string | null
+          profile_id: string
+          purchased_at?: string
+        }
+        Update: {
+          course_id?: string
+          id?: string
+          payment_id?: string | null
+          profile_id?: string
+          purchased_at?: string
+        }
+        Relationships: []
+      }
+      credit_packs: {
+        Row: {
+          code: string
+          created_at: string
+          credits: number
+          currency: string
+          id: string
+          is_active: boolean
+          name: string
+          price_cents: number
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          credits: number
+          currency?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          price_cents: number
+          sort_order?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          credits?: number
+          currency?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          price_cents?: number
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      ai_credit_balances: {
+        Row: {
+          balance: number
+          profile_id: string
+          updated_at: string
+        }
+        Insert: {
+          balance?: number
+          profile_id: string
+          updated_at?: string
+        }
+        Update: {
+          balance?: number
+          profile_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ai_credit_transactions: {
+        Row: {
+          balance_after: number
+          created_at: string
+          delta: number
+          id: string
+          profile_id: string
+          reason: string
+          reference_id: string | null
+          reference_type: string | null
+        }
+        Insert: {
+          balance_after: number
+          created_at?: string
+          delta: number
+          id?: string
+          profile_id: string
+          reason: string
+          reference_id?: string | null
+          reference_type?: string | null
+        }
+        Update: {
+          balance_after?: number
+          created_at?: string
+          delta?: number
+          id?: string
+          profile_id?: string
+          reason?: string
+          reference_id?: string | null
+          reference_type?: string | null
+        }
+        Relationships: []
+      }
       subscription_plans: {
         Row: {
           audience: string
@@ -4312,6 +4468,26 @@ export type Database = {
         Returns: boolean
       }
       is_premium: { Args: { p_profile_id: string }; Returns: boolean }
+      consume_ai_credits: {
+        Args: {
+          p_profile_id: string
+          p_amount: number
+          p_reason: string
+          p_reference_type?: string | null
+          p_reference_id?: string | null
+        }
+        Returns: boolean
+      }
+      grant_ai_credits: {
+        Args: {
+          p_profile_id: string
+          p_amount: number
+          p_reason: string
+          p_reference_type?: string | null
+          p_reference_id?: string | null
+        }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never

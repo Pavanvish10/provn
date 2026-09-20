@@ -10,6 +10,7 @@ import {
   Flag,
   BarChart3,
   ShieldCheck,
+  CreditCard,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -21,6 +22,7 @@ export const ADMIN_SECTIONS = [
   { to: "/admin/challenges" as const, label: "Challenges", icon: Code2 },
   { to: "/admin/roadmaps" as const, label: "Roadmaps", icon: Map },
   { to: "/admin/premium" as const, label: "Premium", icon: Crown },
+  { to: "/admin/billing" as const, label: "Billing", icon: CreditCard },
   { to: "/admin/notifications" as const, label: "Notifications", icon: Bell },
   { to: "/admin/reports" as const, label: "Reports & Moderation", icon: Flag },
   { to: "/admin/analytics" as const, label: "Analytics", icon: BarChart3 },

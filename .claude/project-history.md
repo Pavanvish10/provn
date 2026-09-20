@@ -174,16 +174,11 @@ engineering unit.
   silently ate every notification).
 - **Sprint 26** (`517f965`) — AI Campus Placement Drive System. See
   dedicated section below.
-- **Uncommitted-sprint work in flight** (`b926338`, "backup before laptop
-  change", 2026-08-09, no "Completed Sprint N" message) — a payments/
-  subscriptions abstraction (`src/lib/payments/{index,types,mock-provider,
-  stripe-provider}.ts`) + migration `20260808000000_payments_subscriptions.sql`.
-  **Not marked complete** — likely "Sprint 27" but never got a completion
-  commit. UI references "Payments coming soon" in at least
-  `business_.subscription.tsx` and `plan.tsx`, consistent with this being
-  mid-flight, not finished. Do not assume this is done; do not start
-  "Sprint 27" work without confirming its actual state first, per the
-  active task's own instruction not to begin Sprint 27 yet.
+- **Sprint 27 (Payments & Premium)** — the `b926338` scaffolding
+  (`src/lib/payments/` provider abstraction + migration
+  `20260808000000_payments_subscriptions.sql`) turned out to be genuine
+  in-progress Sprint 27 work, now being actively completed. See the
+  dedicated Sprint 27 section below for full detail and current status.
 
 ## Sprint 26 — AI Campus Placement Drive System (detailed)
 
@@ -319,6 +314,76 @@ all live; whether `college_admins` onboarding (how a college account
 actually gets `joined_at` set / becomes an "owner") has a real, reachable
 UI flow or only exists at the DB/type level.
 
+## Sprint 27 — Payments & Premium (in progress, 2026-09-21)
+
+Not a greenfield build. Real scaffolding was already sitting in the repo
+from an earlier, never-completed session (commit `b926338`, "backup before
+laptop change"): the `src/lib/payments/` provider abstraction (mock ⇄
+Stripe) and `supabase/migrations/20260808000000_payments_subscriptions.sql`
+(already live: `subscription_plans`/`subscriptions`/`payments`/`invoices`/
+`coupons`/`coupon_redemptions`/`payment_webhook_events`, full RLS, seeded
+plans, a trigger syncing the legacy `premium_subscriptions` table). `/plan`
+and `/business/subscription` already existed with a disabled "Payments
+coming soon" button — UI shell existed, checkout did not.
+
+Confirmed before writing code: only roadmap video lectures had real
+premium enforcement; `challenges.is_premium` existed with full admin CRUD
+but was inert (never read student-side); no usage-quota logic existed
+anywhere (free-tier "2 mock interviews" copy was cosmetic); no `courses`
+or AI-credits concept existed at all. Plan approved via `EnterPlanMode`
+before implementation.
+
+**New migration:** `supabase/migrations/20260921000000_courses_and_ai_credits.sql`
+— `courses`/`course_purchases` (one-time purchases, external `video_url`,
+explicitly not an LMS), `credit_packs`/`ai_credit_balances`/
+`ai_credit_transactions` (a generic AI-credits wallet), `consume_ai_credits`/
+`grant_ai_credits` SECURITY DEFINER functions (atomic via row locking,
+same pattern as `has_college_role`). Two real vulnerabilities were caught
+and fixed during my own review *before* ever giving this SQL to the user
+(not found by an external report): `consume_ai_credits` originally let an
+authenticated caller spend an arbitrary `p_profile_id`'s balance (fixed
+with an `auth.uid() = p_profile_id` guard, bypassed only when
+`auth.uid()` is null i.e. called via the service-role/admin client);
+`grant_ai_credits` originally let any authenticated user self-grant
+unlimited free credits (fixed, admin/service-role only).
+
+**Status as of 2026-09-21: COMPLETE AND VERIFIED LIVE.** Migration applied
+to the live database and confirmed via a 3-throwaway-account verification
+run (25 assertions: subscribe/cancel lifecycle + `premium_subscriptions`
+trigger sync, course purchase + duplicate-purchase prevention, AI-credit
+grant/spend atomicity, both security fixes (cross-user credit theft,
+self-granting) confirmed blocked, cross-account RLS isolation on every
+new table, admin billing visibility) — 24/25 passed outright; the
+remaining 2 "failures" were re-investigated immediately and found to be a
+false positive in the *test script's* error-checking (Supabase's
+`.update()` returns no error on an RLS-blocked 0-row write unless you
+chain `.select()`), not application bugs — confirmed via a precise
+read-back that the underlying values were genuinely unchanged in both
+cases. All test data deleted and swept for leftovers (zero found). Full
+local suite (tsc/lint/build/Playwright) re-run clean after live
+verification. See `.claude/progress.md` for the complete file list,
+feature breakdown (checkout server functions, the `/api/stripe-webhook`
+route mirroring `sitemap[.]xml.ts`'s `server.handlers` shape,
+`payments-client.ts`, the billing/courses/admin-billing UI, the
+`challenges.is_premium` gating extension, and the AI-credits reference
+integration in `sendChatMessageFn`), and the full verification transcript.
+
+One genuine finding from verification (not a defect — the gating code is
+correct and structurally identical to the already-proven
+`job-preparation.tsx` pattern): zero challenges in the live database
+currently have `is_premium = true`, so the new gate has nothing to
+actually gate yet. A content/product decision for whoever manages
+`/admin/challenges`, not something changed unilaterally here.
+
+Known deliberate scope boundary (documented in the approved plan, not an
+oversight): AI-credit metering is wired into exactly one feature
+(`ai-chat.server.ts`, the simplest single-call AI feature) as a reference
+implementation, not into every AI feature — extending it further is real,
+separate follow-up work. `cancelSubscriptionFn` cancels immediately
+(no deferred cancel-at-period-end) since this codebase has no
+cron/scheduler to flip status later automatically — an honest limitation,
+not a hidden one.
+
 ## Known technical debt / TODOs (repository-wide, not just Sprint 26)
 
 - Every AI feature is gated behind `GEMINI_API_KEY` and degrades
@@ -330,8 +395,11 @@ UI flow or only exists at the DB/type level.
   Nothing in it is wired into the app; not a bug, a deliberate placeholder
   file.
 - Stripe payments (`STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET`) gated the
-  same way; UI shows "Payments coming soon" in at least two places,
-  consistent with the in-flight, uncommitted-as-complete state noted above.
+  same way — as of Sprint 27, checkout runs for real against the mock
+  provider end-to-end; going live with real Stripe is purely setting
+  those two env vars, no code change needed. The old "Payments coming
+  soon" disabled buttons on `/plan` and `/business/subscription` were
+  replaced with real checkout calls in Sprint 27.
 - **`job_applications` self-approval RLS gap** (see above) — highest-
   priority follow-up, same fix pattern as the Sprint 26 fix already
   written.

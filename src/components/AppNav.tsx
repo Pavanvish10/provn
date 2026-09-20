@@ -25,6 +25,8 @@ import {
   BarChart3,
   Sparkles,
   GraduationCap,
+  CreditCard,
+  PlayCircle,
 } from "lucide-react";
 import { useState } from "react";
 import { Wordmark } from "./Logo";
@@ -54,6 +56,8 @@ const itemsBeforeBusiness = [
   { to: "/job-recommendations", label: "Job Matches", icon: Target, badge: null },
   { to: "/job-preparation", label: "Job Prep", icon: BookOpen, badge: null },
   { to: "/apply", label: "Apply", icon: Briefcase, badge: null },
+  { to: "/courses", label: "Courses", icon: PlayCircle, badge: null },
+  { to: "/billing", label: "Billing", icon: CreditCard, badge: null },
 ] as const;
 
 const itemsAfterBusiness = [

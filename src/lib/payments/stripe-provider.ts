@@ -17,8 +17,9 @@ export function createStripeProvider(secretKey: string): PaymentProvider {
     name: "stripe",
 
     async createCheckoutSession(input: CheckoutSessionInput): Promise<CheckoutSessionResult> {
+      const mode = input.mode ?? "subscription";
       const session = await stripe.checkout.sessions.create({
-        mode: "subscription",
+        mode,
         customer_email: input.customerEmail,
         success_url: input.successUrl,
         cancel_url: input.cancelUrl,
@@ -29,7 +30,7 @@ export function createStripeProvider(secretKey: string): PaymentProvider {
             price_data: {
               currency: input.currency.toLowerCase(),
               unit_amount: input.priceCents,
-              recurring: { interval: "month" },
+              ...(mode === "subscription" ? { recurring: { interval: "month" as const } } : {}),
               product_data: { name: input.planCode },
             },
           },

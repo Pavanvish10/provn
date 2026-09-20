@@ -1,10 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Check, Crown, X } from "lucide-react";
+import { useState } from "react";
+import { Check, Crown, Loader2, X } from "lucide-react";
 
 import { BusinessShell } from "@/components/BusinessNav";
 import { requireBusinessAccount } from "@/lib/auth-guard";
 import { useCurrentUser } from "@/lib/auth-client";
 import { usePremiumStatus } from "@/lib/premium-client";
+import { usePlans, useCreateSubscriptionCheckout } from "@/lib/payments-client";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/business_/subscription")({
@@ -22,17 +24,36 @@ const FREE_FEATURES = [
   { on: false, t: "Priority verified badge review" },
 ];
 
-const PRO_FEATURES = [
-  { on: true, t: "Unlimited job postings" },
-  { on: true, t: "Best Matching Students recommendations" },
-  { on: true, t: "Advanced analytics & exports" },
-  { on: true, t: "Priority verified badge review" },
-  { on: true, t: "Priority support" },
-];
-
 function BusinessSubscription() {
   const { data: user } = useCurrentUser();
   const { data: premium } = usePremiumStatus(user?.id);
+  const { data: plans = [] } = usePlans("recruiter");
+  const growthPlan = plans.find((p) => p.code === "recruiter_growth");
+  const subscribeCheckout = useCreateSubscriptionCheckout(user?.id);
+  const [subscribing, setSubscribing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const subscribe = async () => {
+    if (!growthPlan) return;
+    setSubscribing(true);
+    setError(null);
+    try {
+      const result = await subscribeCheckout.mutateAsync({
+        planCode: growthPlan.code,
+        successUrl: `${window.location.origin}/checkout/success`,
+        cancelUrl: `${window.location.origin}/checkout/cancel`,
+      });
+      if (result.error) setError(result.error);
+      else if (result.checkoutUrl && !result.activated) window.location.href = result.checkoutUrl;
+      else if (result.activated) window.location.href = "/checkout/success";
+    } finally {
+      setSubscribing(false);
+    }
+  };
+
+  const proFeatures = growthPlan
+    ? (growthPlan.features as string[]).map((t) => ({ on: true, t }))
+    : [];
 
   return (
     <BusinessShell>
@@ -55,18 +76,17 @@ function BusinessSubscription() {
         />
         <PlanCard
           tag="Business Pro"
-          price="₹1,999"
+          price={growthPlan ? `₹${growthPlan.price_cents / 100}` : "₹4,999"}
           title="Grow your hiring"
-          feats={PRO_FEATURES}
+          feats={proFeatures.length ? proFeatures : [{ on: true, t: "Unlimited job postings" }]}
           current={!!premium?.isPremium}
           accent
+          onSubscribe={!premium?.isPremium ? subscribe : undefined}
+          loading={subscribing}
         />
       </div>
 
-      <p className="mt-6 max-w-lg text-xs text-muted-foreground">
-        Payments aren't wired up yet — no charge is made. Contact Provn support to have Business Pro
-        granted manually while billing is being set up.
-      </p>
+      {error && <p className="mt-4 text-sm text-destructive">{error}</p>}
     </BusinessShell>
   );
 }
@@ -78,6 +98,8 @@ function PlanCard({
   feats,
   current,
   accent,
+  onSubscribe,
+  loading,
 }: {
   tag: string;
   price: string;
@@ -85,6 +107,8 @@ function PlanCard({
   feats: { on: boolean; t: string }[];
   current?: boolean;
   accent?: boolean;
+  onSubscribe?: () => void;
+  loading?: boolean;
 }) {
   return (
     <div
@@ -114,8 +138,14 @@ function PlanCard({
           </li>
         ))}
       </ul>
-      <Button className="mt-6 w-full" variant={current ? "outline" : "default"} disabled>
-        {current ? "Current plan" : "Payments coming soon"}
+      <Button
+        className="mt-6 w-full"
+        variant={current ? "outline" : "default"}
+        disabled={current || !onSubscribe || loading}
+        onClick={onSubscribe}
+      >
+        {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+        {current ? "Current plan" : "Subscribe"}
       </Button>
     </div>
   );

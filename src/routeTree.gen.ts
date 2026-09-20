@@ -14,6 +14,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as AppliedJobsRouteImport } from './routes/applied-jobs'
 import { Route as ApplyRouteImport } from './routes/apply'
+import { Route as BillingRouteImport } from './routes/billing'
 import { Route as BusinessRouteImport } from './routes/business'
 import { Route as BusinessOnboardingRouteImport } from './routes/business-onboarding'
 import { Route as BusinessSignupRouteImport } from './routes/business-signup'
@@ -21,6 +22,7 @@ import { Route as CareerRoadmapRouteImport } from './routes/career-roadmap'
 import { Route as ChallengesRouteImport } from './routes/challenges'
 import { Route as CodingInterviewRouteImport } from './routes/coding-interview'
 import { Route as CollegeRouteImport } from './routes/college'
+import { Route as CoursesRouteImport } from './routes/courses'
 import { Route as DrivesRouteImport } from './routes/drives'
 import { Route as EligibilityRouteImport } from './routes/eligibility'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
@@ -53,6 +55,7 @@ import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ValuePropRouteImport } from './routes/value-prop'
 import { Route as AdminAnalyticsRouteImport } from './routes/admin.analytics'
+import { Route as AdminBillingRouteImport } from './routes/admin.billing'
 import { Route as AdminChallengesRouteImport } from './routes/admin.challenges'
 import { Route as AdminCompaniesRouteImport } from './routes/admin.companies'
 import { Route as AdminJobsRouteImport } from './routes/admin.jobs'
@@ -61,6 +64,7 @@ import { Route as AdminPremiumRouteImport } from './routes/admin.premium'
 import { Route as AdminReportsRouteImport } from './routes/admin.reports'
 import { Route as AdminRoadmapsRouteImport } from './routes/admin.roadmaps'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
+import { Route as ApiStripeWebhookRouteImport } from './routes/api.stripe-webhook'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as BusinessAdvertisingRouteImport } from './routes/business_.advertising'
 import { Route as BusinessAnalyticsRouteImport } from './routes/business_.analytics'
@@ -75,7 +79,10 @@ import { Route as BusinessSourcingRouteImport } from './routes/business_.sourcin
 import { Route as BusinessSubscriptionRouteImport } from './routes/business_.subscription'
 import { Route as CCompanyIdRouteImport } from './routes/c.$companyId'
 import { Route as ChallengesSlugRouteImport } from './routes/challenges.$slug'
+import { Route as CheckoutCancelRouteImport } from './routes/checkout.cancel'
+import { Route as CheckoutSuccessRouteImport } from './routes/checkout.success'
 import { Route as CollegeDriveDriveIdRouteImport } from './routes/college-drive.$driveId'
+import { Route as CoursesCourseIdRouteImport } from './routes/courses.$courseId'
 import { Route as DriveDriveIdRouteImport } from './routes/drive.$driveId'
 import { Route as InterviewIndexRouteImport } from './routes/interview/index'
 import { Route as InterviewDeviceCheckRouteImport } from './routes/interview/device-check'
@@ -112,6 +119,11 @@ const ApplyRoute = ApplyRouteImport.update({
   path: '/apply',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BillingRoute = BillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BusinessRoute = BusinessRouteImport.update({
   id: '/business',
   path: '/business',
@@ -145,6 +157,11 @@ const CodingInterviewRoute = CodingInterviewRouteImport.update({
 const CollegeRoute = CollegeRouteImport.update({
   id: '/college',
   path: '/college',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CoursesRoute = CoursesRouteImport.update({
+  id: '/courses',
+  path: '/courses',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DrivesRoute = DrivesRouteImport.update({
@@ -307,6 +324,11 @@ const AdminAnalyticsRoute = AdminAnalyticsRouteImport.update({
   path: '/analytics',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminBillingRoute = AdminBillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminChallengesRoute = AdminChallengesRouteImport.update({
   id: '/challenges',
   path: '/challenges',
@@ -346,6 +368,11 @@ const AdminUsersRoute = AdminUsersRouteImport.update({
   id: '/users',
   path: '/users',
   getParentRoute: () => AdminRoute,
+} as any)
+const ApiStripeWebhookRoute = ApiStripeWebhookRouteImport.update({
+  id: '/api/stripe-webhook',
+  path: '/api/stripe-webhook',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
   id: '/auth/callback',
@@ -417,10 +444,25 @@ const ChallengesSlugRoute = ChallengesSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => ChallengesRoute,
 } as any)
+const CheckoutCancelRoute = CheckoutCancelRouteImport.update({
+  id: '/checkout/cancel',
+  path: '/checkout/cancel',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckoutSuccessRoute = CheckoutSuccessRouteImport.update({
+  id: '/checkout/success',
+  path: '/checkout/success',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CollegeDriveDriveIdRoute = CollegeDriveDriveIdRouteImport.update({
   id: '/college-drive/$driveId',
   path: '/college-drive/$driveId',
   getParentRoute: () => rootRouteImport,
+} as any)
+const CoursesCourseIdRoute = CoursesCourseIdRouteImport.update({
+  id: '/$courseId',
+  path: '/$courseId',
+  getParentRoute: () => CoursesRoute,
 } as any)
 const DriveDriveIdRoute = DriveDriveIdRouteImport.update({
   id: '/drive/$driveId',
@@ -479,6 +521,7 @@ export interface FileRoutesByFullPath {
   '/analytics': typeof AnalyticsRoute
   '/applied-jobs': typeof AppliedJobsRoute
   '/apply': typeof ApplyRoute
+  '/billing': typeof BillingRoute
   '/business': typeof BusinessRoute
   '/business-onboarding': typeof BusinessOnboardingRoute
   '/business-signup': typeof BusinessSignupRoute
@@ -486,6 +529,7 @@ export interface FileRoutesByFullPath {
   '/challenges': typeof ChallengesRouteWithChildren
   '/coding-interview': typeof CodingInterviewRoute
   '/college': typeof CollegeRoute
+  '/courses': typeof CoursesRouteWithChildren
   '/drives': typeof DrivesRoute
   '/eligibility': typeof EligibilityRoute
   '/forgot-password': typeof ForgotPasswordRoute
@@ -518,6 +562,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/value-prop': typeof ValuePropRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
+  '/admin/billing': typeof AdminBillingRoute
   '/admin/challenges': typeof AdminChallengesRoute
   '/admin/companies': typeof AdminCompaniesRoute
   '/admin/jobs': typeof AdminJobsRoute
@@ -526,6 +571,7 @@ export interface FileRoutesByFullPath {
   '/admin/reports': typeof AdminReportsRoute
   '/admin/roadmaps': typeof AdminRoadmapsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/api/stripe-webhook': typeof ApiStripeWebhookRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/business/advertising': typeof BusinessAdvertisingRoute
   '/business/analytics': typeof BusinessAnalyticsRoute
@@ -540,7 +586,10 @@ export interface FileRoutesByFullPath {
   '/business/subscription': typeof BusinessSubscriptionRoute
   '/c/$companyId': typeof CCompanyIdRoute
   '/challenges/$slug': typeof ChallengesSlugRoute
+  '/checkout/cancel': typeof CheckoutCancelRoute
+  '/checkout/success': typeof CheckoutSuccessRoute
   '/college-drive/$driveId': typeof CollegeDriveDriveIdRoute
+  '/courses/$courseId': typeof CoursesCourseIdRoute
   '/drive/$driveId': typeof DriveDriveIdRoute
   '/interview/device-check': typeof InterviewDeviceCheckRoute
   '/interview/job-description': typeof InterviewJobDescriptionRoute
@@ -558,6 +607,7 @@ export interface FileRoutesByTo {
   '/analytics': typeof AnalyticsRoute
   '/applied-jobs': typeof AppliedJobsRoute
   '/apply': typeof ApplyRoute
+  '/billing': typeof BillingRoute
   '/business': typeof BusinessRoute
   '/business-onboarding': typeof BusinessOnboardingRoute
   '/business-signup': typeof BusinessSignupRoute
@@ -565,6 +615,7 @@ export interface FileRoutesByTo {
   '/challenges': typeof ChallengesRouteWithChildren
   '/coding-interview': typeof CodingInterviewRoute
   '/college': typeof CollegeRoute
+  '/courses': typeof CoursesRouteWithChildren
   '/drives': typeof DrivesRoute
   '/eligibility': typeof EligibilityRoute
   '/forgot-password': typeof ForgotPasswordRoute
@@ -597,6 +648,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/value-prop': typeof ValuePropRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
+  '/admin/billing': typeof AdminBillingRoute
   '/admin/challenges': typeof AdminChallengesRoute
   '/admin/companies': typeof AdminCompaniesRoute
   '/admin/jobs': typeof AdminJobsRoute
@@ -605,6 +657,7 @@ export interface FileRoutesByTo {
   '/admin/reports': typeof AdminReportsRoute
   '/admin/roadmaps': typeof AdminRoadmapsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/api/stripe-webhook': typeof ApiStripeWebhookRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/business/advertising': typeof BusinessAdvertisingRoute
   '/business/analytics': typeof BusinessAnalyticsRoute
@@ -619,7 +672,10 @@ export interface FileRoutesByTo {
   '/business/subscription': typeof BusinessSubscriptionRoute
   '/c/$companyId': typeof CCompanyIdRoute
   '/challenges/$slug': typeof ChallengesSlugRoute
+  '/checkout/cancel': typeof CheckoutCancelRoute
+  '/checkout/success': typeof CheckoutSuccessRoute
   '/college-drive/$driveId': typeof CollegeDriveDriveIdRoute
+  '/courses/$courseId': typeof CoursesCourseIdRoute
   '/drive/$driveId': typeof DriveDriveIdRoute
   '/interview/device-check': typeof InterviewDeviceCheckRoute
   '/interview/job-description': typeof InterviewJobDescriptionRoute
@@ -638,6 +694,7 @@ export interface FileRoutesById {
   '/analytics': typeof AnalyticsRoute
   '/applied-jobs': typeof AppliedJobsRoute
   '/apply': typeof ApplyRoute
+  '/billing': typeof BillingRoute
   '/business': typeof BusinessRoute
   '/business-onboarding': typeof BusinessOnboardingRoute
   '/business-signup': typeof BusinessSignupRoute
@@ -645,6 +702,7 @@ export interface FileRoutesById {
   '/challenges': typeof ChallengesRouteWithChildren
   '/coding-interview': typeof CodingInterviewRoute
   '/college': typeof CollegeRoute
+  '/courses': typeof CoursesRouteWithChildren
   '/drives': typeof DrivesRoute
   '/eligibility': typeof EligibilityRoute
   '/forgot-password': typeof ForgotPasswordRoute
@@ -677,6 +735,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/value-prop': typeof ValuePropRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
+  '/admin/billing': typeof AdminBillingRoute
   '/admin/challenges': typeof AdminChallengesRoute
   '/admin/companies': typeof AdminCompaniesRoute
   '/admin/jobs': typeof AdminJobsRoute
@@ -685,6 +744,7 @@ export interface FileRoutesById {
   '/admin/reports': typeof AdminReportsRoute
   '/admin/roadmaps': typeof AdminRoadmapsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/api/stripe-webhook': typeof ApiStripeWebhookRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/business_/advertising': typeof BusinessAdvertisingRoute
   '/business_/analytics': typeof BusinessAnalyticsRoute
@@ -699,7 +759,10 @@ export interface FileRoutesById {
   '/business_/subscription': typeof BusinessSubscriptionRoute
   '/c/$companyId': typeof CCompanyIdRoute
   '/challenges/$slug': typeof ChallengesSlugRoute
+  '/checkout/cancel': typeof CheckoutCancelRoute
+  '/checkout/success': typeof CheckoutSuccessRoute
   '/college-drive/$driveId': typeof CollegeDriveDriveIdRoute
+  '/courses/$courseId': typeof CoursesCourseIdRoute
   '/drive/$driveId': typeof DriveDriveIdRoute
   '/interview/device-check': typeof InterviewDeviceCheckRoute
   '/interview/job-description': typeof InterviewJobDescriptionRoute
@@ -719,6 +782,7 @@ export interface FileRouteTypes {
     | '/analytics'
     | '/applied-jobs'
     | '/apply'
+    | '/billing'
     | '/business'
     | '/business-onboarding'
     | '/business-signup'
@@ -726,6 +790,7 @@ export interface FileRouteTypes {
     | '/challenges'
     | '/coding-interview'
     | '/college'
+    | '/courses'
     | '/drives'
     | '/eligibility'
     | '/forgot-password'
@@ -758,6 +823,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/value-prop'
     | '/admin/analytics'
+    | '/admin/billing'
     | '/admin/challenges'
     | '/admin/companies'
     | '/admin/jobs'
@@ -766,6 +832,7 @@ export interface FileRouteTypes {
     | '/admin/reports'
     | '/admin/roadmaps'
     | '/admin/users'
+    | '/api/stripe-webhook'
     | '/auth/callback'
     | '/business/advertising'
     | '/business/analytics'
@@ -780,7 +847,10 @@ export interface FileRouteTypes {
     | '/business/subscription'
     | '/c/$companyId'
     | '/challenges/$slug'
+    | '/checkout/cancel'
+    | '/checkout/success'
     | '/college-drive/$driveId'
+    | '/courses/$courseId'
     | '/drive/$driveId'
     | '/interview/device-check'
     | '/interview/job-description'
@@ -798,6 +868,7 @@ export interface FileRouteTypes {
     | '/analytics'
     | '/applied-jobs'
     | '/apply'
+    | '/billing'
     | '/business'
     | '/business-onboarding'
     | '/business-signup'
@@ -805,6 +876,7 @@ export interface FileRouteTypes {
     | '/challenges'
     | '/coding-interview'
     | '/college'
+    | '/courses'
     | '/drives'
     | '/eligibility'
     | '/forgot-password'
@@ -837,6 +909,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/value-prop'
     | '/admin/analytics'
+    | '/admin/billing'
     | '/admin/challenges'
     | '/admin/companies'
     | '/admin/jobs'
@@ -845,6 +918,7 @@ export interface FileRouteTypes {
     | '/admin/reports'
     | '/admin/roadmaps'
     | '/admin/users'
+    | '/api/stripe-webhook'
     | '/auth/callback'
     | '/business/advertising'
     | '/business/analytics'
@@ -859,7 +933,10 @@ export interface FileRouteTypes {
     | '/business/subscription'
     | '/c/$companyId'
     | '/challenges/$slug'
+    | '/checkout/cancel'
+    | '/checkout/success'
     | '/college-drive/$driveId'
+    | '/courses/$courseId'
     | '/drive/$driveId'
     | '/interview/device-check'
     | '/interview/job-description'
@@ -877,6 +954,7 @@ export interface FileRouteTypes {
     | '/analytics'
     | '/applied-jobs'
     | '/apply'
+    | '/billing'
     | '/business'
     | '/business-onboarding'
     | '/business-signup'
@@ -884,6 +962,7 @@ export interface FileRouteTypes {
     | '/challenges'
     | '/coding-interview'
     | '/college'
+    | '/courses'
     | '/drives'
     | '/eligibility'
     | '/forgot-password'
@@ -916,6 +995,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/value-prop'
     | '/admin/analytics'
+    | '/admin/billing'
     | '/admin/challenges'
     | '/admin/companies'
     | '/admin/jobs'
@@ -924,6 +1004,7 @@ export interface FileRouteTypes {
     | '/admin/reports'
     | '/admin/roadmaps'
     | '/admin/users'
+    | '/api/stripe-webhook'
     | '/auth/callback'
     | '/business_/advertising'
     | '/business_/analytics'
@@ -938,7 +1019,10 @@ export interface FileRouteTypes {
     | '/business_/subscription'
     | '/c/$companyId'
     | '/challenges/$slug'
+    | '/checkout/cancel'
+    | '/checkout/success'
     | '/college-drive/$driveId'
+    | '/courses/$courseId'
     | '/drive/$driveId'
     | '/interview/device-check'
     | '/interview/job-description'
@@ -957,6 +1041,7 @@ export interface RootRouteChildren {
   AnalyticsRoute: typeof AnalyticsRoute
   AppliedJobsRoute: typeof AppliedJobsRoute
   ApplyRoute: typeof ApplyRoute
+  BillingRoute: typeof BillingRoute
   BusinessRoute: typeof BusinessRoute
   BusinessOnboardingRoute: typeof BusinessOnboardingRoute
   BusinessSignupRoute: typeof BusinessSignupRoute
@@ -964,6 +1049,7 @@ export interface RootRouteChildren {
   ChallengesRoute: typeof ChallengesRouteWithChildren
   CodingInterviewRoute: typeof CodingInterviewRoute
   CollegeRoute: typeof CollegeRoute
+  CoursesRoute: typeof CoursesRouteWithChildren
   DrivesRoute: typeof DrivesRoute
   EligibilityRoute: typeof EligibilityRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
@@ -995,6 +1081,7 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ValuePropRoute: typeof ValuePropRoute
+  ApiStripeWebhookRoute: typeof ApiStripeWebhookRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   BusinessAdvertisingRoute: typeof BusinessAdvertisingRoute
   BusinessAnalyticsRoute: typeof BusinessAnalyticsRoute
@@ -1008,6 +1095,8 @@ export interface RootRouteChildren {
   BusinessSourcingRoute: typeof BusinessSourcingRoute
   BusinessSubscriptionRoute: typeof BusinessSubscriptionRoute
   CCompanyIdRoute: typeof CCompanyIdRoute
+  CheckoutCancelRoute: typeof CheckoutCancelRoute
+  CheckoutSuccessRoute: typeof CheckoutSuccessRoute
   CollegeDriveDriveIdRoute: typeof CollegeDriveDriveIdRoute
   DriveDriveIdRoute: typeof DriveDriveIdRoute
   InterviewDeviceCheckRoute: typeof InterviewDeviceCheckRoute
@@ -1058,6 +1147,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApplyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/billing': {
+      id: '/billing'
+      path: '/billing'
+      fullPath: '/billing'
+      preLoaderRoute: typeof BillingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/business': {
       id: '/business'
       path: '/business'
@@ -1105,6 +1201,13 @@ declare module '@tanstack/react-router' {
       path: '/college'
       fullPath: '/college'
       preLoaderRoute: typeof CollegeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/courses': {
+      id: '/courses'
+      path: '/courses'
+      fullPath: '/courses'
+      preLoaderRoute: typeof CoursesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/drives': {
@@ -1331,6 +1434,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAnalyticsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/billing': {
+      id: '/admin/billing'
+      path: '/billing'
+      fullPath: '/admin/billing'
+      preLoaderRoute: typeof AdminBillingRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/challenges': {
       id: '/admin/challenges'
       path: '/challenges'
@@ -1386,6 +1496,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/users'
       preLoaderRoute: typeof AdminUsersRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/api/stripe-webhook': {
+      id: '/api/stripe-webhook'
+      path: '/api/stripe-webhook'
+      fullPath: '/api/stripe-webhook'
+      preLoaderRoute: typeof ApiStripeWebhookRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/auth/callback': {
       id: '/auth/callback'
@@ -1485,12 +1602,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChallengesSlugRouteImport
       parentRoute: typeof ChallengesRoute
     }
+    '/checkout/cancel': {
+      id: '/checkout/cancel'
+      path: '/checkout/cancel'
+      fullPath: '/checkout/cancel'
+      preLoaderRoute: typeof CheckoutCancelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/checkout/success': {
+      id: '/checkout/success'
+      path: '/checkout/success'
+      fullPath: '/checkout/success'
+      preLoaderRoute: typeof CheckoutSuccessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/college-drive/$driveId': {
       id: '/college-drive/$driveId'
       path: '/college-drive/$driveId'
       fullPath: '/college-drive/$driveId'
       preLoaderRoute: typeof CollegeDriveDriveIdRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/courses/$courseId': {
+      id: '/courses/$courseId'
+      path: '/$courseId'
+      fullPath: '/courses/$courseId'
+      preLoaderRoute: typeof CoursesCourseIdRouteImport
+      parentRoute: typeof CoursesRoute
     }
     '/drive/$driveId': {
       id: '/drive/$driveId'
@@ -1567,6 +1705,7 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteChildren {
   AdminAnalyticsRoute: typeof AdminAnalyticsRoute
+  AdminBillingRoute: typeof AdminBillingRoute
   AdminChallengesRoute: typeof AdminChallengesRoute
   AdminCompaniesRoute: typeof AdminCompaniesRoute
   AdminJobsRoute: typeof AdminJobsRoute
@@ -1579,6 +1718,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminAnalyticsRoute: AdminAnalyticsRoute,
+  AdminBillingRoute: AdminBillingRoute,
   AdminChallengesRoute: AdminChallengesRoute,
   AdminCompaniesRoute: AdminCompaniesRoute,
   AdminJobsRoute: AdminJobsRoute,
@@ -1603,12 +1743,24 @@ const ChallengesRouteWithChildren = ChallengesRoute._addFileChildren(
   ChallengesRouteChildren,
 )
 
+interface CoursesRouteChildren {
+  CoursesCourseIdRoute: typeof CoursesCourseIdRoute
+}
+
+const CoursesRouteChildren: CoursesRouteChildren = {
+  CoursesCourseIdRoute: CoursesCourseIdRoute,
+}
+
+const CoursesRouteWithChildren =
+  CoursesRoute._addFileChildren(CoursesRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
   AnalyticsRoute: AnalyticsRoute,
   AppliedJobsRoute: AppliedJobsRoute,
   ApplyRoute: ApplyRoute,
+  BillingRoute: BillingRoute,
   BusinessRoute: BusinessRoute,
   BusinessOnboardingRoute: BusinessOnboardingRoute,
   BusinessSignupRoute: BusinessSignupRoute,
@@ -1616,6 +1768,7 @@ const rootRouteChildren: RootRouteChildren = {
   ChallengesRoute: ChallengesRouteWithChildren,
   CodingInterviewRoute: CodingInterviewRoute,
   CollegeRoute: CollegeRoute,
+  CoursesRoute: CoursesRouteWithChildren,
   DrivesRoute: DrivesRoute,
   EligibilityRoute: EligibilityRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
@@ -1647,6 +1800,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   ValuePropRoute: ValuePropRoute,
+  ApiStripeWebhookRoute: ApiStripeWebhookRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   BusinessAdvertisingRoute: BusinessAdvertisingRoute,
   BusinessAnalyticsRoute: BusinessAnalyticsRoute,
@@ -1660,6 +1814,8 @@ const rootRouteChildren: RootRouteChildren = {
   BusinessSourcingRoute: BusinessSourcingRoute,
   BusinessSubscriptionRoute: BusinessSubscriptionRoute,
   CCompanyIdRoute: CCompanyIdRoute,
+  CheckoutCancelRoute: CheckoutCancelRoute,
+  CheckoutSuccessRoute: CheckoutSuccessRoute,
   CollegeDriveDriveIdRoute: CollegeDriveDriveIdRoute,
   DriveDriveIdRoute: DriveDriveIdRoute,
   InterviewDeviceCheckRoute: InterviewDeviceCheckRoute,

@@ -4,6 +4,9 @@
 // whatever getPaymentProvider() returns.
 
 export type CheckoutSessionInput = {
+  // "subscription" (default) recurs monthly; "payment" is a one-time charge
+  // (course purchases, AI credit top-ups — nothing to bill again later).
+  mode?: "subscription" | "payment";
   planCode: string;
   priceCents: number;
   currency: string;

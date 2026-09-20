@@ -8,7 +8,9 @@ import {
   Building2,
   Check,
   ChevronDown,
+  Crown,
   Lightbulb,
+  Lock,
   Loader2,
   Play,
   Send,
@@ -47,6 +49,7 @@ import {
   useDeleteDiscussionComment,
 } from "@/lib/challenge-discussions-client";
 import { useTodaysDailyChallenge, localDateStr } from "@/lib/daily-challenge-client";
+import { usePremiumStatus } from "@/lib/premium-client";
 
 export const Route = createFileRoute("/challenges/$slug")({
   beforeLoad: requireAuth,
@@ -67,6 +70,8 @@ function ChallengeDetail() {
   const { slug } = Route.useParams();
   const { data: user } = useCurrentUser();
   const { data: challenge, isLoading } = useChallenge(slug);
+  const { data: premiumStatus } = usePremiumStatus(user?.id);
+  const isPremium = !!premiumStatus?.isPremium;
   const { data: todaysChallenge } = useTodaysDailyChallenge();
   const { data: languages } = useSupportedLanguages();
   const { data: submissions } = useMySubmissions(challenge?.id, user?.id);
@@ -178,6 +183,8 @@ function ChallengeDetail() {
     );
   }
 
+  const gated = challenge.is_premium && !isPremium;
+
   const currentLang = sortedLanguages.find((l) => l.language === language);
   const judge0Id = currentLang?.judge0Id;
   const hints = Array.isArray(challenge.hints) ? (challenge.hints as unknown as string[]) : [];
@@ -247,6 +254,32 @@ function ChallengeDetail() {
       setAiError("Could not get an AI explanation right now. Try again.");
     }
   };
+
+  if (gated) {
+    return (
+      <AppShell>
+        <Link
+          to="/challenges"
+          className="mb-4 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" /> All challenges
+        </Link>
+        <div className="mx-auto max-w-md rounded-2xl border border-brand/30 bg-brand-soft/40 p-8 text-center">
+          <Lock className="mx-auto h-8 w-8 text-brand" />
+          <h1 className="mt-3 font-display text-2xl tracking-tight">{challenge.title}</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            This is a Premium challenge. Upgrade to Pro to unlock it and every other premium
+            challenge.
+          </p>
+          <Link to="/plan" className="mt-5 inline-block">
+            <Button className="gap-1.5">
+              <Crown className="h-4 w-4" /> Upgrade to Pro
+            </Button>
+          </Link>
+        </div>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell>

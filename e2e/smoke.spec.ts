@@ -29,6 +29,16 @@ test("a protected college route redirects to /login when signed out", async ({ p
   await expect(page).toHaveURL(/\/login/);
 });
 
+test("a protected billing route redirects to /login when signed out", async ({ page }) => {
+  await page.goto("/billing");
+  await expect(page).toHaveURL(/\/login/);
+});
+
+test("a protected courses route redirects to /login when signed out", async ({ page }) => {
+  await page.goto("/courses");
+  await expect(page).toHaveURL(/\/login/);
+});
+
 test("signup page renders without console errors", async ({ page }) => {
   const consoleErrors: string[] = [];
   page.on("console", (msg) => {

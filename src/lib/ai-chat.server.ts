@@ -39,6 +39,37 @@ export const sendChatMessageFn = createServerFn({ method: "POST" })
       return { error: "AI chat isn't configured yet (missing GEMINI_API_KEY)." };
     }
 
+    // Sprint 27: premium accounts get unlimited messages; everyone else
+    // spends 1 AI credit per message. This is the reference integration
+    // for the AI-credits system — see .claude/project-history.md for why
+    // it's wired here first (simplest single-call AI feature) rather than
+    // into every AI feature at once.
+    const { data: premium } = await supabase
+      .from("premium_subscriptions")
+      .select("plan, status, current_period_end")
+      .eq("profile_id", auth.user.id)
+      .maybeSingle();
+    const isPremium =
+      !!premium &&
+      premium.plan === "premium" &&
+      premium.status === "active" &&
+      (!premium.current_period_end || new Date(premium.current_period_end) > new Date());
+
+    if (!isPremium) {
+      const { data: spent, error: creditError } = await supabase.rpc("consume_ai_credits", {
+        p_profile_id: auth.user.id,
+        p_amount: 1,
+        p_reason: "ai_chat_message",
+      });
+      if (creditError) return { error: creditError.message };
+      if (!spent) {
+        return {
+          error:
+            "You're out of AI credits. Buy more or upgrade to Pro for unlimited chat — see /credits or /plan.",
+        };
+      }
+    }
+
     const { data: profile } = await supabase
       .from("profiles")
       .select("full_name, target_role")

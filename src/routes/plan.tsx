@@ -7,6 +7,7 @@ import {
   Check,
   Code2,
   FileSearch,
+  Loader2,
   Mic,
   ShieldCheck,
   Sparkles,
@@ -20,6 +21,7 @@ import { requireAuth } from "@/lib/auth-guard";
 import { useCurrentUser, invalidateCurrentUser } from "@/lib/auth-client";
 import { useUpdateProfile } from "@/lib/profile-client";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { usePlans, useCreateSubscriptionCheckout } from "@/lib/payments-client";
 
 export const Route = createFileRoute("/plan")({
   beforeLoad: requireAuth,
@@ -53,8 +55,12 @@ function PlanPage() {
   const queryClient = useQueryClient();
   const { data: user } = useCurrentUser();
   const updateProfile = useUpdateProfile(user?.id);
+  const { data: plans = [] } = usePlans("student");
+  const proPlan = plans.find((p) => p.code === "pro_student");
+  const subscribeCheckout = useCreateSubscriptionCheckout(user?.id);
   const [showPro, setShowPro] = useState(false);
   const [finishing, setFinishing] = useState(false);
+  const [subscribeError, setSubscribeError] = useState<string | null>(null);
 
   const finishOnboarding = async () => {
     if (!user) return;
@@ -77,6 +83,28 @@ function PlanPage() {
   };
 
   const chooseFree = finishOnboarding;
+
+  const subscribeToPro = async () => {
+    if (!proPlan) return;
+    setSubscribeError(null);
+    const result = await subscribeCheckout.mutateAsync({
+      planCode: proPlan.code,
+      successUrl: `${window.location.origin}/checkout/success`,
+      cancelUrl: `${window.location.origin}/checkout/cancel`,
+    });
+    if (result.error) {
+      setSubscribeError(result.error);
+      return;
+    }
+    if (result.activated) {
+      await updateProfile.mutateAsync({ onboarding_completed: true });
+      await invalidateCurrentUser(queryClient);
+      await router.invalidate();
+      nav({ to: "/checkout/success" });
+    } else if (result.checkoutUrl) {
+      window.location.href = result.checkoutUrl;
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -207,11 +235,17 @@ function PlanPage() {
                   <Button
                     size="lg"
                     className="mt-6 w-full"
-                    disabled
-                    title="Payments aren't wired up yet"
+                    disabled={!proPlan || subscribeCheckout.isPending}
+                    onClick={subscribeToPro}
                   >
-                    Payments coming soon
+                    {subscribeCheckout.isPending ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : null}
+                    Subscribe — {proPlan ? `₹${proPlan.price_cents / 100}` : "₹299"}
                   </Button>
+                  {subscribeError && (
+                    <p className="mt-2 text-center text-xs text-destructive">{subscribeError}</p>
+                  )}
                   <Button
                     size="lg"
                     variant="outline"
@@ -225,8 +259,7 @@ function PlanPage() {
                     Back to plans
                   </Button>
                   <p className="mt-4 text-[11px] leading-relaxed text-muted-foreground">
-                    Pro checkout isn't live yet — no payment provider is connected. You'll be able
-                    to upgrade for real once billing is set up.
+                    You can cancel anytime from your billing page.
                   </p>
                 </div>
               </div>

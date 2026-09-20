@@ -150,6 +150,30 @@ export async function sendApplicationStatusEmail(params: {
   });
 }
 
+export async function sendPaymentReceiptEmail(params: {
+  to: string;
+  name: string;
+  description: string;
+  amountCents: number;
+  currency: string;
+}) {
+  const amount = `${params.currency === "INR" ? "₹" : params.currency + " "}${(params.amountCents / 100).toFixed(2)}`;
+  return sendEmail({
+    to: params.to,
+    subject: `Receipt — ${params.description}`,
+    html: wrapEmail(
+      "Payment received",
+      `<p>Hi ${params.name || "there"},</p>
+       <p>Thanks for your purchase. Here's your receipt:</p>
+       <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+         <tr><td style="padding: 8px 0; color: #64748b;">Item</td><td style="padding: 8px 0; text-align: right;">${params.description}</td></tr>
+         <tr><td style="padding: 8px 0; color: #64748b; border-top: 1px solid #e2e8f0;">Amount</td><td style="padding: 8px 0; text-align: right; font-weight: 600; border-top: 1px solid #e2e8f0;">${amount}</td></tr>
+       </table>
+       <p>You can view your full billing history and download invoices anytime from your Provn billing page.</p>`,
+    ),
+  });
+}
+
 export async function sendJobInvitationEmail(params: {
   to: string;
   candidateName: string;
