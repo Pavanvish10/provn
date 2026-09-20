@@ -1,4 +1,9 @@
-import type { CheckoutSessionInput, CheckoutSessionResult, PaymentProvider, WebhookVerifyResult } from "./types";
+import type {
+  CheckoutSessionInput,
+  CheckoutSessionResult,
+  PaymentProvider,
+  WebhookVerifyResult,
+} from "./types";
 
 // Used whenever STRIPE_SECRET_KEY isn't configured. Every method returns a
 // deterministic, immediately-successful response instead of throwing, so
@@ -18,7 +23,11 @@ export const mockProvider: PaymentProvider = {
       const parsed = JSON.parse(rawBody) as { id?: string; type?: string; data?: unknown };
       return {
         valid: true,
-        event: { id: parsed.id ?? `mock_evt_${crypto.randomUUID()}`, type: parsed.type ?? "mock.event", data: parsed.data ?? {} },
+        event: {
+          id: parsed.id ?? `mock_evt_${crypto.randomUUID()}`,
+          type: parsed.type ?? "mock.event",
+          data: parsed.data ?? {},
+        },
       };
     } catch {
       return { valid: false, error: "Mock webhook payload was not valid JSON." };

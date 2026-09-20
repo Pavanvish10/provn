@@ -27,7 +27,8 @@ export const Route = createFileRoute("/interview-voice")({
       { title: "AI Voice Interview · Provn" },
       {
         name: "description",
-        content: "Practice real, spoken interviews with an AI interviewer and get a full performance report.",
+        content:
+          "Practice real, spoken interviews with an AI interviewer and get a full performance report.",
       },
     ],
   }),
@@ -103,8 +104,8 @@ function InterviewDashboard() {
         <div>
           <h1 className="font-display text-4xl tracking-tight">AI Voice Interview</h1>
           <p className="mt-2 max-w-xl text-sm text-muted-foreground">
-            Practice real, spoken interviews with an AI interviewer — then get a detailed,
-            honest performance report.
+            Practice real, spoken interviews with an AI interviewer — then get a detailed, honest
+            performance report.
           </p>
         </div>
         <Link
@@ -131,7 +132,11 @@ function InterviewDashboard() {
           label="Interviews"
           value={stats?.totalInterviews ?? 0}
         />
-        <StatTile icon={<Flame className="h-3.5 w-3.5" />} label="Streak" value={`${profile?.streak ?? 0}d`} />
+        <StatTile
+          icon={<Flame className="h-3.5 w-3.5" />}
+          label="Streak"
+          value={`${profile?.streak ?? 0}d`}
+        />
         <StatTile icon={<Star className="h-3.5 w-3.5" />} label="XP" value={profile?.xp ?? 0} />
       </div>
 

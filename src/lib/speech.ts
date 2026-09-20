@@ -113,9 +113,10 @@ export function useMicLevel(enabled: boolean) {
         }
         stream = s;
         setStatus("granted");
-        audioCtx = new (window.AudioContext ||
-          (window as unknown as { webkitAudioContext: typeof AudioContext })
-            .webkitAudioContext)();
+        audioCtx = new (
+          window.AudioContext ||
+          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+        )();
         const source = audioCtx.createMediaStreamSource(s);
         const analyser = audioCtx.createAnalyser();
         analyser.fftSize = 256;

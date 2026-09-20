@@ -38,7 +38,15 @@ export function VoiceWaveform({
               level !== undefined
                 ? { height: Math.max(baseHeight, targetHeight) }
                 : active
-                  ? { height: [baseHeight, maxHeight, baseHeight * 1.5, maxHeight * 0.7, baseHeight] }
+                  ? {
+                      height: [
+                        baseHeight,
+                        maxHeight,
+                        baseHeight * 1.5,
+                        maxHeight * 0.7,
+                        baseHeight,
+                      ],
+                    }
                   : { height: baseHeight }
             }
             transition={

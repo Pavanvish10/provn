@@ -1,6 +1,11 @@
 import Stripe from "stripe";
 
-import type { CheckoutSessionInput, CheckoutSessionResult, PaymentProvider, WebhookVerifyResult } from "./types";
+import type {
+  CheckoutSessionInput,
+  CheckoutSessionResult,
+  PaymentProvider,
+  WebhookVerifyResult,
+} from "./types";
 
 // Only constructed when STRIPE_SECRET_KEY is present (see index.ts) — real
 // checkout sessions never resolve immediately, activation happens when the
@@ -36,13 +41,17 @@ export function createStripeProvider(secretKey: string): PaymentProvider {
 
     verifyWebhookSignature(rawBody: string, signatureHeader: string | null): WebhookVerifyResult {
       const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-      if (!webhookSecret) return { valid: false, error: "STRIPE_WEBHOOK_SECRET is not configured." };
+      if (!webhookSecret)
+        return { valid: false, error: "STRIPE_WEBHOOK_SECRET is not configured." };
       if (!signatureHeader) return { valid: false, error: "Missing Stripe-Signature header." };
       try {
         const event = stripe.webhooks.constructEvent(rawBody, signatureHeader, webhookSecret);
         return { valid: true, event: { id: event.id, type: event.type, data: event.data.object } };
       } catch (err) {
-        return { valid: false, error: err instanceof Error ? err.message : "Webhook signature verification failed." };
+        return {
+          valid: false,
+          error: err instanceof Error ? err.message : "Webhook signature verification failed.",
+        };
       }
     },
   };

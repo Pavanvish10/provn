@@ -49,7 +49,8 @@ export function InterviewTopBar({
 
       <div className="flex items-center gap-4 text-sm text-white/80">
         <span>
-          Question <span className="font-semibold text-white">{questionNumber}</span> / {totalQuestions}
+          Question <span className="font-semibold text-white">{questionNumber}</span> /{" "}
+          {totalQuestions}
         </span>
         <span
           className={cn(
@@ -60,7 +61,9 @@ export function InterviewTopBar({
           <Timer className="h-4 w-4" />
           {fmt(secondsRemaining)}
         </span>
-        <span className={cn("flex items-center gap-1", micMuted ? "text-rose-300" : "text-emerald-300")}>
+        <span
+          className={cn("flex items-center gap-1", micMuted ? "text-rose-300" : "text-emerald-300")}
+        >
           {micMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
         </span>
       </div>
