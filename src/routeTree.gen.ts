@@ -55,9 +55,14 @@ import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ValuePropRouteImport } from './routes/value-prop'
 import { Route as AdminAnalyticsRouteImport } from './routes/admin.analytics'
+import { Route as AdminAuditRouteImport } from './routes/admin.audit'
 import { Route as AdminBillingRouteImport } from './routes/admin.billing'
 import { Route as AdminChallengesRouteImport } from './routes/admin.challenges'
+import { Route as AdminCollegesRouteImport } from './routes/admin.colleges'
 import { Route as AdminCompaniesRouteImport } from './routes/admin.companies'
+import { Route as AdminCoursesRouteImport } from './routes/admin.courses'
+import { Route as AdminCreditsRouteImport } from './routes/admin.credits'
+import { Route as AdminDrivesRouteImport } from './routes/admin.drives'
 import { Route as AdminJobsRouteImport } from './routes/admin.jobs'
 import { Route as AdminNotificationsRouteImport } from './routes/admin.notifications'
 import { Route as AdminPremiumRouteImport } from './routes/admin.premium'
@@ -324,6 +329,11 @@ const AdminAnalyticsRoute = AdminAnalyticsRouteImport.update({
   path: '/analytics',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminAuditRoute = AdminAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminBillingRoute = AdminBillingRouteImport.update({
   id: '/billing',
   path: '/billing',
@@ -334,9 +344,29 @@ const AdminChallengesRoute = AdminChallengesRouteImport.update({
   path: '/challenges',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminCollegesRoute = AdminCollegesRouteImport.update({
+  id: '/colleges',
+  path: '/colleges',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminCompaniesRoute = AdminCompaniesRouteImport.update({
   id: '/companies',
   path: '/companies',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCoursesRoute = AdminCoursesRouteImport.update({
+  id: '/courses',
+  path: '/courses',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCreditsRoute = AdminCreditsRouteImport.update({
+  id: '/credits',
+  path: '/credits',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminDrivesRoute = AdminDrivesRouteImport.update({
+  id: '/drives',
+  path: '/drives',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminJobsRoute = AdminJobsRouteImport.update({
@@ -562,9 +592,14 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/value-prop': typeof ValuePropRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
+  '/admin/audit': typeof AdminAuditRoute
   '/admin/billing': typeof AdminBillingRoute
   '/admin/challenges': typeof AdminChallengesRoute
+  '/admin/colleges': typeof AdminCollegesRoute
   '/admin/companies': typeof AdminCompaniesRoute
+  '/admin/courses': typeof AdminCoursesRoute
+  '/admin/credits': typeof AdminCreditsRoute
+  '/admin/drives': typeof AdminDrivesRoute
   '/admin/jobs': typeof AdminJobsRoute
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/premium': typeof AdminPremiumRoute
@@ -648,9 +683,14 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/value-prop': typeof ValuePropRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
+  '/admin/audit': typeof AdminAuditRoute
   '/admin/billing': typeof AdminBillingRoute
   '/admin/challenges': typeof AdminChallengesRoute
+  '/admin/colleges': typeof AdminCollegesRoute
   '/admin/companies': typeof AdminCompaniesRoute
+  '/admin/courses': typeof AdminCoursesRoute
+  '/admin/credits': typeof AdminCreditsRoute
+  '/admin/drives': typeof AdminDrivesRoute
   '/admin/jobs': typeof AdminJobsRoute
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/premium': typeof AdminPremiumRoute
@@ -735,9 +775,14 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/value-prop': typeof ValuePropRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
+  '/admin/audit': typeof AdminAuditRoute
   '/admin/billing': typeof AdminBillingRoute
   '/admin/challenges': typeof AdminChallengesRoute
+  '/admin/colleges': typeof AdminCollegesRoute
   '/admin/companies': typeof AdminCompaniesRoute
+  '/admin/courses': typeof AdminCoursesRoute
+  '/admin/credits': typeof AdminCreditsRoute
+  '/admin/drives': typeof AdminDrivesRoute
   '/admin/jobs': typeof AdminJobsRoute
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/premium': typeof AdminPremiumRoute
@@ -823,9 +868,14 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/value-prop'
     | '/admin/analytics'
+    | '/admin/audit'
     | '/admin/billing'
     | '/admin/challenges'
+    | '/admin/colleges'
     | '/admin/companies'
+    | '/admin/courses'
+    | '/admin/credits'
+    | '/admin/drives'
     | '/admin/jobs'
     | '/admin/notifications'
     | '/admin/premium'
@@ -909,9 +959,14 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/value-prop'
     | '/admin/analytics'
+    | '/admin/audit'
     | '/admin/billing'
     | '/admin/challenges'
+    | '/admin/colleges'
     | '/admin/companies'
+    | '/admin/courses'
+    | '/admin/credits'
+    | '/admin/drives'
     | '/admin/jobs'
     | '/admin/notifications'
     | '/admin/premium'
@@ -995,9 +1050,14 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/value-prop'
     | '/admin/analytics'
+    | '/admin/audit'
     | '/admin/billing'
     | '/admin/challenges'
+    | '/admin/colleges'
     | '/admin/companies'
+    | '/admin/courses'
+    | '/admin/credits'
+    | '/admin/drives'
     | '/admin/jobs'
     | '/admin/notifications'
     | '/admin/premium'
@@ -1434,6 +1494,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAnalyticsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/audit': {
+      id: '/admin/audit'
+      path: '/audit'
+      fullPath: '/admin/audit'
+      preLoaderRoute: typeof AdminAuditRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/billing': {
       id: '/admin/billing'
       path: '/billing'
@@ -1448,11 +1515,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminChallengesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/colleges': {
+      id: '/admin/colleges'
+      path: '/colleges'
+      fullPath: '/admin/colleges'
+      preLoaderRoute: typeof AdminCollegesRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/companies': {
       id: '/admin/companies'
       path: '/companies'
       fullPath: '/admin/companies'
       preLoaderRoute: typeof AdminCompaniesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/courses': {
+      id: '/admin/courses'
+      path: '/courses'
+      fullPath: '/admin/courses'
+      preLoaderRoute: typeof AdminCoursesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/credits': {
+      id: '/admin/credits'
+      path: '/credits'
+      fullPath: '/admin/credits'
+      preLoaderRoute: typeof AdminCreditsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/drives': {
+      id: '/admin/drives'
+      path: '/drives'
+      fullPath: '/admin/drives'
+      preLoaderRoute: typeof AdminDrivesRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/jobs': {
@@ -1705,9 +1800,14 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteChildren {
   AdminAnalyticsRoute: typeof AdminAnalyticsRoute
+  AdminAuditRoute: typeof AdminAuditRoute
   AdminBillingRoute: typeof AdminBillingRoute
   AdminChallengesRoute: typeof AdminChallengesRoute
+  AdminCollegesRoute: typeof AdminCollegesRoute
   AdminCompaniesRoute: typeof AdminCompaniesRoute
+  AdminCoursesRoute: typeof AdminCoursesRoute
+  AdminCreditsRoute: typeof AdminCreditsRoute
+  AdminDrivesRoute: typeof AdminDrivesRoute
   AdminJobsRoute: typeof AdminJobsRoute
   AdminNotificationsRoute: typeof AdminNotificationsRoute
   AdminPremiumRoute: typeof AdminPremiumRoute
@@ -1718,9 +1818,14 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminAnalyticsRoute: AdminAnalyticsRoute,
+  AdminAuditRoute: AdminAuditRoute,
   AdminBillingRoute: AdminBillingRoute,
   AdminChallengesRoute: AdminChallengesRoute,
+  AdminCollegesRoute: AdminCollegesRoute,
   AdminCompaniesRoute: AdminCompaniesRoute,
+  AdminCoursesRoute: AdminCoursesRoute,
+  AdminCreditsRoute: AdminCreditsRoute,
+  AdminDrivesRoute: AdminDrivesRoute,
   AdminJobsRoute: AdminJobsRoute,
   AdminNotificationsRoute: AdminNotificationsRoute,
   AdminPremiumRoute: AdminPremiumRoute,

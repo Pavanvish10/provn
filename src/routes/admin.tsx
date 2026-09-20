@@ -3,13 +3,19 @@ import {
   ShieldCheck,
   Users,
   Building2,
+  GraduationCap,
   Briefcase,
+  CalendarClock,
   Code2,
+  PlayCircle,
   Map,
   Crown,
+  CreditCard,
+  Sparkles,
   Bell,
   Flag,
   BarChart3,
+  History,
   ArrowRight,
 } from "lucide-react";
 
@@ -45,16 +51,34 @@ const SECTIONS = [
     desc: "Verify companies and suspend a company's open jobs.",
   },
   {
+    to: "/admin/colleges" as const,
+    icon: GraduationCap,
+    title: "Manage Colleges",
+    desc: "Verify colleges and suspend a college's placement drives.",
+  },
+  {
     to: "/admin/jobs" as const,
     icon: Briefcase,
     title: "Manage Jobs",
     desc: "Pause, reopen, close, or delete any job posting.",
   },
   {
+    to: "/admin/drives" as const,
+    icon: CalendarClock,
+    title: "Manage Placement Drives",
+    desc: "Pause, reopen, or close any campus placement drive.",
+  },
+  {
     to: "/admin/challenges" as const,
     icon: Code2,
     title: "Manage Challenges",
     desc: "Full CRUD on coding challenges and their test cases.",
+  },
+  {
+    to: "/admin/courses" as const,
+    icon: PlayCircle,
+    title: "Manage Courses",
+    desc: "Create, edit, and list/delist courses in the student catalog.",
   },
   {
     to: "/admin/roadmaps" as const,
@@ -67,6 +91,18 @@ const SECTIONS = [
     icon: Crown,
     title: "Manage Premium",
     desc: "Grant or revoke premium access for a user.",
+  },
+  {
+    to: "/admin/billing" as const,
+    icon: CreditCard,
+    title: "Billing",
+    desc: "Every subscription and payment across the platform.",
+  },
+  {
+    to: "/admin/credits" as const,
+    icon: Sparkles,
+    title: "AI Credits",
+    desc: "Grant credits, and review balances and the transaction ledger.",
   },
   {
     to: "/admin/notifications" as const,
@@ -85,6 +121,12 @@ const SECTIONS = [
     icon: BarChart3,
     title: "Analytics",
     desc: "Real platform-wide counts, trends, and revenue estimate.",
+  },
+  {
+    to: "/admin/audit" as const,
+    icon: History,
+    title: "Audit Log",
+    desc: "Every privileged admin action, searchable and read-only.",
   },
 ];
 
@@ -105,7 +147,7 @@ function AdminHub() {
         </div>
       </div>
 
-      <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
+      <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5">
         <StatTile label="Users" value={stats?.totalUsers} loading={isLoading} />
         <StatTile label="Banned" value={stats?.bannedUsers} loading={isLoading} />
         <StatTile label="Open reports" value={stats?.openReports} loading={isLoading} />
@@ -114,8 +156,15 @@ function AdminHub() {
           value={stats?.unverifiedCompanies}
           loading={isLoading}
         />
+        <StatTile
+          label="Unverified colleges"
+          value={stats?.unverifiedColleges}
+          loading={isLoading}
+        />
         <StatTile label="Active challenges" value={stats?.activeChallenges} loading={isLoading} />
         <StatTile label="Open jobs" value={stats?.openJobs} loading={isLoading} />
+        <StatTile label="Published drives" value={stats?.publishedDrives} loading={isLoading} />
+        <StatTile label="Active courses" value={stats?.activeCourses} loading={isLoading} />
         <StatTile label="Premium users" value={stats?.premiumSubscribers} loading={isLoading} />
       </div>
 

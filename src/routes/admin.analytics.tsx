@@ -14,7 +14,7 @@ import {
 import { AppShell } from "@/components/AppNav";
 import { AdminSubNav } from "@/components/AdminSubNav";
 import { requireAdmin } from "@/lib/auth-guard";
-import { useAdminAnalytics, PREMIUM_PRICE_INR } from "@/lib/admin-analytics-client";
+import { useAdminAnalytics } from "@/lib/admin-analytics-client";
 
 export const Route = createFileRoute("/admin/analytics")({
   beforeLoad: requireAdmin,
@@ -31,8 +31,8 @@ function AdminAnalytics() {
       <div className="mb-6">
         <h1 className="font-display text-3xl tracking-tight">Analytics</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Real platform-wide counts. Revenue is an estimate (premium subscribers × ₹
-          {PREMIUM_PRICE_INR}) — payments aren't wired up yet, so this isn't billed revenue.
+          Real platform-wide counts and real revenue, computed from every succeeded payment
+          (subscriptions, course purchases, and AI credit packs) — not an estimate.
         </p>
       </div>
 
@@ -52,8 +52,12 @@ function AdminAnalytics() {
             />
             <StatTile label="Premium subscribers" value={data.premiumSubscribers} />
             <StatTile
-              label="Est. monthly revenue"
-              value={`₹${data.estimatedMonthlyRevenue.toLocaleString()}`}
+              label="Revenue (30d)"
+              value={`₹${(data.monthlyRevenueCents / 100).toLocaleString()}`}
+            />
+            <StatTile
+              label="Revenue (all-time)"
+              value={`₹${(data.totalRevenueCents / 100).toLocaleString()}`}
             />
           </div>
 

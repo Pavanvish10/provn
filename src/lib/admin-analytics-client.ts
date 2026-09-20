@@ -10,11 +10,10 @@ export type AdminAnalytics = {
   verifiedCompanies: number;
   jobsByStatus: { status: string; count: number }[];
   premiumSubscribers: number;
-  estimatedMonthlyRevenue: number;
+  totalRevenueCents: number;
+  monthlyRevenueCents: number;
   weeklySignups: { week: string; count: number }[];
 };
-
-const PREMIUM_PRICE_INR = 299;
 
 function startOfWeek(d: Date) {
   const date = new Date(d);
@@ -42,6 +41,7 @@ export function useAdminAnalytics() {
         jobsDraft,
         premiumSubscribers,
         signupDates,
+        succeededPayments,
       ] = await Promise.all([
         supabase.from("profiles").select("id", { count: "exact", head: true }),
         supabase.from("posts").select("id", { count: "exact", head: true }),
@@ -68,6 +68,17 @@ export function useAdminAnalytics() {
           .select("created_at")
           .order("created_at", { ascending: true })
           .limit(5000),
+        // Real revenue (Sprint 27's payments table), not an estimate — same
+        // fetch-and-reduce-client-side pattern already used for
+        // weeklySignups above, since PostgREST aggregates need either an
+        // RPC or this. Capped at 10k rows, generous for this platform's
+        // scale.
+        supabase
+          .from("payments")
+          .select("amount_cents, created_at")
+          .eq("status", "succeeded")
+          .order("created_at", { ascending: false })
+          .limit(10000),
       ]);
 
       const weekBuckets = new Map<string, number>();
@@ -82,6 +93,16 @@ export function useAdminAnalytics() {
 
       const premiumCount = premiumSubscribers.count ?? 0;
 
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      let totalRevenueCents = 0;
+      let monthlyRevenueCents = 0;
+      for (const p of succeededPayments.data ?? []) {
+        totalRevenueCents += p.amount_cents;
+        if (p.created_at && new Date(p.created_at) >= thirtyDaysAgo) {
+          monthlyRevenueCents += p.amount_cents;
+        }
+      }
+
       return {
         totalUsers: totalUsers.count ?? 0,
         totalPosts: totalPosts.count ?? 0,
@@ -95,12 +116,11 @@ export function useAdminAnalytics() {
           { status: "Draft", count: jobsDraft.count ?? 0 },
         ],
         premiumSubscribers: premiumCount,
-        estimatedMonthlyRevenue: premiumCount * PREMIUM_PRICE_INR,
+        totalRevenueCents,
+        monthlyRevenueCents,
         weeklySignups,
       };
     },
     staleTime: 60 * 1000,
   });
 }
-
-export { PREMIUM_PRICE_INR };

@@ -39,6 +39,22 @@ test("a protected courses route redirects to /login when signed out", async ({ p
   await expect(page).toHaveURL(/\/login/);
 });
 
+test.describe("Sprint 28 admin routes require auth", () => {
+  for (const path of [
+    "/admin",
+    "/admin/colleges",
+    "/admin/drives",
+    "/admin/courses",
+    "/admin/credits",
+    "/admin/audit",
+  ]) {
+    test(`${path} redirects to /login when signed out`, async ({ page }) => {
+      await page.goto(path);
+      await expect(page).toHaveURL(/\/login/);
+    });
+  }
+});
+
 test("signup page renders without console errors", async ({ page }) => {
   const consoleErrors: string[] = [];
   page.on("console", (msg) => {

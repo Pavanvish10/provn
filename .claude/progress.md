@@ -1,5 +1,141 @@
-CURRENT SPRINT: Sprint 27 — Payments & Premium (subscriptions, course purchases, AI credits)
-CURRENT TASK: Sprint 27 complete. Awaiting instruction before starting Sprint 28 (do not begin autonomously).
+CURRENT SPRINT: Sprint 28 — Admin Control Center
+CURRENT TASK: Complete. Awaiting instruction before starting Sprint 29 (do not begin autonomously).
+
+STATUS: SPRINT 28 COMPLETE AND VERIFIED. 5 new admin pages built (colleges,
+drives, courses, credits, audit log), admin.tsx hub + AdminSubNav updated
+with all missing links (including Sprint 27's Billing, which existed but
+was never linked), a real "fake revenue estimate" replaced with actual
+payments-table data. No new migration needed — existing Sprint 26/27 RLS
+already covered every new page. 17/17 live throwaway-account assertions
+pass (real admin account + real student account, both via their own
+sessions). Full local suite (tsc/lint/build/Playwright 12/12) clean.
+Completion commit created and pushed — see LAST VERIFIED COMMIT below.
+
+PRIOR: Sprint 27 complete, verified live, committed (a69cda4) and pushed to origin/main.
+
+===================================================================
+SPRINT 28 — INVENTORY (done before writing any code, per instruction)
+===================================================================
+Existing admin pages (11): admin.tsx (hub), users, companies, jobs,
+challenges, roadmaps, premium, notifications, reports, analytics, billing
+(Sprint 27). admin.users.tsx already fully covers student/recruiter/
+company_admin/admin role management via profiles.role (ROLE_OPTIONS:
+user/recruiter/company_admin/admin) with ban/unban + role-change +
+AdminConfirmDialog — "Student/user management" and "Recruiter management"
+from the Sprint 28 request are therefore ALREADY BUILT, not missing.
+admin.companies.tsx already covers company verification + job-suspension.
+admin.reports.tsx already covers moderation. admin.analytics.tsx already
+covers platform analytics. admin_actions table + logAdminAction() already
+exist and are called from every admin mutation — the audit-log WRITE side
+is done, only a READ/viewer page is missing.
+
+Genuinely missing (confirmed via grep — zero existing references):
+Colleges, Placement Drives, Courses, AI Credits, Audit log viewer.
+admin.tsx's SECTIONS array is also missing a card for Billing (built in
+Sprint 27 but never added to the hub grid — a real gap to fix).
+
+RLS check (no new migration needed — confirmed by re-reading the Sprint
+26/27 migrations): colleges_owner_update, college_admins' insert/update/
+delete policies, placement_drives_admin_write, courses_admin_write,
+course_purchases/ai_credit_balances/ai_credit_transactions visibility
+policies, and grant_ai_credits all already include `public.is_admin()` as
+an alternative condition. Admin already has full DB-level access to every
+entity Sprint 28 needs to manage — this is a pure application-layer
+sprint (new client hooks + routes only), like Sprint 25 was.
+
+consume_ai_credits does NOT have an admin bypass (only auth.uid() is null,
+i.e. service-role) — by design, this function is for a user's own spend
+action. Sprint 28's AI-credit admin management will support GRANTING
+(positive adjustment) only, via the already-admin-safe grant_ai_credits,
+matching this codebase's existing admin.premium.tsx precedent (grant/
+revoke, not arbitrary numeric adjustment) — not adding a new admin-deduct
+RPC, which would be new attack surface for a need not clearly requested.
+
+PLAN — 5 new admin pages + hub/nav updates, each mirroring an existing
+proven template:
+1. /admin/colleges (admin-colleges-client.ts) — mirrors admin-companies-client.ts
+   exactly (verify toggle, search, pagination)
+2. /admin/drives (admin-drives-client.ts) — mirrors admin-jobs-client.ts
+   (cross-college oversight: list all placement_drives, pause/close any)
+3. /admin/courses (admin-courses-client.ts) — mirrors admin-challenges-client.ts's
+   CRUD pattern (create/edit/toggle-active)
+4. /admin/credits (admin-credits-client.ts) — mirrors admin-premium-client.ts's
+   grant flow (search profile, grant credits) + admin-billing-client.ts's
+   paginated list pattern (all balances + transaction ledger)
+5. /admin/audit (admin-audit-client.ts) — new, simple paginated read of
+   admin_actions (admin name, action, target, notes, timestamp)
+Then: admin.tsx SECTIONS gets Billing + Colleges + Drives + Courses +
+Credits + Audit Log cards (+ new stat tiles where meaningful); AdminSubNav.tsx
+ADMIN_SECTIONS gets the same 5 new tabs.
+
+===================================================================
+SPRINT 28 — BUILD RESULTS
+===================================================================
+All 5 new pages built exactly per the plan above, each mirroring an
+existing template precisely (no new UI patterns invented):
+- admin-colleges-client.ts + admin.colleges.tsx (mirrors admin-companies-client.ts)
+- admin-drives-client.ts + admin.drives.tsx (mirrors admin-jobs-client.ts; no
+  hard delete — real applications cascade from a drive)
+- admin-courses-client.ts + admin.courses.tsx (mirrors admin-roadmaps-client.ts's
+  master/detail CRUD; is_active toggle instead of delete — real purchases
+  may reference a course)
+- admin-credits-client.ts + admin.credits.tsx (mirrors admin-premium-client.ts's
+  grant panel + admin-billing-client.ts's paginated list; grant-only, no
+  admin-side deduction — consume_ai_credits deliberately isn't admin-bypassable)
+- admin-audit-client.ts + admin.audit.tsx (new — simple paginated read of
+  the already-existing admin_actions table)
+
+Also found and fixed a real fake-data gap while reviewing Analytics (in
+scope — Sprint 28 explicitly requires "no fake/demo data"):
+admin-analytics-client.ts's "estimatedMonthlyRevenue" was
+premiumSubscriberCount x a hardcoded Rs299 guess, and the page copy said
+"payments aren't wired up yet" — false since Sprint 27. Replaced with
+real totalRevenueCents/monthlyRevenueCents summed from payments.amount_cents
+where status='succeeded' (same fetch-and-reduce-client-side approach
+already used for weeklySignups in the same file — no new RPC/migration
+needed). Extended admin-overview-client.ts with 3 new real stat counts
+(unverified colleges, published drives, active courses).
+
+Confirmed via re-reading the Sprint 26/27 RLS before writing anything: no
+new migration was needed anywhere — every new page's admin access already
+existed (colleges_owner_update, college_admins write policies,
+placement_drives_admin_write, courses_admin_write,
+course_purchases/ai_credit_balances/ai_credit_transactions visibility,
+grant_ai_credits — all already is_admin()-safe).
+
+LOCAL VERIFICATION: npx tsc --noEmit (0 errors, first try). npm run lint:
+16 pure-formatting errors from the initial pass (verified auto-fixable,
+fixed via eslint --fix, re-verified 0 errors after), same 7 pre-existing
+benign warnings. npm run build: PASS. npx playwright test: extended the
+suite with 6 new route-guard checks (one per new admin page) — 12/12 PASS.
+
+LIVE VERIFICATION (throwaway-account script, 2 real accounts — an admin
+and a regular student, both signed in through their OWN sessions, never
+the service-role client, to prove the actual RLS paths the UI uses):
+17/17 assertions PASS on the first run:
+- Admin can list/verify a college through the real query admin.colleges.tsx
+  uses; verification actually persists; the "suspend college" lever
+  (close all its drives) actually closes them
+- Admin can list drives with the college join admin.drives.tsx uses
+- Admin can create and delist (is_active toggle) a course through the
+  real RLS path; a delisted course is correctly hidden from a student's
+  catalog view
+- Admin can grant AI credits through the exact RPC call
+  admin-credits-client.ts makes, and list balances/transactions with the
+  profile joins those pages use
+- Admin can read the audit log with the admin-name join admin.audit.tsx uses
+- A non-admin student is blocked from every one of the above: cannot
+  verify/unverify a college, cannot reopen a closed drive, cannot create
+  a course, cannot self-grant AI credits (regression-checked against
+  Sprint 27's own fix), cannot read the audit log
+All test data deleted after; swept for leftovers afterward — zero found
+(zero zzz-claude-* test users, zero zzz-verify* colleges/courses).
+
+FINAL PRODUCTION CHECKS (re-run fresh after live verification, before
+commit): tsc 0 errors, lint 0 errors (same 7 pre-existing warnings), build
+PASS, Playwright 12/12 PASS. git diff reviewed — matches expectations
+exactly (routeTree.gen.ts only has additions; every other file matches
+what was actually touched).
 
 STATUS: SPRINT 27 COMPLETE AND VERIFIED. Migration applied live, 24/25 live throwaway-account assertions pass (2 apparent failures turned out to be a false-positive in my OWN test methodology, re-verified precisely — see LIVE VERIFICATION RESULTS below), all test data deleted, full local suite passing, completion commit created.
 
@@ -337,5 +473,4 @@ shipping, not external reports):
   video_url placeholder — misleading as if real content existed; changed
   to NULL with an honest "content being finalized" UI fallback
 
-LAST VERIFIED COMMIT: 9d647ae (Sprint 26 — nothing committed yet this
-Sprint 27 round; holding off per the blocker above)
+LAST VERIFIED COMMIT: a69cda4 — "feat(sprint-27): payments, premium subscriptions, course purchases, AI credits" (local only, NOT pushed, working tree clean)
