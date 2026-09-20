@@ -73,6 +73,20 @@ export const sendApplicationStatusEmailFn = createServerFn({ method: "POST" })
       .single();
     if (!profile?.email) return { error: "Candidate has no email on file." };
 
+    // Sprint 29 reference integration for notification preferences' email
+    // toggle — same "one reference call site, not universal coverage yet"
+    // scope choice as Sprint 27's AI-credits integration. No preference
+    // row yet defaults to sending (sensible default, matches
+    // create_notification()'s own default).
+    const { data: prefs } = await supabase
+      .from("notification_preferences")
+      .select("email_notifications")
+      .eq("profile_id", application.applicant_id)
+      .maybeSingle();
+    if (prefs?.email_notifications === false) {
+      return { error: null, sent: false };
+    }
+
     const result = await sendApplicationStatusEmail({
       to: profile.email,
       candidateName: profile.full_name ?? "there",

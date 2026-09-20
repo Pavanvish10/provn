@@ -2742,6 +2742,36 @@ export type Database = {
           },
         ]
       }
+      notification_preferences: {
+        Row: {
+          email_notifications: boolean
+          jobs: boolean
+          learning: boolean
+          placements: boolean
+          profile_id: string
+          social: boolean
+          updated_at: string
+        }
+        Insert: {
+          email_notifications?: boolean
+          jobs?: boolean
+          learning?: boolean
+          placements?: boolean
+          profile_id: string
+          social?: boolean
+          updated_at?: string
+        }
+        Update: {
+          email_notifications?: boolean
+          jobs?: boolean
+          learning?: boolean
+          placements?: boolean
+          profile_id?: string
+          social?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           actor_id: string | null

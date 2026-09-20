@@ -55,6 +55,15 @@ test.describe("Sprint 28 admin routes require auth", () => {
   }
 });
 
+test.describe("Sprint 29 notification routes require auth", () => {
+  for (const path of ["/notifications", "/business/notifications"]) {
+    test(`${path} redirects to /login when signed out`, async ({ page }) => {
+      await page.goto(path);
+      await expect(page).toHaveURL(/\/login/);
+    });
+  }
+});
+
 test("signup page renders without console errors", async ({ page }) => {
   const consoleErrors: string[] = [];
   page.on("console", (msg) => {

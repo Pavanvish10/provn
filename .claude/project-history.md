@@ -458,6 +458,95 @@ deleted and swept for leftovers (zero found).
 Full local suite (tsc/lint/build/Playwright, 12/12 — extended with 6 new
 route-guard checks for the new admin pages) clean.
 
+## Sprint 29 — Notifications & Communication System (complete, 2026-09-21)
+
+Requested as a broad checklist (in-app notifications, notification center,
+read/unread, categories, preferences, email integration, deep links,
+event coverage for student/recruiter/college/admin, RLS, tests). Far more
+already existed than expected: the `notifications` table, `create_notification()`
+(SECURITY DEFINER, anti-self-notify guard), ~20 real trigger call sites
+across nearly every prior sprint, full recipient-scoped RLS, and a
+complete client hook set (paginated infinite query, unread count,
+mark-read, mark-all-read, delete, **and Supabase Realtime, already
+wired into both notifications.tsx and business_.notifications.tsx**) —
+all predated this sprint.
+
+Genuine gaps found by inventorying first, confirmed by reading code
+directly rather than assumed:
+1. **A real, previously-undiscovered bug**: `useSendSystemNotification`
+   (admin-notifications-client.ts, from an earlier sprint) does a raw
+   client-side insert into `notifications`, but no INSERT policy for
+   `authenticated` has ever existed on that table (confirmed by grepping
+   every migration) — admin-sent system notifications have been silently
+   failing under RLS default-deny. Fixed with a policy scoped to
+   `is_admin() and type = 'system'` only, so an admin session can never
+   forge any other notification type.
+2. **Zero deep links** — clicking a notification only marked it read,
+   despite `entity_type`/`entity_id` already being stored. Built
+   `src/lib/notification-links.ts`, a resolver mapping every real
+   `(type, entity_type)` pair (enumerated by grepping every
+   `create_notification()` call site in migration history) to an actual
+   existing route — verified each target, not guessed: no single-post
+   page exists so like/comment → `/home`; no single-job page exists so
+   company_post/job_invite → `/apply`; `/messages` only accepts
+   `?to=<profileId>` (not a conversation id) so message → `/messages`;
+   `/interview/report` requires in-memory flow state
+   (`InterviewFlowController`) and can't be cold-deep-linked, so
+   mock_interview → `/interview-practice`; challenge_completion stores a
+   challenge UUID but the route is slug-based, resolved via a one-off
+   lookup at click time; job_update/interview/billing_update branch on
+   the viewer's account type since the same `type` serves both audiences
+   (each page passes a literal "student"/"company", no runtime lookup
+   needed — the two pages already are separate student/business routes).
+3. **`TYPE_META` was stale** in both notification pages — missing
+   job_invite/interview/company_post/drive_update/billing_update entirely.
+4. **No `notification_preferences` concept anywhere.** New table:
+   per-category in-app toggles (social/jobs/placements/learning) + one
+   `email_notifications` master switch. Billing/system categories have
+   **no column at all** (not just defaulted true) — Phase 8's "critical
+   notifications must not be disableable" enforced structurally.
+   `create_notification()` extended to consult preferences before
+   inserting — same function signature, zero changes needed at any of
+   the ~20 existing call sites.
+5. **Course purchases and AI credit-pack purchases never notified** —
+   only subscriptions did (via the pre-existing `on_subscription_status_change`
+   trigger). Added one new trigger on `payments` (`AFTER INSERT`,
+   `status = 'succeeded' AND subscription_id IS NULL`) reusing the
+   existing `billing_update` type — scoped by the data itself (subscription
+   payments always carry a `subscription_id`; course/credit-pack payments
+   never do) so it can never double-notify a subscription purchase.
+
+**A second real vulnerability caught during my own security review**
+before ever sharing the migration (same discipline as Sprint 27's two
+credit-function fixes): `notifications_recipient_update` had no column
+restriction — a user could rewrite their own notification's `message`/
+`type`/`entity_id`, not just `is_read`. Phase 12 of the task explicitly
+required "users cannot modify notification content." Fixed with the
+same `BEFORE UPDATE` trigger pattern already used twice in Sprint 26
+(`drive_applications`/`drive_notifications`) — restricts non-admin
+updates to `is_read` only.
+
+Migration: `supabase/migrations/20260922000000_notification_preferences.sql`.
+Applied live and verified with a 3-throwaway-account script exercising
+**real trigger paths** (an actual post + a real like, a real payments
+insert) rather than calling `create_notification()` directly — 13/13
+assertions pass: preference gating suppresses/allows notifications
+correctly, the content-tamper fix blocks rewriting while still allowing
+mark-as-read, the admin-insert fix works and stays scoped to `system`
+only, the new payment trigger fires for course/credit purchases and
+correctly does not double-fire for subscription payments. All test data
+deleted and swept for leftovers (zero found).
+
+One reference email-gating integration (matching Sprint 27's own "one
+reference call site, not universal coverage" scope choice, documented
+rather than silently narrow): `sendApplicationStatusEmailFn` in
+business-emails.server.ts now checks the recipient's `email_notifications`
+preference before sending.
+
+Full local suite (tsc/lint/build/Playwright 14/14 — added 2 new
+route-guard checks for `/notifications` and `/business/notifications`,
+which had no Playwright coverage at all before this sprint) clean.
+
 ## Known technical debt / TODOs (repository-wide, not just Sprint 26)
 
 - Every AI feature is gated behind `GEMINI_API_KEY` and degrades

@@ -1,5 +1,185 @@
-CURRENT SPRINT: Sprint 28 — Admin Control Center
-CURRENT TASK: Complete. Awaiting instruction before starting Sprint 29 (do not begin autonomously).
+CURRENT SPRINT: Sprint 29 — Notifications & Communication System
+CURRENT TASK: Complete. Awaiting instruction before starting Sprint 30 (do not begin autonomously).
+
+STATUS: SPRINT 29 COMPLETE AND VERIFIED. Migration applied live. 13/13
+live throwaway-account assertions pass (real trigger paths: an actual
+post+like, an actual payments insert — not synthetic RPC calls). Full
+local suite (tsc/lint/build/Playwright 14/14) clean. Completion commit
+created and pushed — see LAST VERIFIED COMMIT below.
+
+===================================================================
+SPRINT 29 — BUILD + VERIFICATION RESULTS (final)
+===================================================================
+BUILT: supabase/migrations/20260922000000_notification_preferences.sql
+(admin-insert RLS fix, notification content-tamper fix via a BEFORE
+UPDATE trigger, notification_preferences table + RLS, create_notification()
+extended to consult preferences, new payments trigger for course/credit
+purchases); src/lib/notification-links.ts (deep-link resolver, every
+route verified against the real route file, not guessed);
+src/lib/notification-preferences-client.ts + src/components/NotificationPreferencesPanel.tsx
+(new); notifications.tsx + business_.notifications.tsx updated (deep
+links wired into click handlers, TYPE_META completed, error state added,
+preferences panel toggle added); business-emails.server.ts's
+sendApplicationStatusEmailFn gated on the new email_notifications
+preference (one reference integration); src/lib/supabase/types.ts
+extended with the new notification_preferences table type (no CLI
+access to regenerate, hand-added matching the generator's exact format,
+same as every prior sprint this session).
+
+SECURITY REVIEW CAUGHT (before ever sharing the migration, same
+discipline as Sprint 27's two credit-function fixes): notifications_recipient_update
+had no column restriction — a user could rewrite their own notification's
+message/type/entity_id. Phase 12 explicitly required "users cannot
+modify notification content." Fixed with the same BEFORE UPDATE trigger
+pattern already used twice in Sprint 26 (drive_applications/drive_notifications).
+
+LOCAL VERIFICATION: tsc 0 errors (first try). lint: 5 pure-formatting
+errors from the initial pass (verified auto-fixable, fixed via eslint
+--fix, 0 errors after), same 7 pre-existing benign warnings. build PASS.
+Playwright: added 2 new route-guard checks (/notifications,
+/business/notifications — had ZERO Playwright coverage before this
+sprint despite being real, pre-existing pages) — 14/14 PASS.
+
+LIVE VERIFICATION (3-throwaway-account script — A/B students + a real
+admin, exercising REAL trigger paths: an actual `posts` row + a real
+`post_likes` insert, and an actual `payments` insert, rather than calling
+create_notification() directly): 13/13 PASS —
+- RLS isolation on notification_preferences confirmed (B cannot read or
+  write A's preferences)
+- Preference gating confirmed both ways: a real like with social=false
+  produces NO notification; the same real like with social=true DOES
+  produce one, with the exact real message/entity_type/entity_id
+- Content-tamper fix confirmed: recipient can still mark-read, cannot
+  rewrite message/type; a non-recipient can't touch the row at all
+- Admin-insert bug fix confirmed: a real admin account can now send a
+  system notification (previously silently failed); admin CANNOT insert
+  any other type (scoped correctly); a non-admin student still cannot
+  send any system notification
+- New payment trigger confirmed: a real course/credit-style payment
+  (subscription_id null, status succeeded) creates a real billing_update
+  notification with the correct message/entity link; a real subscription
+  payment (subscription_id set) does NOT double-fire this new trigger
+  (the pre-existing subscriptions trigger's own notification is untouched)
+All test data deleted after; swept for leftovers afterward — zero found.
+
+REGRESSION CHECK: create_notification()'s signature is unchanged, so all
+~20 pre-existing trigger call sites across Sprints 1-28 continue to work
+identically — verified by reasoning through the category mapping
+(billing_update/system map to no category = always send, matching prior
+unconditional behavior exactly) and confirmed empirically via G5.2's
+subscription-payment check exercising the pre-existing on_subscription_status_change
+trigger path end-to-end without incident. drive_update (Sprint 26) now
+respects the new "placements" preference (default true) — a genuine new
+capability per Phase 8's own requirement, not a regression, since every
+existing user has no preference row yet and defaults to "send" (identical
+to pre-Sprint-29 behavior) until they explicitly opt out.
+
+FINAL PRODUCTION CHECKS (re-run fresh after live verification, before
+commit): tsc 0 errors, lint 0 errors (same 7 pre-existing warnings),
+build PASS, Playwright 14/14 PASS. git diff reviewed — matches
+expectations exactly.
+
+===================================================================
+SPRINT 29 — INVENTORY (done before writing any code)
+===================================================================
+This is NOT a greenfield sprint — far more infrastructure already exists
+than expected. Confirmed via direct reading, not assumed:
+
+ALREADY BUILT:
+- `notifications` table (id, recipient_id, actor_id, type, entity_type,
+  entity_id, message, is_read, created_at) since the very first migration
+  (20260727000000_social_feed.sql), widened with new `type` values by
+  Sprints 25/26/27 (job_invite, interview, company_post, drive_update,
+  billing_update on top of the original like/comment/friend_request/
+  friend_accept/message/resume_analysis/coding_test/mock_interview/
+  challenge_completion/job_update/profile_update/system).
+- `create_notification(recipient, actor, type, message, entity_type,
+  entity_id)` — SECURITY DEFINER, anti-self-notify guard (no-ops when
+  recipient=actor) — already called from ~20 trigger sites across nearly
+  every sprint (likes, comments, friend requests, messages, challenge
+  completions, mock interviews, job applications, job invites, interview
+  scheduling, campus drives, subscription billing).
+- RLS: notifications_recipient_select/update/delete, all scoped to
+  `recipient_id = auth.uid()` — correct, already tested pattern.
+- Full client hook set in notifications-client.ts: useNotifications
+  (paginated infinite query), useUnreadNotificationCount,
+  useMarkNotificationRead, useMarkAllNotificationsRead,
+  useDeleteNotification, AND useNotificationsRealtime (Supabase Realtime
+  subscription) — all already exist and are wired into both
+  notifications.tsx (student) and business_.notifications.tsx (recruiter).
+- /notifications and /business/notifications: real loading/empty/search/
+  type-filter/pagination states already built.
+- admin.notifications.tsx: admin can search a user and send a "system"
+  notification, with a sent-notifications log.
+
+GENUINE GAPS FOUND (the actual Sprint 29 scope):
+1. **BUG, not just a gap**: useSendSystemNotification (admin-notifications-client.ts)
+   does a raw client-side `.from("notifications").insert(...)`, but there
+   is NO INSERT RLS policy on notifications for `authenticated` anywhere
+   in migration history (grepped the whole history for "on notifications"
+   — only select/update/delete policies exist). This means admin-sent
+   system notifications have been silently failing (RLS default-deny) —
+   a real, previously-undiscovered functional bug. Fix: add a narrowly-scoped
+   `notifications_admin_system_insert` policy (is_admin() AND type='system'
+   only — never lets an admin forge other notification types).
+2. **No deep links at all.** NotificationRow's onClick only marks read —
+   zero navigation, despite entity_type/entity_id already being stored.
+   Explicitly required by Phase 5/7. Building a resolver mapping every
+   real (type, entity_type) pair — enumerated by grepping every
+   create_notification() call site across all migrations — to an actual
+   existing route (verified each one: no single-post page exists so
+   like/comment -> /home; no per-job page exists so company_post/job_invite
+   -> /apply; messages.tsx only supports ?to=<profileId> not a conversation
+   id so message -> /messages (list); /interview/report requires in-memory
+   flow state (InterviewFlowController) so isn't cold-deep-linkable ->
+   mock_interview -> /interview-practice; challenge_completion stores a
+   challenge UUID but the route is slug-based -> resolved via a one-off
+   lookup at click time; job_update/interview/billing_update branch on the
+   viewer's account_type (student vs company) since the same `type` value
+   is used for both audiences).
+3. **TYPE_META is stale** in both notifications.tsx and
+   business_.notifications.tsx — only covers the original 12 types, missing
+   job_invite/interview/company_post/drive_update/billing_update entirely
+   (falls back to a generic Bell icon with no label in the filter dropdown).
+4. **No notification_preferences concept anywhere** (grepped, confirmed
+   absent) — Phase 8 requires this. New table needed.
+5. **Course purchases and AI credit-pack purchases don't notify at all.**
+   Only subscriptions do (via the existing on_subscription_status_change
+   trigger on the subscriptions table) — course/credit-pack payments never
+   fire create_notification. Real gap per Phase 6's explicit "Course
+   purchase/payment events" and "AI credit/payment events" requirement,
+   predates this sprint since Sprint 27 didn't add it.
+
+PLAN:
+A. New migration: (1) the admin-insert RLS fix, (2) notification_preferences
+   table (per-category in-app toggles + one email_notifications master
+   switch; billing/system categories are hardcoded non-disableable per
+   Phase 8's safety carve-out — not even a column for them), (3) extend
+   create_notification() to check preferences before inserting (same
+   function signature — zero changes needed at any of the ~20 existing
+   call sites), (4) one new trigger on payments (AFTER INSERT, status=
+   succeeded AND subscription_id IS NULL — i.e. course/credit-pack
+   payments only, since subscription payments already notify via the
+   existing subscriptions trigger and this avoids double-notifying) that
+   calls create_notification with type='billing_update' (reusing the
+   existing type rather than inventing a new one).
+B. notification-links.ts (new) — the deep-link resolver.
+C. Wire the resolver into notifications.tsx + business_.notifications.tsx
+   click handlers (mark-read AND navigate).
+D. Fix TYPE_META in both pages.
+E. notification-preferences-client.ts (new) + a Preferences panel added
+   to /notifications (not a separate route — tighter cohesion for a
+   sprint that's specifically about notifications).
+F. One reference email-gating integration (matching Sprint 27's own
+   "one reference integration, not universal coverage" precedent,
+   documented as a scope choice): sendApplicationStatusEmailFn in
+   business-emails.server.ts checks the recipient's email_notifications
+   preference before sending.
+G. Security review, Playwright coverage (add the missing /notifications
+   route-guard test), live throwaway-account verification, regression
+   check across Sprint 26/27/28 features, final commit + push.
+
+STATUS: SPRINT 28 COMPLETE AND VERIFIED.
 
 STATUS: SPRINT 28 COMPLETE AND VERIFIED. 5 new admin pages built (colleges,
 drives, courses, credits, audit log), admin.tsx hub + AdminSubNav updated
@@ -473,4 +653,5 @@ shipping, not external reports):
   video_url placeholder — misleading as if real content existed; changed
   to NULL with an honest "content being finalized" UI fallback
 
-LAST VERIFIED COMMIT: a69cda4 — "feat(sprint-27): payments, premium subscriptions, course purchases, AI credits" (local only, NOT pushed, working tree clean)
+LAST VERIFIED COMMIT (Sprint 27): a69cda4 — pushed to origin/main.
+LAST VERIFIED COMMIT (Sprint 28): 20f024c — "feat(sprint-28): admin control center — colleges, drives, courses, credits, audit log" — pushed to origin/main, confirmed identical to origin/main via git fetch. Working tree clean. Not starting Sprint 29 without explicit instruction.

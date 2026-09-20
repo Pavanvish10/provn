@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppNav";
 import {
   Bell,
@@ -16,6 +16,12 @@ import {
   Search,
   Trash2,
   CheckCheck,
+  Send,
+  CalendarClock,
+  Megaphone,
+  GraduationCap,
+  CreditCard,
+  Settings2,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { requireAuth } from "@/lib/auth-guard";
@@ -29,6 +35,9 @@ import {
   useNotificationsRealtime,
   type Notification,
 } from "@/lib/notifications-client";
+import { resolveNotificationHref } from "@/lib/notification-links";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { NotificationPreferencesPanel } from "@/components/NotificationPreferencesPanel";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -70,6 +79,11 @@ const TYPE_META: Record<
   mock_interview: { label: "Mock interview", icon: Mic },
   challenge_completion: { label: "Challenge", icon: Trophy },
   job_update: { label: "Job update", icon: Briefcase },
+  job_invite: { label: "Job invite", icon: Send },
+  interview: { label: "Interview", icon: CalendarClock },
+  company_post: { label: "Company post", icon: Megaphone },
+  drive_update: { label: "Placement drive", icon: GraduationCap },
+  billing_update: { label: "Billing", icon: CreditCard },
   profile_update: { label: "Profile", icon: UserCircle2 },
   system: { label: "System", icon: Bell },
 };
@@ -80,6 +94,7 @@ function iconFor(type: string) {
 
 function Notifs() {
   const { data: user } = useCurrentUser();
+  const navigate = useNavigate();
   useNotificationsRealtime(user?.id);
 
   const notifications = useNotifications(user?.id);
@@ -90,6 +105,13 @@ function Notifs() {
 
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [showPreferences, setShowPreferences] = useState(false);
+
+  const openNotification = async (n: Notification) => {
+    if (!n.is_read) markRead.mutate(n.id);
+    const href = await resolveNotificationHref(getSupabaseBrowserClient(), n, "student");
+    if (href) navigate({ to: href });
+  };
 
   const all = useMemo(
     () => notifications.data?.pages.flatMap((p) => p.items) ?? [],
@@ -112,15 +134,26 @@ function Notifs() {
             <p className="mt-1 text-sm text-muted-foreground">{unreadCount} unread</p>
           )}
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => markAllRead.mutate()}
-          disabled={!unreadCount || markAllRead.isPending}
-        >
-          <CheckCheck className="mr-1.5 h-3.5 w-3.5" /> Mark all as read
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={() => setShowPreferences((v) => !v)}>
+            <Settings2 className="mr-1.5 h-3.5 w-3.5" /> Preferences
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => markAllRead.mutate()}
+            disabled={!unreadCount || markAllRead.isPending}
+          >
+            <CheckCheck className="mr-1.5 h-3.5 w-3.5" /> Mark all as read
+          </Button>
+        </div>
       </div>
+
+      {showPreferences && (
+        <div className="mb-6">
+          <NotificationPreferencesPanel userId={user?.id} />
+        </div>
+      )}
 
       <div className="mb-6 flex flex-wrap gap-3">
         <div className="relative max-w-sm flex-1">
@@ -151,7 +184,13 @@ function Notifs() {
         <div className="py-16 text-center text-sm text-muted-foreground">Loading…</div>
       )}
 
-      {!notifications.isLoading && all.length === 0 && (
+      {notifications.isError && (
+        <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-6 text-center text-sm text-destructive">
+          Couldn't load notifications. Try refreshing the page.
+        </div>
+      )}
+
+      {!notifications.isLoading && !notifications.isError && all.length === 0 && (
         <div className="rounded-2xl border border-dashed border-border p-12 text-center text-sm text-muted-foreground">
           No notifications yet.
         </div>
@@ -169,7 +208,7 @@ function Notifs() {
             <NotificationRow
               key={n.id}
               notification={n}
-              onMarkRead={() => markRead.mutate(n.id)}
+              onOpen={() => openNotification(n)}
               onDelete={() => deleteNotification.mutate(n.id)}
             />
           ))}
@@ -193,20 +232,18 @@ function Notifs() {
 
 function NotificationRow({
   notification,
-  onMarkRead,
+  onOpen,
   onDelete,
 }: {
   notification: Notification;
-  onMarkRead: () => void;
+  onOpen: () => void;
   onDelete: () => void;
 }) {
   const Icon = iconFor(notification.type);
   return (
     <div
       className="group flex items-start gap-3 border-b border-border p-4 last:border-b-0 hover:bg-muted/40"
-      onClick={() => {
-        if (!notification.is_read) onMarkRead();
-      }}
+      onClick={onOpen}
       role="button"
       tabIndex={0}
     >

@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   Bell,
   Heart,
@@ -16,6 +16,8 @@ import {
   Trash2,
   CheckCheck,
   CalendarClock,
+  CreditCard,
+  Settings2,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { BusinessShell } from "@/components/BusinessNav";
@@ -30,6 +32,9 @@ import {
   useNotificationsRealtime,
   type Notification,
 } from "@/lib/notifications-client";
+import { resolveNotificationHref } from "@/lib/notification-links";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { NotificationPreferencesPanel } from "@/components/NotificationPreferencesPanel";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -65,6 +70,7 @@ const TYPE_META: Record<
   interview: { label: "Interviews", icon: CalendarClock },
   job_invite: { label: "Invitations", icon: UserPlus },
   company_post: { label: "Job posts", icon: Briefcase },
+  billing_update: { label: "Billing", icon: CreditCard },
   system: { label: "System", icon: Bell },
 };
 
@@ -74,6 +80,7 @@ function iconFor(type: string) {
 
 function BusinessNotifications() {
   const { data: user } = useCurrentUser();
+  const navigate = useNavigate();
   useNotificationsRealtime(user?.id);
 
   const notifications = useNotifications(user?.id);
@@ -84,6 +91,13 @@ function BusinessNotifications() {
 
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [showPreferences, setShowPreferences] = useState(false);
+
+  const openNotification = async (n: Notification) => {
+    if (!n.is_read) markRead.mutate(n.id);
+    const href = await resolveNotificationHref(getSupabaseBrowserClient(), n, "company");
+    if (href) navigate({ to: href });
+  };
 
   const all = useMemo(
     () => notifications.data?.pages.flatMap((p) => p.items) ?? [],
@@ -106,15 +120,26 @@ function BusinessNotifications() {
             <p className="mt-1 text-sm text-muted-foreground">{unreadCount} unread</p>
           )}
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => markAllRead.mutate()}
-          disabled={!unreadCount || markAllRead.isPending}
-        >
-          <CheckCheck className="mr-1.5 h-3.5 w-3.5" /> Mark all as read
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={() => setShowPreferences((v) => !v)}>
+            <Settings2 className="mr-1.5 h-3.5 w-3.5" /> Preferences
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => markAllRead.mutate()}
+            disabled={!unreadCount || markAllRead.isPending}
+          >
+            <CheckCheck className="mr-1.5 h-3.5 w-3.5" /> Mark all as read
+          </Button>
+        </div>
       </div>
+
+      {showPreferences && (
+        <div className="mb-6">
+          <NotificationPreferencesPanel userId={user?.id} />
+        </div>
+      )}
 
       <div className="mb-6 flex flex-wrap gap-3">
         <div className="relative max-w-sm flex-1">
@@ -145,7 +170,13 @@ function BusinessNotifications() {
         <div className="py-16 text-center text-sm text-muted-foreground">Loading…</div>
       )}
 
-      {!notifications.isLoading && all.length === 0 && (
+      {notifications.isError && (
+        <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-6 text-center text-sm text-destructive">
+          Couldn't load notifications. Try refreshing the page.
+        </div>
+      )}
+
+      {!notifications.isLoading && !notifications.isError && all.length === 0 && (
         <div className="rounded-2xl border border-dashed border-border p-12 text-center text-sm text-muted-foreground">
           No notifications yet.
         </div>
@@ -163,7 +194,7 @@ function BusinessNotifications() {
             <NotificationRow
               key={n.id}
               notification={n}
-              onMarkRead={() => markRead.mutate(n.id)}
+              onOpen={() => openNotification(n)}
               onDelete={() => deleteNotification.mutate(n.id)}
             />
           ))}
@@ -187,20 +218,18 @@ function BusinessNotifications() {
 
 function NotificationRow({
   notification,
-  onMarkRead,
+  onOpen,
   onDelete,
 }: {
   notification: Notification;
-  onMarkRead: () => void;
+  onOpen: () => void;
   onDelete: () => void;
 }) {
   const Icon = iconFor(notification.type);
   return (
     <div
       className="group flex items-start gap-3 border-b border-border p-4 last:border-b-0 hover:bg-muted/40"
-      onClick={() => {
-        if (!notification.is_read) onMarkRead();
-      }}
+      onClick={onOpen}
       role="button"
       tabIndex={0}
     >
