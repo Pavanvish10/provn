@@ -1,5 +1,181 @@
-CURRENT SPRINT: Sprint 29 — Notifications & Communication System
-CURRENT TASK: Complete. Awaiting instruction before starting Sprint 30 (do not begin autonomously).
+CURRENT SPRINT: 30 — Production Engineering, Performance, Reliability & Production Readiness
+CURRENT TASK: Complete. Awaiting instruction before starting Sprint 31 (do not begin autonomously).
+STATUS: SPRINT 30 COMPLETE AND VERIFIED. Migration applied live by the user
+and confirmed via a 9-assertion live probe (disposable test profile + real
+payment inserts) — 9/9 PASS, including the one that actually matters: a
+second payment insert reusing the same idempotency_key was rejected with a
+real Postgres unique-violation (code 23505), proving the credit-pack
+double-payment fix is enforced at the database level, not just in
+application code. Full local suite (tsc/lint/build/Playwright 16/16) clean
+both before and after the live verification pass. Completion commit created
+— see LAST COMMIT below. Not pushed (push not requested this sprint).
+
+COMPLETED:
+- Full repository audit (git state, package.json scripts, vite/tsconfig,
+  85 routes / 89 lib files / 55 migrations inventoried)
+- Baseline verification (tsc/lint/build/Playwright all green before any change)
+- Parallel multi-agent audit across performance, database indexing, security/
+  authorization, and payment-idempotency/resilience (see findings below)
+- Removed 3 pre-existing accidental shell-redirect artifact files that had
+  been committed into the repo root by mistake in an old session ("Bash tool
+  output (y0050d).txt", "Grep output (xxc48s).txt", "et HEAD~1") — junk, not
+  functionality; confirmed via `git log` they were debris from commit
+  b926338, not anything a prior sprint relied on
+- Fixed a real N+1/unbounded-fetch in useBusinessAnalytics (business-analytics-client.ts):
+  funnel counts were computed by downloading every job_applications row for
+  a company and reducing in JS; now 7 parallel `count: exact, head: true`
+  queries — same result, bounded regardless of application volume
+- Narrowed two `select("*")` skills queries (company-client.ts already had
+  the correct narrow-select pattern elsewhere; recruiter-client.ts's
+  candidate search did not) to the 3 columns actually consumed
+- Added a `.limit(2000)` safety cap to messages-client.ts's unread-count
+  query, which had no bound and could grow with a user's total unread
+  backlog across all conversations
+- Fixed a real payment-duplication bug in createCoursePurchaseCheckoutFn
+  (payments.server.ts): the payments row was inserted BEFORE the
+  course_purchases uniqueness check, so two near-simultaneous requests
+  (retry after a timeout, two tabs) could each pass and create two payment
+  rows / orphaned purchases. Reordered to insert course_purchases FIRST
+  (its real `unique(course_id, profile_id)` constraint is what's actually
+  race-safe), with a compensating delete if the payment insert then fails
+- Fixed a real gap in createCreditPackCheckoutFn: no uniqueness guard of any
+  kind existed (unlike subscriptions/course purchases, credit packs have no
+  natural one-per-user constraint since repeat purchases are legitimate).
+  Added a client-generated idempotency key threaded through to a new
+  `payments.idempotency_key` column (nullable + partial unique index,
+  migration below) — a duplicate request with the same key now returns the
+  already-granted result instead of double-charging/double-granting credits
+- Added AbortSignal timeouts (15s/20s) to Judge0's two raw `fetch` calls
+  (judge0.server.ts), which previously had none and could hang indefinitely
+  on a slow/unresponsive RapidAPI endpoint; both paths already had try/catch
+  returning typed `{error}` responses to the caller, confirmed by the audit
+- Fixed 4 real bugs already documented (but not fixed) in DEPLOYMENT_CHECKLIST.md
+  from an earlier pre-launch audit pass, re-verified still present before
+  touching anything:
+  1. Onboarding dead-end: resume-setup.tsx's "Fill in your profile instead"
+     link sent mid-onboarding users to /profile, which wasn't in
+     auth-guard.ts's STUDENT_ONBOARDING_PATHS allowlist, so requireAuth
+     bounced them straight back to step 1. Added "/profile" to the allowlist.
+  2. Silent write failure in plan.tsx's finishOnboarding: the
+     premium_subscriptions upsert's error was discarded and onboarding
+     completed anyway. Now checked and surfaced via a new finishError state
+     rendered near both "Continue Free" buttons.
+  3. Same silent-failure pattern in location.tsx and profession.tsx
+     (updateProfile.mutateAsync rejection had no catch — unhandled
+     rejection, spinner just stopped with zero feedback). Both now catch
+     and show a destructive-text error message.
+  4. Unguarded resume-URL fetches in business_.applicants.tsx (2 call
+     sites: card "Resume" button and the detail-sheet preview) — a failed
+     signed-URL request was an unhandled rejection with the click doing
+     nothing. Both now try/catch with a sonner toast.error.
+  5. Shell inconsistency: business_.advertising.tsx and business_.marketing.tsx
+     rendered in the generic AppShell instead of BusinessShell despite being
+     linked from the Business Hub sidebar, dropping the user out of the
+     business layout. Both now use BusinessShell (matching every other
+     /business/* page), redundant manual "Business Hub" back-links removed.
+  (Checklist item 6, the /interview/* anonymous-access policy question, was
+  re-checked and found already resolved in a later sprint — every
+  /interview/* route now calls requireAuth. Nothing to do.)
+- Extended e2e/smoke.spec.ts with 2 new route-guard tests for the two
+  BusinessShell-migrated routes (/business/advertising, /business/marketing)
+- Security audit (parallel agent, ~28 files: every createServerFn accepting
+  a client-supplied id, secret-leakage grep, console.log/PII grep, the
+  Stripe webhook route, RLS `using (true)` policies): came back clean — no
+  new findings. Confirms Sprints 26-29's authorization work already closed
+  what mattered; documented as "audited, no action needed" rather than
+  invented findings.
+
+IN PROGRESS: (none)
+
+REMAINING: (none for this sprint)
+
+FILES MODIFIED (16 total, see git diff --stat for exact line counts):
+.claude/progress.md, e2e/smoke.spec.ts, src/lib/auth-guard.ts,
+src/lib/business-analytics-client.ts, src/lib/judge0.server.ts,
+src/lib/messages-client.ts, src/lib/payments-client.ts,
+src/lib/payments.server.ts, src/lib/recruiter-client.ts,
+src/lib/supabase/types.ts, src/routes/business_.advertising.tsx,
+src/routes/business_.applicants.tsx, src/routes/business_.marketing.tsx,
+src/routes/location.tsx, src/routes/plan.tsx, src/routes/profession.tsx.
+Deleted: 3 stray root-level artifact files (see above).
+New: supabase/migrations/20260923000000_sprint30_performance_indexes.sql
+
+DATABASE CHANGES — applied live by the user, confirmed via live probe:
+- 5 new indexes, each justified by a real, currently-shipping query (not
+  speculative): jobs (status, posted_at desc), jobs (company_id, status,
+  posted_at desc), drive_applications (drive_id, ai_fit_score desc),
+  drive_applications (student_id, applied_at desc), notifications
+  (recipient_id) where is_read = false (partial), subscriptions
+  (profile_id, status). Verified functionally (the exact query shape each
+  index targets executes cleanly against the live schema).
+- payments.idempotency_key: nullable text column + partial unique index
+  (where idempotency_key is not null) — backs the credit-pack duplicate-
+  payment fix above. Additive only; no existing column, RLS policy, or
+  constraint touched. Verified directly and conclusively: a disposable
+  test profile + two real payment inserts sharing one idempotency_key —
+  the first succeeded, the second was rejected with Postgres error code
+  23505 (unique violation). A third insert with a different key still
+  succeeded (constraint isn't overly broad), and two inserts with
+  idempotency_key left null (the subscriptions/course-purchase paths,
+  which don't use this column) were both still allowed (partial index
+  scoping is correct). All disposable data deleted after; a separate
+  sweep query confirmed zero leftover test profiles/payments.
+
+TESTS (re-run fresh before AND after the live DB verification, all green
+both times):
+- npx tsc --noEmit: PASS, 0 errors
+- npm run lint: PASS, 0 errors, 7 pre-existing benign warnings (unchanged)
+- npm run build: PASS
+- npx playwright test: PASS, 16/16 (14 baseline + 2 new for this sprint)
+- Live DB verification script (disposable profile, real inserts, deleted
+  after): 9/9 PASS
+
+ERRORS FOUND: see COMPLETED above (N+1/unbounded queries, payment
+duplication race, missing fetch timeouts, 5 documented-but-unfixed
+DEPLOYMENT_CHECKLIST bugs). No new security vulnerabilities found this
+sprint (parallel audit came back clean).
+
+ERRORS FIXED: all of the above — see COMPLETED. Nothing found and left
+unfixed this sprint.
+
+LAST VERIFIED COMMAND: npx playwright test (post-live-DB-verification run)
+LAST VERIFIED RESULT: 16 passed (38.9s)
+
+LAST COMMIT: see git log — Sprint 30 completion commit created after this
+progress-file update, following the same "commit only after genuine full
+verification passes" discipline as every prior sprint.
+
+NEXT EXACT ACTION: None for Sprint 30 — complete. Do NOT start Sprint 31
+without explicit instruction.
+
+Repository state at Sprint 30 start:
+- Branch: main, HEAD fd56a6e, origin/main fd56a6e (in sync)
+- Last completed sprint: 29 (notifications & communication system)
+- Stack: TanStack Start 1.168.x + Vite 8 + React 19, Supabase Postgres/Auth,
+  deployed to Vercel via Nitro preset "vercel" (vite.config.ts hard-pins this).
+  SSR forced to a single output chunk (manualChunks) to work around a real
+  ESM circular-import crash discovered in a prior sprint — documented inline
+  in vite.config.ts, do not "simplify" this away.
+- 85 routes (src/routes), 89 lib files (src/lib), 55 migrations
+  (supabase/migrations), Playwright suite: e2e/smoke.spec.ts (14 tests,
+  all route-guard/console-error smoke checks — no seeded auth credentials
+  in this environment so no authenticated-flow E2E coverage exists).
+- No CLI/psql access to Supabase this session either (consistent with
+  Sprints 26-29) — any migration must be handed to the user to run via the
+  Supabase SQL editor, then verified via probe script.
+
+BASELINE (before any Sprint 30 change):
+- npx tsc --noEmit: PASS, 0 errors
+- npm run lint: PASS, 0 errors, 7 pre-existing benign
+  react-refresh/only-export-components warnings (unchanged since Sprint 26)
+- npm run build: PASS. Client build already code-splits per route (262
+  static asset chunks); largest gzip chunk ~98KB (a chart library chunk,
+  lazy per-route) — no global bundle-bloat issue found, so Phase 2 bundle
+  work is not needed.
+- npx playwright test: PASS, 14/14
+
+CURRENT SPRINT: Sprint 29 — Notifications & Communication System (historical, see full detail below)
+CURRENT TASK: Complete. Awaiting instruction before starting Sprint 30 (do not begin autonomously). [SUPERSEDED — Sprint 30 now in progress, see block above]
 
 STATUS: SPRINT 29 COMPLETE AND VERIFIED. Migration applied live. 13/13
 live throwaway-account assertions pass (real trigger paths: an actual

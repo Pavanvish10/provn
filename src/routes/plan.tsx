@@ -61,18 +61,24 @@ function PlanPage() {
   const [showPro, setShowPro] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [subscribeError, setSubscribeError] = useState<string | null>(null);
+  const [finishError, setFinishError] = useState<string | null>(null);
 
   const finishOnboarding = async () => {
     if (!user) return;
     setFinishing(true);
+    setFinishError(null);
     try {
       const supabase = getSupabaseBrowserClient();
-      await supabase
+      const { error } = await supabase
         .from("premium_subscriptions")
         .upsert(
           { profile_id: user.id, plan: "free", status: "active" },
           { onConflict: "profile_id" },
         );
+      if (error) {
+        setFinishError("Couldn't set up your plan. Please try again.");
+        return;
+      }
       await updateProfile.mutateAsync({ onboarding_completed: true });
       await invalidateCurrentUser(queryClient);
       await router.invalidate();
@@ -162,9 +168,20 @@ function PlanPage() {
                 { on: false, t: "Unlimited mock interviews &amp; tests" },
               ]}
               cta={
-                <Button size="lg" variant="outline" className="w-full" onClick={chooseFree}>
-                  Continue Free
-                </Button>
+                <div>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="w-full"
+                    onClick={chooseFree}
+                    disabled={finishing}
+                  >
+                    Continue Free
+                  </Button>
+                  {finishError && (
+                    <p className="mt-2 text-center text-xs text-destructive">{finishError}</p>
+                  )}
+                </div>
               }
             />
             <PlanCard
@@ -255,6 +272,9 @@ function PlanPage() {
                   >
                     Continue on Free for now
                   </Button>
+                  {finishError && (
+                    <p className="mt-2 text-center text-xs text-destructive">{finishError}</p>
+                  )}
                   <Button variant="ghost" className="mt-2 w-full" onClick={() => setShowPro(false)}>
                     Back to plans
                   </Button>

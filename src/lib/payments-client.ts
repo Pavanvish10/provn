@@ -256,7 +256,7 @@ export function useCreateCreditPackCheckout(userId: string | undefined) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (vars: { packCode: string; successUrl: string; cancelUrl: string }) =>
-      createCreditPackCheckoutFn({ data: vars }),
+      createCreditPackCheckoutFn({ data: { ...vars, idempotencyKey: crypto.randomUUID() } }),
     onSuccess: (result) => {
       if (!result.error && result.activated) {
         queryClient.invalidateQueries({ queryKey: myCreditBalanceQueryKey(userId) });

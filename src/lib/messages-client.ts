@@ -109,7 +109,8 @@ export function useConversations(userId: string | undefined) {
         .select("conversation_id, created_at")
         .in("conversation_id", conversationIds)
         .neq("sender_id", userId!)
-        .gt("created_at", minReadAt);
+        .gt("created_at", minReadAt)
+        .limit(2000);
       if (unreadError) throw unreadError;
 
       const unreadCounts = new Map<string, number>();

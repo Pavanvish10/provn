@@ -51,6 +51,7 @@ function LocationPage() {
   const [q, setQ] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const filtered = useMemo(
     () =>
@@ -61,9 +62,12 @@ function LocationPage() {
   const submit = async () => {
     if (!selected) return;
     setSubmitting(true);
+    setSubmitError(null);
     try {
       await updateProfile.mutateAsync({ location: selected });
       nav({ to: "/profession" });
+    } catch {
+      setSubmitError("Couldn't save your location. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -156,6 +160,7 @@ function LocationPage() {
             )}
           </div>
 
+          {submitError && <p className="mt-4 text-sm text-destructive">{submitError}</p>}
           <div className="mt-6 flex gap-3">
             <Button variant="ghost" onClick={() => nav({ to: "/value-prop" })}>
               Back

@@ -52,6 +52,7 @@ function Profession() {
   const updateProfile = useUpdateProfile(user?.id);
   const [sel, setSel] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -108,6 +109,7 @@ function Profession() {
           })}
         </div>
 
+        {submitError && <p className="mt-4 text-sm text-destructive">{submitError}</p>}
         <div className="mt-10 flex items-center gap-3">
           <Button variant="ghost" onClick={() => nav({ to: "/location" })}>
             Back
@@ -118,9 +120,12 @@ function Profession() {
             className="ml-auto"
             onClick={async () => {
               setSubmitting(true);
+              setSubmitError(null);
               try {
                 await updateProfile.mutateAsync({ persona: sel! });
                 nav({ to: "/profile-details" });
+              } catch {
+                setSubmitError("Couldn't save your selection. Please try again.");
               } finally {
                 setSubmitting(false);
               }

@@ -2868,6 +2868,7 @@ export type Database = {
           currency: string
           description: string | null
           id: string
+          idempotency_key: string | null
           plan_id: string | null
           profile_id: string
           provider: string
@@ -2883,6 +2884,7 @@ export type Database = {
           currency?: string
           description?: string | null
           id?: string
+          idempotency_key?: string | null
           plan_id?: string | null
           profile_id: string
           provider?: string
@@ -2898,6 +2900,7 @@ export type Database = {
           currency?: string
           description?: string | null
           id?: string
+          idempotency_key?: string | null
           plan_id?: string | null
           profile_id?: string
           provider?: string

@@ -31,20 +31,33 @@ export function useBusinessAnalytics(companyId: string | undefined) {
         .eq("company_id", companyId!);
       const jobIds = (jobs ?? []).map((j) => j.id);
 
-      const [{ count: followers }, applicationsRes] = await Promise.all([
-        supabase
-          .from("company_follows")
-          .select("id", { count: "exact", head: true })
-          .eq("company_id", companyId!),
-        jobIds.length > 0
-          ? supabase.from("job_applications").select("status").in("job_id", jobIds)
-          : Promise.resolve({ data: [] as { status: string }[] }),
-      ]);
+      const [{ count: followers }, { count: totalApplicants }, ...funnelCounts] = await Promise.all(
+        [
+          supabase
+            .from("company_follows")
+            .select("id", { count: "exact", head: true })
+            .eq("company_id", companyId!),
+          jobIds.length > 0
+            ? supabase
+                .from("job_applications")
+                .select("id", { count: "exact", head: true })
+                .in("job_id", jobIds)
+            : Promise.resolve({ count: 0 }),
+          ...FUNNEL_STAGES.map((stage) =>
+            jobIds.length > 0
+              ? supabase
+                  .from("job_applications")
+                  .select("id", { count: "exact", head: true })
+                  .in("job_id", jobIds)
+                  .eq("status", stage)
+              : Promise.resolve({ count: 0 }),
+          ),
+        ],
+      );
 
-      const applications = applicationsRes.data ?? [];
-      const funnel = FUNNEL_STAGES.map((stage) => ({
+      const funnel = FUNNEL_STAGES.map((stage, i) => ({
         stage,
-        count: applications.filter((a) => a.status === stage).length,
+        count: funnelCounts[i]?.count ?? 0,
       }));
 
       const modeCounts = new Map<string, number>();
@@ -56,7 +69,7 @@ export function useBusinessAnalytics(companyId: string | undefined) {
       return {
         totalJobs: jobs?.length ?? 0,
         openJobs: (jobs ?? []).filter((j) => j.status === "open").length,
-        totalApplicants: applications.length,
+        totalApplicants: totalApplicants ?? 0,
         followers: followers ?? 0,
         funnel,
         jobsByWorkMode: Array.from(modeCounts.entries()).map(([mode, count]) => ({ mode, count })),

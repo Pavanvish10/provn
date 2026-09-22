@@ -75,12 +75,18 @@ export function useCandidateSearch(filters: CandidateSearchFilters) {
       if (!profiles || profiles.length === 0) return [];
 
       const ids = profiles.map((p) => p.id);
-      let skillQuery = supabase.from("skills").select("*").in("profile_id", ids);
+      let skillQuery = supabase
+        .from("skills")
+        .select("profile_id, skill_name, verified")
+        .in("profile_id", ids);
       if (filters.verifiedOnly) skillQuery = skillQuery.eq("verified", true);
       const { data: skills, error: skillError } = await skillQuery;
       if (skillError) throw skillError;
 
-      const skillsByProfile = new Map<string, SkillRow[]>();
+      const skillsByProfile = new Map<
+        string,
+        Pick<SkillRow, "profile_id" | "skill_name" | "verified">[]
+      >();
       for (const s of skills ?? []) {
         const list = skillsByProfile.get(s.profile_id!) ?? [];
         list.push(s);

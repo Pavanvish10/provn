@@ -14,6 +14,11 @@ const STUDENT_ONBOARDING_PATHS = new Set([
   "/profession",
   "/profile-details",
   "/resume-setup",
+  // resume-setup.tsx's "Fill in your profile instead" link sends a
+  // mid-onboarding user here — without this, requireAuth bounced them
+  // straight back to step 1 (documented dead-end in
+  // DEPLOYMENT_CHECKLIST.md, confirmed still present).
+  "/profile",
   "/plan",
 ]);
 

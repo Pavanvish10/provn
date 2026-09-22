@@ -64,6 +64,15 @@ test.describe("Sprint 29 notification routes require auth", () => {
   }
 });
 
+test.describe("Sprint 30: business routes moved to BusinessShell still require auth", () => {
+  for (const path of ["/business/advertising", "/business/marketing"]) {
+    test(`${path} redirects to /login when signed out`, async ({ page }) => {
+      await page.goto(path);
+      await expect(page).toHaveURL(/\/login/);
+    });
+  }
+});
+
 test("signup page renders without console errors", async ({ page }) => {
   const consoleErrors: string[] = [];
   page.on("console", (msg) => {

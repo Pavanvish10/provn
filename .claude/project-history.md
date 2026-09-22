@@ -547,6 +547,155 @@ Full local suite (tsc/lint/build/Playwright 14/14 — added 2 new
 route-guard checks for `/notifications` and `/business/notifications`,
 which had no Playwright coverage at all before this sprint) clean.
 
+## Sprint 30 — Production Engineering, Performance & Reliability (complete, 2026-09-22)
+
+Not a feature sprint — explicitly scoped to making the existing platform
+faster, more reliable, and safer to run in production, without removing or
+weakening anything. Audited via 4 parallel focused passes (performance,
+database indexing, security/authorization, payment-idempotency/resilience)
+rather than a single linear read-through, each grounded in grep evidence
+against real call sites before any fix was written.
+
+**Performance** — 4 real, verified findings fixed:
+1. `useBusinessAnalytics` (business-analytics-client.ts) downloaded every
+   `job_applications` row for a company and reduced funnel counts in JS —
+   unbounded as application history grows. Replaced with 7 parallel
+   `count: exact, head: true` queries (one per funnel stage + total).
+2. Two `skills` queries used `select("*")` when only `profile_id`/
+   `skill_name`/`verified` were consumed downstream (company-client.ts
+   already had the correct narrow-select version elsewhere in the same
+   file — recruiter-client.ts's candidate search didn't; narrowed to match).
+3. messages-client.ts's unread-count query had no bound — a user's total
+   unread backlog across all conversations was fetched in full just to
+   count it in JS. Added a `.limit(2000)` safety cap.
+4. `useCompanyApplications` (company-client.ts) independently re-fetches
+   `jobs` by `company_id` when `useCompanyJobs` already fetched the same
+   table on the same page (business_.applicants.tsx uses both) —
+   documented but deliberately **not** fixed: the duplication is one small,
+   bounded query per page load (a company's own job count), not a
+   scaling risk, and de-duplicating it would mean threading fetched data
+   through a hook signature change across multiple call sites for
+   marginal gain — judged disproportionate for this sprint.
+
+**Database indexing** — 5 new indexes, each justified by a real,
+currently-shipping query (grepped from every `.eq()`/`.order()` call in
+`src/lib/*-client.ts` against what's actually indexed in all 55 prior
+migrations, not proposed speculatively):
+`jobs (status, posted_at desc)`, `jobs (company_id, status, posted_at
+desc)` — the public job board and a company's own list both sort what
+they filter, existing indexes were single-column only.
+`drive_applications (drive_id, ai_fit_score desc)`, `drive_applications
+(student_id, applied_at desc)` — same gap, a drive's applicant ranking
+and a student's own application history.
+`notifications (recipient_id) where is_read = false` (partial) — the
+unread-badge count polls this exact filter for every signed-in user; a
+partial index keeps it small since `is_read` only ever flips one way.
+`subscriptions (profile_id, status)` — the premium-entitlement check
+(`profile_id = X and status in (...)`) runs on nearly every gated action.
+New migration: `supabase/migrations/20260923000000_sprint30_performance_indexes.sql`.
+Applied live by the user via the Supabase SQL editor (no CLI/psql access
+this session, same constraint as every prior sprint) and confirmed via a
+live probe script: each index's target query shape executes cleanly, and
+— the assertion that actually matters — a disposable test profile's
+second payment insert reusing the same `idempotency_key` was rejected
+with a real Postgres unique-violation (code 23505), proving the new
+partial unique index enforces the fix at the database level. All test
+data deleted after and swept for leftovers (zero found).
+
+**A real payment-duplication bug**, exactly the kind Phase 11 of the task
+called out by name ("payments must never be accidentally duplicated"),
+found by a focused agent pass reading `api.stripe-webhook.ts` and
+`payments.server.ts` in full:
+- Confirmed safe: the Stripe webhook's idempotency check is backed by a
+  real DB-level `unique` constraint on `payment_webhook_events.event_id`
+  (migration 20260808000000), not a racy SELECT-then-INSERT — two
+  concurrent deliveries of the same event genuinely can't double-process.
+  Subscription checkout is likewise protected by a pre-existing partial
+  unique index (`subscriptions_one_active_per_profile`).
+- **Not safe, and fixed**: `createCoursePurchaseCheckoutFn` inserted the
+  `payments` row BEFORE checking/creating `course_purchases`, so two
+  near-simultaneous calls (a retried request after a client timeout, two
+  open tabs) could each pass the earlier non-atomic `existing` SELECT and
+  both insert a payment row, leaving an orphaned duplicate. Reordered to
+  insert `course_purchases` first — its real `unique(course_id,
+  profile_id)` constraint is what's actually race-safe — with a
+  compensating delete of that row if the subsequent payment insert fails,
+  so a user is never left with course access and no payment record.
+- **Not safe, and fixed**: `createCreditPackCheckoutFn` had no uniqueness
+  guard of any kind — unlike subscriptions/courses, repeat credit-pack
+  purchases are legitimate, so there's no natural one-row-per-user
+  constraint to lean on. Added a client-generated idempotency key
+  (`crypto.randomUUID()`, generated once per checkout attempt) threaded
+  through to a new `payments.idempotency_key` column (nullable + partial
+  unique index). A duplicate submission with the same key now hits the
+  unique constraint and returns the already-granted result instead of
+  double-charging or double-granting credits. Scoped only to this one
+  path — subscriptions and course purchases already have their own
+  table-level protection and didn't need the extra column.
+- Both fixes are structurally scoped to the mock payment provider's
+  synchronous-activation path specifically (real Stripe only ever writes
+  these rows from the webhook, which was already confirmed idempotent) —
+  but the mock provider is also what actually runs whenever
+  `STRIPE_SECRET_KEY` isn't configured, including in production per
+  `.env.example`'s own documented fallback behavior, so this isn't a
+  dev-only fix.
+
+**Resilience**: Judge0's two raw `fetch()` calls (judge0.server.ts) had no
+timeout and could hang indefinitely on a slow/unresponsive RapidAPI
+endpoint. Added `AbortSignal.timeout()` (15s for the language list, 20s
+for code execution) — both call sites already had try/catch returning a
+typed `{error}` response to the caller (confirmed by the audit before
+touching anything), so this only bounds the failure case, no change to
+the success path.
+
+**Security audit**: a parallel pass read every `createServerFn` accepting
+a client-supplied id (~86 across the codebase) for authorization gaps,
+grepped for secret-leakage into client bundles, reviewed the Stripe
+webhook route, and checked every `using (true)` RLS policy. Came back
+clean — no new findings. Confirms Sprints 26-29's authorization work
+already closed what mattered here; recorded as "audited, nothing found"
+rather than manufacturing a finding to justify the pass.
+
+**5 real, previously-documented-but-unfixed bugs** from
+`DEPLOYMENT_CHECKLIST.md`'s Sprint-12-era pre-launch audit, each
+re-verified still present in the current code before being touched:
+1. Onboarding dead-end — resume-setup.tsx's "Fill in your profile
+   instead" link sent a mid-onboarding user to `/profile`, which wasn't
+   in `auth-guard.ts`'s `STUDENT_ONBOARDING_PATHS` allowlist, so
+   `requireAuth` bounced them straight back to step 1. Fixed by adding
+   `/profile` to the allowlist.
+2. Silent write failure — `plan.tsx`'s `finishOnboarding` discarded the
+   `premium_subscriptions` upsert's error and completed onboarding
+   anyway. Now checked and surfaced via a `finishError` state.
+3. Same silent-failure shape in `location.tsx`/`profession.tsx` — a
+   failed profile write had no `catch`, so it became an unhandled
+   rejection with the spinner just stopping and zero user feedback. Both
+   now catch and render a destructive-text error message.
+4. Two unguarded resume signed-URL fetches in `business_.applicants.tsx`
+   (the card "Resume" button and the detail-sheet preview) — a failed
+   request did nothing visibly. Both now try/catch with a `sonner`
+   `toast.error`.
+5. Shell inconsistency — `business_.advertising.tsx` and
+   `business_.marketing.tsx` rendered in the generic `AppShell` instead
+   of `BusinessShell` despite being linked from the Business Hub sidebar,
+   dropping the user out of the business nav/layout. Both migrated to
+   `BusinessShell`, matching every other `/business/*` page; the now-
+   redundant manual "Business Hub" back-links were removed since
+   `BusinessShell`'s own sidebar already provides that.
+(Checklist item 6 — the `/interview/*` flow having no auth guard — was
+re-checked and found already resolved in a later sprint: every
+`/interview/*` route now calls `requireAuth`. No action needed.)
+
+Also removed 3 stray files that had been accidentally committed into the
+repo root in an old session (`"Bash tool output (y0050d).txt"`,
+`"Grep output (xxc48s).txt"`, `"et HEAD~1"` — shell-redirect debris,
+confirmed via `git log` to trace to commit `b926338`, not anything any
+sprint relied on).
+
+Full local suite (tsc/lint/build/Playwright 16/16 — added 2 new
+route-guard checks for the two BusinessShell-migrated routes) clean, both
+before and after the live database verification pass. Sprint complete.
+
 ## Known technical debt / TODOs (repository-wide, not just Sprint 26)
 
 - Every AI feature is gated behind `GEMINI_API_KEY` and degrades

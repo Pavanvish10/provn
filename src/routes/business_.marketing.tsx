@@ -1,6 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { AppShell } from "@/components/AppNav";
-import { ArrowLeft, Sparkles } from "lucide-react";
+import { createFileRoute } from "@tanstack/react-router";
+import { BusinessShell } from "@/components/BusinessNav";
+import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { requireBusinessAccount } from "@/lib/auth-guard";
 
@@ -22,14 +22,7 @@ export const Route = createFileRoute("/business_/marketing")({
 
 function Marketing() {
   return (
-    <AppShell>
-      <Link
-        to="/business"
-        className="mb-4 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="h-3.5 w-3.5" /> Business Hub
-      </Link>
-
+    <BusinessShell>
       <header className="mb-8">
         <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-brand-soft text-brand">
           <Sparkles className="h-5 w-5" />
@@ -60,6 +53,6 @@ function Marketing() {
           </div>
         ))}
       </div>
-    </AppShell>
+    </BusinessShell>
   );
 }

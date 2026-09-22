@@ -228,6 +228,22 @@ export const createCoursePurchaseCheckoutFn = createServerFn({ method: "POST" })
       }
 
       const admin = getSupabaseAdminClient();
+
+      // Insert the purchase row FIRST — its (course_id, profile_id) unique
+      // constraint is what actually prevents a double-click or a retried
+      // request from granting/charging for the same course twice. The
+      // `existing` check above is only a fast-path for the common case and
+      // is not itself race-safe.
+      const { data: purchase, error: purchaseError } = await admin
+        .from("course_purchases")
+        .insert({ course_id: course.id, profile_id: who.userId })
+        .select("id")
+        .single();
+      if (purchaseError) {
+        if (purchaseError.code === "23505") return { error: "You already own this course." };
+        return { error: purchaseError.message };
+      }
+
       const { data: payment, error: payError } = await admin
         .from("payments")
         .insert({
@@ -241,12 +257,13 @@ export const createCoursePurchaseCheckoutFn = createServerFn({ method: "POST" })
         })
         .select("id")
         .single();
-      if (payError) return { error: payError.message };
+      if (payError) {
+        // Don't leave the user with course access but no payment record.
+        await admin.from("course_purchases").delete().eq("id", purchase.id);
+        return { error: payError.message };
+      }
 
-      const { error: purchaseError } = await admin
-        .from("course_purchases")
-        .insert({ course_id: course.id, profile_id: who.userId, payment_id: payment.id });
-      if (purchaseError) return { error: purchaseError.message };
+      await admin.from("course_purchases").update({ payment_id: payment.id }).eq("id", purchase.id);
 
       const invoiceNumber = await nextInvoiceNumber(admin);
       await admin.from("invoices").insert({
@@ -274,13 +291,32 @@ export const createCoursePurchaseCheckoutFn = createServerFn({ method: "POST" })
   );
 
 export const createCreditPackCheckoutFn = createServerFn({ method: "POST" })
-  .validator(z.object({ packCode: z.string(), successUrl: z.string(), cancelUrl: z.string() }))
+  .validator(
+    z.object({
+      packCode: z.string(),
+      successUrl: z.string(),
+      cancelUrl: z.string(),
+      idempotencyKey: z.string().uuid(),
+    }),
+  )
   .handler(
     async ({
       data,
     }): Promise<{ error: string | null; checkoutUrl?: string; activated?: boolean }> => {
       const who = await currentUserAndProfile();
       if ("error" in who) return { error: who.error };
+
+      const admin = getSupabaseAdminClient();
+      // A prior call with this exact idempotency key already ran to
+      // completion (double-click, retried request after a timeout, etc.)
+      // — credits were already granted, so report success without
+      // redoing any writes or double-granting.
+      const { data: alreadyProcessed } = await admin
+        .from("payments")
+        .select("id")
+        .eq("idempotency_key", data.idempotencyKey)
+        .maybeSingle();
+      if (alreadyProcessed) return { error: null, activated: true };
 
       const supabase = getSupabaseServerClient();
       const { data: pack, error: packError } = await supabase
@@ -313,7 +349,6 @@ export const createCreditPackCheckoutFn = createServerFn({ method: "POST" })
         return { error: null, checkoutUrl: checkout.url, activated: false };
       }
 
-      const admin = getSupabaseAdminClient();
       const { data: payment, error: payError } = await admin
         .from("payments")
         .insert({
@@ -324,10 +359,16 @@ export const createCreditPackCheckoutFn = createServerFn({ method: "POST" })
           provider: checkout.provider,
           provider_payment_id: checkout.sessionId,
           description: `AI Credits: ${pack.name}`,
+          idempotency_key: data.idempotencyKey,
         })
         .select("id")
         .single();
-      if (payError) return { error: payError.message };
+      if (payError) {
+        // Unique violation on idempotency_key: a concurrent duplicate
+        // request already inserted the payment and will grant credits.
+        if (payError.code === "23505") return { error: null, activated: true };
+        return { error: payError.message };
+      }
 
       const { error: grantError } = await admin.rpc("grant_ai_credits", {
         p_profile_id: who.userId,

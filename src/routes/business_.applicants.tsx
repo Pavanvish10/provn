@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { z } from "zod";
+import { toast } from "sonner";
 import {
   ArrowLeft,
   Bookmark,
@@ -536,8 +537,12 @@ function ApplicantCard({
 
   const openResume = async () => {
     if (!app.resumeStoragePath) return;
-    const url = await getSignedResumeUrl(app.resumeStoragePath);
-    window.open(url, "_blank");
+    try {
+      const url = await getSignedResumeUrl(app.resumeStoragePath);
+      window.open(url, "_blank");
+    } catch {
+      toast.error("Couldn't open this resume. Please try again.");
+    }
   };
 
   return (
@@ -797,8 +802,12 @@ function CandidateDetailDrawer({
 
   const openResumePreview = async () => {
     if (!resumeDetail?.storage_path) return;
-    const url = await getSignedResumeUrl(resumeDetail.storage_path);
-    setResumeUrl(url);
+    try {
+      const url = await getSignedResumeUrl(resumeDetail.storage_path);
+      setResumeUrl(url);
+    } catch {
+      toast.error("Couldn't load this resume. Please try again.");
+    }
   };
 
   const submitNote = async () => {

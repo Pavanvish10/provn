@@ -36,7 +36,16 @@ async function getLanguages(): Promise<Judge0Language[]> {
   if (languagesCache && Date.now() - languagesCache.at < 30 * 60 * 1000) {
     return languagesCache.languages;
   }
-  const res = await fetch(`${JUDGE0_BASE}/languages`, { headers: judge0Headers() });
+  let res: Response;
+  try {
+    res = await fetch(`${JUDGE0_BASE}/languages`, {
+      headers: judge0Headers(),
+      signal: AbortSignal.timeout(15_000),
+    });
+  } catch (err) {
+    console.error("[judge0] /languages request failed or timed out:", err);
+    throw new Error("Judge0 did not respond in time listing languages.");
+  }
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     console.error(
@@ -86,11 +95,18 @@ export async function runOnce(
   source: string,
   stdin: string,
 ): Promise<Judge0Result> {
-  const res = await fetch(`${JUDGE0_BASE}/submissions?base64_encoded=false&wait=true`, {
-    method: "POST",
-    headers: judge0Headers(),
-    body: JSON.stringify({ source_code: source, language_id: languageId, stdin }),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${JUDGE0_BASE}/submissions?base64_encoded=false&wait=true`, {
+      method: "POST",
+      headers: judge0Headers(),
+      body: JSON.stringify({ source_code: source, language_id: languageId, stdin }),
+      signal: AbortSignal.timeout(20_000),
+    });
+  } catch (err) {
+    console.error("[judge0] execution request failed or timed out:", err);
+    throw new Error("Judge0 did not respond in time running this code.");
+  }
   if (!res.ok) throw new Error(`Judge0 execution request failed (${res.status}).`);
   return res.json();
 }
