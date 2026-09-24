@@ -157,9 +157,10 @@ unfixed this sprint.
 LAST VERIFIED COMMAND: npx playwright test (final run, post-live-DB-verification)
 LAST VERIFIED RESULT: 20 passed (29.2s)
 
-LAST COMMIT: see git log — Sprint 32 completion commit created after this
-progress-file update, following the same "commit only after genuine full
-verification passes" discipline as every prior sprint.
+LAST COMMIT: f1c06ea "feat(sprint-32): advanced recruiter platform" — 10
+files changed. Working tree clean. NOT pushed to origin/main (no push
+instruction given this sprint; matches this session's established
+pattern of only pushing on explicit request).
 
 NEXT EXACT ACTION: None — Sprint 32 is complete. Awaiting explicit
 instruction before starting Sprint 33 or pushing to origin/main.
