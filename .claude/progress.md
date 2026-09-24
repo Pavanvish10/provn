@@ -146,8 +146,8 @@ admin hard-delete feature is ever built.
 LAST VERIFIED COMMAND: npx playwright test (final run, post-live-DB-verification)
 LAST VERIFIED RESULT: 22 passed (11.0s)
 
-LAST COMMIT: see git log — Sprint 34 completion commit created after this
-progress update.
+LAST COMMIT: 5effe93 "feat(sprint-34): security and reliability hardening"
+— 29 files changed. Working tree clean.
 
 NEXT EXACT ACTION: None — Sprint 34 is complete. Awaiting explicit
 instruction before starting Sprint 35.
