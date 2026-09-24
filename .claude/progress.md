@@ -1,8 +1,10 @@
 CURRENT SPRINT: 31 — Production Readiness Audit + Fixes
 CURRENT TASK: Complete. Awaiting instruction before starting Sprint 32 (do
 not begin autonomously).
-STATUS: SPRINT 31 COMPLETE AND VERIFIED. All 5 migration files applied
-live. Final live-verification run: 13/13 PASS across items 1 (company_members
+STATUS: SPRINT 31 COMPLETE AND VERIFIED. All 6 migration files applied
+live (5 for the skill-verification saga, see history below, plus the
+original combined migration). Final live-verification run: 13/13 PASS
+across items 1 (company_members
 cross-tenant hijack fix), 2 (job_applications score-tamper fix), 3 (skill
 verification on challenge pass), and 9 (chat-images private bucket RLS),
 including every regression check (recruiters can still change application
@@ -219,12 +221,16 @@ TESTS (final, all green):
   regression check PASS. All disposable test data deleted after every
   run; final sweep confirmed zero leftovers.
 
-LAST VERIFIED COMMAND: full combined live-verification script (items 1,
-2, 3, 9 together)
-LAST VERIFIED RESULT: 13/13 PASS
+LAST VERIFIED COMMAND: npx playwright test (final run, post-live-DB-verification)
+LAST VERIFIED RESULT: 17 passed (56.6s)
 
-NEXT EXACT ACTION: Review git diff, then create the Sprint 31 completion
-commit. Do not start Sprint 32.
+LAST COMMIT: c2fb14c "feat(sprint-31): production readiness audit + fixes"
+— 32 files changed. Working tree clean. NOT pushed to origin/main (no
+push instruction given this sprint; matches this session's established
+pattern of only pushing on explicit request).
+
+NEXT EXACT ACTION: None — Sprint 31 is complete. Awaiting explicit
+instruction before starting Sprint 32 or pushing to origin/main.
 
 ---
 Sprint 30 record below (historical, complete):
