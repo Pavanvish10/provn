@@ -1,6 +1,126 @@
-CURRENT SPRINT: 32 — Advanced Recruiter Platform
-CURRENT TASK: Complete. Awaiting instruction before starting Sprint 33 (do
-not begin autonomously).
+CURRENT SPRINT: 33 — College Management Platform
+STATUS: SPRINT 33 COMPLETE AND VERIFIED. Migration applied live and
+confirmed via a live-verification pass covering table existence, notes
+RLS, resume-access RLS, cross-tenant isolation between two colleges, and
+team management (21/21 checks passed — see LIVE VERIFICATION below).
+Full local suite (tsc/lint/build/Playwright 22/22) clean both before and
+after live verification. Completion commit created — see LAST COMMIT
+below. Not pushed (push not requested this sprint).
+
+Audit findings (before writing any code): only 2 college-facing routes
+existed — college.tsx (dashboard) and college-drive.$driveId.tsx (drive
+detail). No team-management page, no analytics page, no notes system, no
+resume access for college staff, no student comparison, no student
+detail view — a genuinely larger real gap than the recruiter side had
+pre-Sprint-32 (which already had settings/analytics/rich notes before
+that sprint started). has_college_role()'s RLS was independently
+verified already correct (no Sprint-31-style WITH-CHECK gap) — confirmed
+by reading the actual policy SQL, not assumed.
+
+COMPLETED:
+1. Migration supabase/migrations/20260926000000_sprint33_college_platform.sql:
+   new drive_application_notes table (direct mirror of application_notes,
+   RLS via has_college_role() through drive_applications→
+   placement_drives) + two new RLS policies giving college staff read
+   access to student resumes (resumes table + storage.objects) — this
+   access genuinely didn't exist before (grepped, confirmed zero college
+   references anywhere near resumes RLS). Applied live and verified — see
+   LIVE VERIFICATION below.
+2. College team management: useCollegeAdmins/useAddCollegeAdmin/
+   useRemoveCollegeAdmin (college-client.ts) + new college-settings.tsx
+   route, mirroring business_.settings.tsx. No role-change UI (unlike
+   companies, college_admins only has 'owner'|'admin' — every invited
+   member is already 'admin', nothing to toggle between).
+3. Drive application notes: useDriveApplicationNotes/
+   useAddDriveApplicationNote hooks, wired into a new student detail
+   drawer.
+4. Student detail drawer (college-drive.$driveId.tsx): profile, resume
+   (signed URL via the new RLS), verified skills, eligibility snapshot,
+   notes, and the timeline — useApplicationTimeline already existed
+   (reads drive_notifications) but was never wired into any admin view
+   before this sprint; now it finally is.
+5. useDriveApplicants extended with verifiedSkills + resumeStoragePath
+   (skills table already had a public select policy — no RLS gap there,
+   just never fetched; resumes needed the new policy from item 1).
+6. Student comparison: new CompareDialog in college-drive.$driveId.tsx,
+   client-side over the now-extended useDriveApplicants data — zero new
+   queries, same pattern as Sprint 32's recruiter-side CompareDialog.
+7. College analytics: new college-analytics-client.ts (funnel via
+   drive_applications.status, conversion + time-to-stage via
+   drive_shortlists since drives have no application_status_history
+   equivalent) + new college-analytics.tsx route, mirroring
+   business_.analytics.tsx.
+8. Fixed 2 real silent-failure bugs found while working in
+   college-client.ts: useShortlistApplicant/useRejectApplicant checked
+   result.error internally but never surfaced it (same class as Sprint
+   31/32's payments-client fix); useCreateCollege had no onError at all.
+9. CollegeNav.tsx updated: SECTIONS now has 3 real pages (was 1, with a
+   comment explicitly saying a multi-page nav wasn't needed — no longer
+   true).
+
+Local verification: tsc 0 errors, lint 0 errors (7 pre-existing
+warnings), build PASS, Playwright 22/22 (2 new route-guard tests for
+/college-analytics, /college-settings).
+
+Migration supabase/migrations/20260926000000_sprint33_college_platform.sql
+applied live by the user via the Supabase SQL editor (no errors reported).
+Applied-state independently confirmed empirically (not assumed) before
+building the fixture-based test: a direct service-role probe against
+`drive_application_notes` first returned "table not found", then after
+the user's apply confirmation returned success — proving the migration
+genuinely took effect on the live database.
+
+LIVE VERIFICATION (21/21 passed): disposable-account methodology — 2
+throwaway colleges, 2 college-admin accounts, 2 student accounts, 1
+extra "teammate" account, 2 published drives, 2 drive_applications, 2
+resume rows + 2 real uploaded storage objects, all created via the
+service-role client, then exercised through real anon-key sign-ins (not
+service-role) to hit real RLS:
+- drive_application_notes table exists and is reachable.
+- College A admin sees College A's own drive application; cannot see
+  College B's (cross-tenant SELECT correctly returns empty, not error).
+- College A admin can insert and read a note on their own drive's
+  application; inserting a note on College B's application is rejected
+  by RLS (new row violates row-level security policy); reading College
+  B's notes returns empty.
+- College A admin can view/download Student A's resume (table row +
+  real storage object download) — the new resume-access grant works;
+  cannot view or download Student B's resume (table row empty, storage
+  download "Object not found").
+- College A admin cannot see College B's admin roster and cannot insert
+  themselves into it (privilege-escalation attempt correctly rejected by
+  RLS).
+- College A admin CAN add a real teammate to their own college's roster,
+  see the updated 2-member roster, and remove that teammate — team
+  management round-trips correctly end to end.
+- Mirrored from College B's side: cannot see College A's applications,
+  notes, or Student A's resume (table row + storage download) —
+  isolation holds in both directions, not just one.
+- Cleanup: all fixtures (notes/applications/resumes/storage
+  objects/drives/college_admins/colleges/auth users/profiles) deleted in
+  a finally block; a post-cleanup sweep query confirmed zero leftover
+  test rows across profiles/colleges/placement_drives.
+
+Student comparison and student detail drawer are client-side-only views
+over already-verified, already-RLS-scoped data (useDriveApplicants,
+useDriveApplicationNotes, useApplicationTimeline) — no new queries or
+RLS paths beyond what's already covered above, confirmed correct via
+tsc/build/lint plus manual code review; no separate live check needed for
+these two beyond the underlying data-access RLS already exercised.
+
+LAST VERIFIED COMMAND: npx playwright test (final run, post-live-DB-verification)
+LAST VERIFIED RESULT: 22 passed (21.0s)
+
+LAST COMMIT: see git log — Sprint 33 completion commit created after this
+progress update; hash recorded in a small follow-up docs commit, matching
+the established Sprint 31/32 pattern. NOT pushed to origin/main (no push
+instruction given this sprint).
+
+NEXT EXACT ACTION: None — Sprint 33 is complete. Awaiting explicit
+instruction before starting Sprint 34 or pushing to origin/main.
+
+---
+Sprint 32 record below (historical, complete, NOT pushed — see below):
 STATUS: SPRINT 32 COMPLETE AND VERIFIED. Migration applied live and
 confirmed via two live-verification passes: cross-tenant security (9/9 —
 Company B's recruiter cannot read/write any of Company A's

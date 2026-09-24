@@ -91,6 +91,128 @@ export function useCreateCollege(userId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: myCollegeQueryKey(userId) });
       queryClient.invalidateQueries({ queryKey: ["auth", "user"] });
     },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Couldn't register your college."),
+  });
+}
+
+// ---------------------------------------------------------------------
+// College staff (Sprint 33) — direct mirror of company-client.ts's
+// company_members team-management hooks. No new migration needed:
+// college_admins_bootstrap_or_admin_insert already allows an existing
+// owner/admin to add a member (not just the bootstrap self-insert case),
+// and college_admins_admin_update already has a real WITH CHECK (unlike
+// company_members before Sprint 31 — this table never had that gap).
+// ---------------------------------------------------------------------
+
+export type CollegeAdminWithProfile = CollegeAdmin & {
+  profile: Pick<
+    Database["public"]["Tables"]["profiles"]["Row"],
+    "id" | "full_name" | "email" | "avatar_url" | "username"
+  > | null;
+};
+
+export function collegeAdminsQueryKey(collegeId: string | undefined) {
+  return ["college-admins", collegeId] as const;
+}
+
+export function useCollegeAdmins(collegeId: string | undefined) {
+  return useQuery({
+    queryKey: collegeAdminsQueryKey(collegeId),
+    queryFn: async (): Promise<CollegeAdminWithProfile[]> => {
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase
+        .from("college_admins")
+        .select("*, profile:profiles(id, full_name, email, avatar_url, username)")
+        .eq("college_id", collegeId!)
+        .order("invited_at", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as CollegeAdminWithProfile[];
+    },
+    enabled: !!collegeId,
+  });
+}
+
+export function useAddCollegeAdmin(collegeId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { profileId: string }) => {
+      const supabase = getSupabaseBrowserClient();
+      const { error } = await supabase.from("college_admins").insert({
+        college_id: collegeId!,
+        profile_id: input.profileId,
+        role: "admin",
+        joined_at: new Date().toISOString(),
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: collegeAdminsQueryKey(collegeId) }),
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Couldn't add this team member."),
+  });
+}
+
+export function useRemoveCollegeAdmin(collegeId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (adminId: string) => {
+      const supabase = getSupabaseBrowserClient();
+      const { error } = await supabase.from("college_admins").delete().eq("id", adminId);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: collegeAdminsQueryKey(collegeId) }),
+    onError: (e) =>
+      toast.error(e instanceof Error ? e.message : "Couldn't remove this team member."),
+  });
+}
+
+// ---------------------------------------------------------------------
+// Drive application notes (Sprint 33) — direct mirror of
+// company-client.ts's application_notes hooks.
+// ---------------------------------------------------------------------
+
+export type DriveApplicationNote =
+  Database["public"]["Tables"]["drive_application_notes"]["Row"] & {
+    author: Pick<
+      Database["public"]["Tables"]["profiles"]["Row"],
+      "id" | "full_name" | "avatar_url"
+    > | null;
+  };
+
+export function driveApplicationNotesQueryKey(applicationId: string | undefined) {
+  return ["drive-application-notes", applicationId] as const;
+}
+
+export function useDriveApplicationNotes(applicationId: string | undefined) {
+  return useQuery({
+    queryKey: driveApplicationNotesQueryKey(applicationId),
+    queryFn: async (): Promise<DriveApplicationNote[]> => {
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase
+        .from("drive_application_notes")
+        .select("*, author:profiles(id, full_name, avatar_url)")
+        .eq("application_id", applicationId!)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as DriveApplicationNote[];
+    },
+    enabled: !!applicationId,
+  });
+}
+
+export function useAddDriveApplicationNote(applicationId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { authorId: string; body: string }) => {
+      const supabase = getSupabaseBrowserClient();
+      const { error } = await supabase.from("drive_application_notes").insert({
+        application_id: applicationId!,
+        author_id: input.authorId,
+        body: input.body.trim(),
+      });
+      if (error) throw error;
+    },
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: driveApplicationNotesQueryKey(applicationId) }),
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Couldn't add this note."),
   });
 }
 
@@ -247,6 +369,11 @@ export type DriveApplicantRow = DriveApplication & {
     graduation_year: number | null;
     cgpa: number | null;
   } | null;
+  // Sprint 33: verified skills (skills table has always had a public
+  // select policy, so this was never RLS-blocked, just never fetched)
+  // and resume (resumes_college_staff_view/_read, new this sprint).
+  verifiedSkills: string[];
+  resumeStoragePath: string | null;
 };
 
 export function driveApplicantsQueryKey(driveId: string | undefined) {
@@ -267,14 +394,44 @@ export function useDriveApplicants(driveId: string | undefined) {
       if (!apps || apps.length === 0) return [];
 
       const studentIds = Array.from(new Set(apps.map((a) => a.student_id)));
-      const { data: profiles, error: profilesError } = await supabase
-        .from("profiles")
-        .select("id, full_name, email, college, branch, graduation_year, cgpa")
-        .in("id", studentIds);
-      if (profilesError) throw profilesError;
-      const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
+      const [profilesRes, skillsRes, resumesRes] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("id, full_name, email, college, branch, graduation_year, cgpa")
+          .in("id", studentIds),
+        supabase
+          .from("skills")
+          .select("profile_id, skill_name")
+          .in("profile_id", studentIds)
+          .eq("verified", true),
+        supabase
+          .from("resumes")
+          .select("profile_id, storage_path")
+          .in("profile_id", studentIds)
+          .eq("is_current", true),
+      ]);
+      if (profilesRes.error) throw profilesRes.error;
+      // skills/resumes errors swallowed, not thrown — same reasoning as
+      // company-client.ts's useCompanyApplications: a signal being
+      // unavailable shouldn't break the whole applicant list.
+      const profileMap = new Map((profilesRes.data ?? []).map((p) => [p.id, p]));
 
-      return apps.map((a) => ({ ...a, student: profileMap.get(a.student_id) ?? null }));
+      const skillsByStudent = new Map<string, string[]>();
+      for (const s of skillsRes.data ?? []) {
+        const list = skillsByStudent.get(s.profile_id!) ?? [];
+        if (s.skill_name) list.push(s.skill_name);
+        skillsByStudent.set(s.profile_id!, list);
+      }
+      const resumeByStudent = new Map(
+        (resumesRes.data ?? []).map((r) => [r.profile_id!, r.storage_path]),
+      );
+
+      return apps.map((a) => ({
+        ...a,
+        student: profileMap.get(a.student_id) ?? null,
+        verifiedSkills: skillsByStudent.get(a.student_id) ?? [],
+        resumeStoragePath: resumeByStudent.get(a.student_id) ?? null,
+      }));
     },
     enabled: !!driveId,
   });
@@ -380,8 +537,12 @@ export function useShortlistApplicant(driveId: string | undefined) {
     onSuccess: (result) => {
       if (!result.error) {
         queryClient.invalidateQueries({ queryKey: driveApplicantsQueryKey(driveId) });
+      } else {
+        toast.error(result.error);
       }
     },
+    onError: (e) =>
+      toast.error(e instanceof Error ? e.message : "Couldn't update this applicant's stage."),
   });
 }
 
@@ -392,8 +553,11 @@ export function useRejectApplicant(driveId: string | undefined) {
     onSuccess: (result) => {
       if (!result.error) {
         queryClient.invalidateQueries({ queryKey: driveApplicantsQueryKey(driveId) });
+      } else {
+        toast.error(result.error);
       }
     },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Couldn't reject this applicant."),
   });
 }
 

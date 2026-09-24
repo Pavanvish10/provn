@@ -1,6 +1,6 @@
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { LayoutDashboard, Menu, LogOut } from "lucide-react";
+import { LayoutDashboard, BarChart3, Users2, Menu, LogOut } from "lucide-react";
 import { useState } from "react";
 
 import { Wordmark } from "./Logo";
@@ -9,13 +9,15 @@ import { cn } from "@/lib/utils";
 import { signOutFn } from "@/lib/auth.server";
 import { invalidateCurrentUser } from "@/lib/auth-client";
 
-// Mirrors BusinessShell (src/components/BusinessNav.tsx) exactly — same
-// shell/nav pattern, scoped to the single /college dashboard route since
-// Sprint 26's college portal doesn't need a multi-page nav (drive detail
-// is reached by clicking into a drive from the dashboard, not a separate
-// top-level section).
+// Mirrors BusinessShell (src/components/BusinessNav.tsx) — same shell/nav
+// pattern. Sprint 33 added Analytics and Settings as real top-level
+// pages (previously the college portal only had the single Dashboard
+// route; drive detail is still reached by clicking into a drive, not a
+// separate nav section).
 const SECTIONS = [
   { to: "/college", label: "Dashboard", icon: LayoutDashboard, exact: true },
+  { to: "/college-analytics", label: "Analytics", icon: BarChart3, exact: true },
+  { to: "/college-settings", label: "Settings", icon: Users2, exact: true },
 ] as const;
 
 function isActive(pathname: string, to: string, exact?: boolean) {

@@ -972,6 +972,91 @@ Full local suite (tsc/lint/build/Playwright 20/20 — 3 new route-guard
 tests for `/business/applicants`, `/business/analytics`,
 `/business/settings`) clean both before and after live verification.
 
+## Sprint 33 — College Management Platform (complete, 2026-09-24)
+
+Scope was user-selected ("College Management Platform") rather than
+task-specified in detail, so this sprint opened with the same audit-
+before-build discipline as Sprint 32: read every college-facing route and
+RLS policy before writing anything.
+
+**Audit findings**: the college side had only 2 routes total —
+`college.tsx` (dashboard) and `college-drive.$driveId.tsx` (drive
+detail) — versus the recruiter side's much richer pre-Sprint-32 baseline.
+No team-management page, no analytics page, no notes system, **no RLS
+grant of any kind for college staff to view a student's resume**, no
+student comparison, no student detail view. `has_college_role()`/
+`college_admins_admin_update`'s `WITH CHECK` was independently re-read
+and confirmed already correct (evaluated against the `NEW` row, blocking
+a `college_id`/`profile_id` hijack) — `college_admins` never had the
+Sprint-31-class `company_members` bug, confirmed rather than assumed.
+
+**Built this sprint** (`supabase/migrations/20260926000000_sprint33_college_platform.sql`
+plus code):
+1. `drive_application_notes` table — direct mirror of `application_notes`
+   (job_applications' recruiter-notes table), RLS via `has_college_role()`
+   joined through `drive_applications` → `placement_drives`.
+2. Two new RLS policies giving college staff read access to a drive
+   applicant's resume — the `resumes` table and the `resumes` storage
+   bucket had **zero** college-side grant before this sprint (grepped,
+   confirmed); mirrors the existing `resumes_recruiter_view`/
+   `resumes_recruiter_read` recruiter-side policies exactly, scoped
+   through `drive_applications`/`placement_drives` instead of
+   `job_applications`/`jobs`.
+3. College team management — `useCollegeAdmins`/`useAddCollegeAdmin`/
+   `useRemoveCollegeAdmin` + new `college-settings.tsx` route, mirroring
+   `business_.settings.tsx`. No role-change UI: unlike `company_members`'
+   three roles, `college_admins` only has `owner`/`admin`, and every
+   invited member is added as `admin` directly.
+4. A student detail drawer (`college-drive.$driveId.tsx`) showing
+   profile, resume (via the new RLS, signed URL), verified skills,
+   eligibility snapshot, notes, and the application timeline —
+   `useApplicationTimeline` already existed (reads `drive_notifications`)
+   but had never been wired into any admin-facing view before this
+   sprint.
+5. `useDriveApplicants` extended with `verifiedSkills` and
+   `resumeStoragePath` (skills already had a public select policy — no
+   RLS gap, just never fetched; resumes needed the new policy from #2).
+6. Student comparison — a client-side `CompareDialog` in
+   `college-drive.$driveId.tsx` over the now-extended
+   `useDriveApplicants` data, zero new queries, same pattern as Sprint
+   32's recruiter-side `CompareDialog`.
+7. College analytics — new `college-analytics-client.ts` (funnel from
+   `drive_applications.status`; conversion + time-to-stage from
+   `drive_shortlists`, since drives have no `application_status_history`
+   equivalent — a deliberate architectural adaptation, not a gap) + new
+   `college-analytics.tsx` route mirroring `business_.analytics.tsx`.
+8. Two real silent-failure bugs fixed in `college-client.ts`:
+   `useShortlistApplicant`/`useRejectApplicant` checked `result.error`
+   internally but never surfaced it to the user (same bug class as
+   Sprint 31/32's payments-client fix); `useCreateCollege` had no
+   `onError` handler at all.
+9. `CollegeNav.tsx`: `SECTIONS` grew from 1 entry to 3 (Dashboard,
+   Analytics, Settings) — a stale comment claiming a multi-page nav
+   wasn't needed was corrected.
+
+**Deliberately not built**: a per-student interview-scheduling system
+mirroring `interview_schedules`. Campus placement drives conventionally
+interview the whole shortlisted batch on one shared date, already
+captured by `placement_drives.test_date`/`interview_date` — a documented
+design difference from the recruiter side, not an overlooked gap.
+
+**Live-verified end to end** with disposable accounts (2 colleges, 2
+college-admin accounts, 2 students, 1 extra teammate account, 2 published
+drives, 2 applications, 2 resumes with real uploaded storage objects),
+signed in via real anon-key sessions to exercise actual RLS: 21/21
+assertions passed — drive-application visibility and notes are correctly
+scoped per college in both directions; a cross-college note insert and a
+cross-college admin-roster insert (privilege escalation) are both
+rejected by RLS; a college admin can view/download only their own
+applicants' resumes (table row and real storage download both checked);
+team add/list/remove round-trips correctly. All fixtures deleted after
+the run; a post-cleanup sweep confirmed zero leftover
+profiles/colleges/drives.
+
+Full local suite (tsc/lint/build/Playwright 22/22 — 2 new route-guard
+tests for `/college-analytics`, `/college-settings`) clean both before
+and after live verification.
+
 ## Known technical debt / TODOs (repository-wide, not just Sprint 26)
 
 - Every AI feature is gated behind `GEMINI_API_KEY` and degrades

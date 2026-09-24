@@ -22,6 +22,8 @@ import { Route as CareerRoadmapRouteImport } from './routes/career-roadmap'
 import { Route as ChallengesRouteImport } from './routes/challenges'
 import { Route as CodingInterviewRouteImport } from './routes/coding-interview'
 import { Route as CollegeRouteImport } from './routes/college'
+import { Route as CollegeAnalyticsRouteImport } from './routes/college-analytics'
+import { Route as CollegeSettingsRouteImport } from './routes/college-settings'
 import { Route as CoursesRouteImport } from './routes/courses'
 import { Route as DrivesRouteImport } from './routes/drives'
 import { Route as EligibilityRouteImport } from './routes/eligibility'
@@ -162,6 +164,16 @@ const CodingInterviewRoute = CodingInterviewRouteImport.update({
 const CollegeRoute = CollegeRouteImport.update({
   id: '/college',
   path: '/college',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CollegeAnalyticsRoute = CollegeAnalyticsRouteImport.update({
+  id: '/college-analytics',
+  path: '/college-analytics',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CollegeSettingsRoute = CollegeSettingsRouteImport.update({
+  id: '/college-settings',
+  path: '/college-settings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CoursesRoute = CoursesRouteImport.update({
@@ -559,6 +571,8 @@ export interface FileRoutesByFullPath {
   '/challenges': typeof ChallengesRouteWithChildren
   '/coding-interview': typeof CodingInterviewRoute
   '/college': typeof CollegeRoute
+  '/college-analytics': typeof CollegeAnalyticsRoute
+  '/college-settings': typeof CollegeSettingsRoute
   '/courses': typeof CoursesRouteWithChildren
   '/drives': typeof DrivesRoute
   '/eligibility': typeof EligibilityRoute
@@ -650,6 +664,8 @@ export interface FileRoutesByTo {
   '/challenges': typeof ChallengesRouteWithChildren
   '/coding-interview': typeof CodingInterviewRoute
   '/college': typeof CollegeRoute
+  '/college-analytics': typeof CollegeAnalyticsRoute
+  '/college-settings': typeof CollegeSettingsRoute
   '/courses': typeof CoursesRouteWithChildren
   '/drives': typeof DrivesRoute
   '/eligibility': typeof EligibilityRoute
@@ -742,6 +758,8 @@ export interface FileRoutesById {
   '/challenges': typeof ChallengesRouteWithChildren
   '/coding-interview': typeof CodingInterviewRoute
   '/college': typeof CollegeRoute
+  '/college-analytics': typeof CollegeAnalyticsRoute
+  '/college-settings': typeof CollegeSettingsRoute
   '/courses': typeof CoursesRouteWithChildren
   '/drives': typeof DrivesRoute
   '/eligibility': typeof EligibilityRoute
@@ -835,6 +853,8 @@ export interface FileRouteTypes {
     | '/challenges'
     | '/coding-interview'
     | '/college'
+    | '/college-analytics'
+    | '/college-settings'
     | '/courses'
     | '/drives'
     | '/eligibility'
@@ -926,6 +946,8 @@ export interface FileRouteTypes {
     | '/challenges'
     | '/coding-interview'
     | '/college'
+    | '/college-analytics'
+    | '/college-settings'
     | '/courses'
     | '/drives'
     | '/eligibility'
@@ -1017,6 +1039,8 @@ export interface FileRouteTypes {
     | '/challenges'
     | '/coding-interview'
     | '/college'
+    | '/college-analytics'
+    | '/college-settings'
     | '/courses'
     | '/drives'
     | '/eligibility'
@@ -1109,6 +1133,8 @@ export interface RootRouteChildren {
   ChallengesRoute: typeof ChallengesRouteWithChildren
   CodingInterviewRoute: typeof CodingInterviewRoute
   CollegeRoute: typeof CollegeRoute
+  CollegeAnalyticsRoute: typeof CollegeAnalyticsRoute
+  CollegeSettingsRoute: typeof CollegeSettingsRoute
   CoursesRoute: typeof CoursesRouteWithChildren
   DrivesRoute: typeof DrivesRoute
   EligibilityRoute: typeof EligibilityRoute
@@ -1261,6 +1287,20 @@ declare module '@tanstack/react-router' {
       path: '/college'
       fullPath: '/college'
       preLoaderRoute: typeof CollegeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/college-analytics': {
+      id: '/college-analytics'
+      path: '/college-analytics'
+      fullPath: '/college-analytics'
+      preLoaderRoute: typeof CollegeAnalyticsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/college-settings': {
+      id: '/college-settings'
+      path: '/college-settings'
+      fullPath: '/college-settings'
+      preLoaderRoute: typeof CollegeSettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/courses': {
@@ -1873,6 +1913,8 @@ const rootRouteChildren: RootRouteChildren = {
   ChallengesRoute: ChallengesRouteWithChildren,
   CodingInterviewRoute: CodingInterviewRoute,
   CollegeRoute: CollegeRoute,
+  CollegeAnalyticsRoute: CollegeAnalyticsRoute,
+  CollegeSettingsRoute: CollegeSettingsRoute,
   CoursesRoute: CoursesRouteWithChildren,
   DrivesRoute: DrivesRoute,
   EligibilityRoute: EligibilityRoute,
