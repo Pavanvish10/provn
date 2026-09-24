@@ -3,6 +3,7 @@ import { z } from "zod";
 import { GoogleGenAI } from "@google/genai";
 
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { checkRateLimit, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit.server";
 import { GEMINI_MODEL, friendlyGeminiError, withGeminiRetry } from "@/lib/ai.server";
 import { runAgainstTestCases } from "@/lib/judge0.server";
 import type { ResumeAnalysis } from "@/lib/resume.server";
@@ -312,6 +313,9 @@ export const runCodingInterviewSampleFn = createServerFn({ method: "POST" })
       const supabase = getSupabaseServerClient();
       const { data: auth } = await supabase.auth.getUser();
       if (!auth.user) return { error: "Not signed in." };
+      if (!(await checkRateLimit(`judge0:coding-interview-run:${auth.user.id}`, 30, 600))) {
+        return { error: RATE_LIMIT_MESSAGE };
+      }
 
       const { data: session, error: fetchError } = await supabase
         .from("coding_interview_sessions")
@@ -351,6 +355,9 @@ export const submitCodingInterviewFn = createServerFn({ method: "POST" })
     const supabase = getSupabaseServerClient();
     const { data: auth } = await supabase.auth.getUser();
     if (!auth.user) return { error: "Not signed in." };
+    if (!(await checkRateLimit(`judge0:coding-interview-submit:${auth.user.id}`, 30, 600))) {
+      return { error: RATE_LIMIT_MESSAGE };
+    }
 
     const { data: session, error: fetchError } = await supabase
       .from("coding_interview_sessions")

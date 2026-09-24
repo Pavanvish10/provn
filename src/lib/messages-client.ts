@@ -282,20 +282,30 @@ export function useStartConversation(userId: string | undefined) {
         }
       }
 
-      const { data: newConversation, error: createError } = await supabase
+      // Sprint 34: generate the id client-side and skip .select() on this
+      // insert. Postgres enforces a table's SELECT policy on the row
+      // returned by INSERT...RETURNING too — and conversations_participant_
+      // select requires an existing conversation_participants row, which
+      // can't exist yet for a conversation that was just created. Chaining
+      // .select().single() here always failed with a genuine "new row
+      // violates row-level security policy" error (confirmed live), a
+      // real pre-existing bug this sprint's verification work surfaced,
+      // not a Sprint 34 regression — no Playwright coverage exercises
+      // authenticated flows, and no prior sprint's live-account testing
+      // happened to start a brand-new DM this way.
+      const newConversationId = crypto.randomUUID();
+      const { error: createError } = await supabase
         .from("conversations")
-        .insert({ is_group: false })
-        .select("id")
-        .single();
+        .insert({ id: newConversationId, is_group: false });
       if (createError) throw createError;
 
       const { error: participantsError } = await supabase.from("conversation_participants").insert([
-        { conversation_id: newConversation.id, profile_id: userId! },
-        { conversation_id: newConversation.id, profile_id: otherUserId },
+        { conversation_id: newConversationId, profile_id: userId! },
+        { conversation_id: newConversationId, profile_id: otherUserId },
       ]);
       if (participantsError) throw participantsError;
 
-      return newConversation.id;
+      return newConversationId;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: conversationsQueryKey(userId) });

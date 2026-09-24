@@ -3,6 +3,7 @@ import { z } from "zod";
 import { GoogleGenAI } from "@google/genai";
 
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { checkRateLimit, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit.server";
 import { GEMINI_MODEL, friendlyGeminiError, withGeminiRetry } from "@/lib/ai.server";
 
 export type ResumeAnalysis = {
@@ -43,6 +44,9 @@ export const analyzeResumeFn = createServerFn({ method: "POST" })
     const supabase = getSupabaseServerClient();
     const { data: auth } = await supabase.auth.getUser();
     if (!auth.user) return { error: "Not signed in." };
+    if (!(await checkRateLimit(`ai:resume-analyze:${auth.user.id}`, 10, 600))) {
+      return { error: RATE_LIMIT_MESSAGE };
+    }
 
     const { data: resume, error: resumeError } = await supabase
       .from("resumes")
@@ -169,6 +173,9 @@ export const analyzeResumeAgainstJdFn = createServerFn({ method: "POST" })
     const supabase = getSupabaseServerClient();
     const { data: auth } = await supabase.auth.getUser();
     if (!auth.user) return { error: "Not signed in." };
+    if (!(await checkRateLimit(`ai:resume-jd-match:${auth.user.id}`, 10, 600))) {
+      return { error: RATE_LIMIT_MESSAGE };
+    }
 
     // TODO(API_KEY): set GEMINI_API_KEY in the environment to enable AI JD matching.
     const apiKey = process.env.GEMINI_API_KEY;

@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { getSupabaseAdminClient, getSupabaseServerClient } from "@/lib/supabase/server";
 import { sendConfirmationEmail } from "@/lib/email.server";
+import { checkRateLimit, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit.server";
 
 /** Signs up via the ADMIN api (email_confirm: false) instead of the public
  * auth.signUp(), then sends the confirmation link ourselves over Resend.
@@ -142,6 +143,9 @@ export const getCurrentUserFn = createServerFn({ method: "GET" }).handler(
 export const signInFn = createServerFn({ method: "POST" })
   .validator(z.object({ email: emailSchema, password: z.string().min(1, "Password is required") }))
   .handler(async ({ data }) => {
+    if (!(await checkRateLimit(`auth:signin:${data.email.toLowerCase()}`, 10, 300))) {
+      return { error: RATE_LIMIT_MESSAGE };
+    }
     const supabase = getSupabaseServerClient();
     const { error } = await supabase.auth.signInWithPassword({
       email: data.email,
@@ -161,6 +165,9 @@ export const signUpFn = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }) => {
+    if (!(await checkRateLimit(`auth:signup:${data.email.toLowerCase()}`, 5, 3600))) {
+      return { error: RATE_LIMIT_MESSAGE, needsEmailConfirmation: false };
+    }
     return createAccountAndSendConfirmation({
       email: data.email,
       password: data.password,
@@ -191,6 +198,9 @@ export const businessSignUpFn = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }) => {
+    if (!(await checkRateLimit(`auth:signup:${data.email.toLowerCase()}`, 5, 3600))) {
+      return { error: RATE_LIMIT_MESSAGE, needsEmailConfirmation: false };
+    }
     return createAccountAndSendConfirmation({
       email: data.email,
       password: data.password,
@@ -222,6 +232,9 @@ export const signOutFn = createServerFn({ method: "POST" }).handler(async () => 
 export const requestPasswordResetFn = createServerFn({ method: "POST" })
   .validator(z.object({ email: emailSchema, redirectTo: z.string().url() }))
   .handler(async ({ data }) => {
+    if (!(await checkRateLimit(`auth:reset:${data.email.toLowerCase()}`, 5, 3600))) {
+      return { error: RATE_LIMIT_MESSAGE };
+    }
     const supabase = getSupabaseServerClient();
     const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
       redirectTo: data.redirectTo,

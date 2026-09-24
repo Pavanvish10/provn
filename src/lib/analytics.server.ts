@@ -642,7 +642,10 @@ export const createShareLinkFn = createServerFn({ method: "POST" }).handler(
       },
       { onConflict: "profile_id" },
     );
-    if (error) return { error: error.message };
+    if (error) {
+      console.error("[analytics] share-link snapshot failed:", error.message);
+      return { error: "Could not create a share link." };
+    }
     return { error: null, shareToken };
   },
 );
@@ -657,7 +660,10 @@ export const revokeShareLinkFn = createServerFn({ method: "POST" }).handler(
       .from("analytics_snapshots")
       .update({ is_public: false, share_token: null })
       .eq("profile_id", auth.user.id);
-    if (error) return { error: error.message };
+    if (error) {
+      console.error("[analytics] revoke share-link failed:", error.message);
+      return { error: "Could not revoke the share link." };
+    }
     return { error: null };
   },
 );

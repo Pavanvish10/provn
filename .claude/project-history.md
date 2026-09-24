@@ -1057,6 +1057,174 @@ Full local suite (tsc/lint/build/Playwright 22/22 — 2 new route-guard
 tests for `/college-analytics`, `/college-settings`) clean both before
 and after live verification.
 
+## Sprint 34 — Security & Reliability (complete, 2026-09-25)
+
+Broad, explicitly-scoped security-hardening sprint (auth, RBAC, RLS,
+storage, API/server-function security, input validation, rate limiting,
+security headers, secrets, error handling, database safety, regression
+tests). Opened with a 3-way parallel audit rather than guessing where the
+gaps were — auth/session handling, rate-limiting/validation/secrets/error-
+leakage, and RLS gaps in tables the Sprint 26-31 security passes hadn't
+specifically covered (messaging, notifications, interview_schedules,
+challenge_submissions, skills, payments, admin tables).
+
+**The most severe finding**: `profiles_update_own`
+(`20260726220130_provnn_features.sql`) was `using (id = auth.uid())` with
+no `with check` and no column restriction — any signed-in user could run
+`update profiles set role = 'admin' where id = auth.uid()` directly from
+the browser. `is_admin()` (gating nearly every admin-bypass clause in the
+schema's RLS, plus the `requireAdmin` route guard) just checks
+`profiles.role = 'admin'` — this was a full, one-request privilege
+escalation to platform admin. `account_type` had the identical gap,
+lower-severity since real company/college data access runs off
+`company_members`/`college_admins` membership, not this column (confirmed
+by reading `company-client.ts`'s own comment to that effect) — still
+closed as defense in depth. Fixed with a `BEFORE UPDATE` guard trigger
+(`guard_profiles_update`) blocking `role` from ever becoming `'admin'` for
+a non-admin session, and restricting `account_type` to changing at most
+once, away from `'student'` — verified this doesn't break the two real
+self-service flows that rely on exactly that one-time transition
+(`useCreateCompany`, `useCreateCollege`) or the existing admin
+role-management UI (`admin-users-client.ts`).
+
+**Three more real RLS gaps, same guard-trigger/RLS-policy toolkit used
+since Sprint 31**:
+1. `challenge_submissions_owner_insert` had no restriction on `status` —
+   a client could insert a forged `status = 'passed'` row directly,
+   triggering the real skill-verification/badge/streak/XP triggers
+   without ever running real code. A Sprint 31 comment calling this table
+   "not client-forgeable" was wrong (true of the UI, not of the table's
+   actual RLS). Fixed the same way as that sprint's `job_applications`
+   score-column tamper: block the column for real sessions, switch the
+   one legitimate writer (`judge0.server.ts`'s `submitChallengeFn`,
+   already re-deriving `profile_id` from the session and computing
+   `status` from a real Judge0 run) to the admin/service-role client.
+2. `skills_owner_insert`/`skills_owner_update` let a user set
+   `verified = true, source = 'challenge'` on their own row directly —
+   completely bypassing Sprint 31's real challenge-based verification
+   feature. Closed with a guard trigger + a session-local
+   `set_config('app.bypass_skills_guard', ...)` flag, since the trusted
+   writer here (`verify_skills_on_challenge_pass`, a `SECURITY DEFINER`
+   trigger) runs inside the *same* authenticated session a client
+   attacker would use — the `auth.uid() is null` trick used everywhere
+   else in this migration can't distinguish them. That function's own
+   body was deliberately left untouched in the main migration and instead
+   got the two `set_config` calls added in its own isolated,
+   single-statement follow-up file
+   (`20260927010000_sprint34_skill_verification_bypass.sql`) — it took 5
+   migration rounds to actually take effect live in Sprint 31 for a
+   reason never conclusively pinned down, so blast radius was minimized
+   here in case that recurs. (It didn't — landed and verified on the
+   first attempt this time.)
+3. `conversation_participants_insert` was `with check (true)` — any
+   authenticated user could insert a participant row for *any*
+   conversation + *any* profile, letting them silently self-join and read
+   someone else's existing DM, or add a victim into their own
+   conversation. Fixed to allow only populating a still-empty conversation
+   (the real `useStartConversation` flow) or an existing participant
+   adding someone else (legitimate group growth) — both self-referential
+   checks routed through `SECURITY DEFINER` helpers to avoid the exact
+   `42P17` recursion class this table already hit once
+   (`20260805000000`).
+4. `interview_schedules_applicant_update` had `using (...)` with no
+   `with check`, so the applicant's real "respond to an interview" policy
+   let them rewrite *every* column on their own row — `scheduled_at`,
+   `meeting_link`, `interviewer_name`, not just `status`. Scoped via a
+   guard trigger to the columns a response actually touches; there's no
+   separate recruiter UPDATE policy on this table today, so nothing
+   legitimate was restricted.
+
+**Rate limiting**: none existed anywhere in the app beyond a bespoke
+per-email OTP cooldown. Added a generic, DB-backed fixed-window limiter
+(`rate_limit_buckets` + `check_rate_limit()`, one atomic UPSERT per check)
+— DB-backed rather than in-memory because the app deploys as serverless
+functions (`.vercel/output`), so per-process memory wouldn't persist
+across invocations. Wired into authentication (`signInFn`/`signUpFn`/
+`businessSignUpFn`/`requestPasswordResetFn`), every Gemini-backed AI
+generation endpoint, and every Judge0 code-execution endpoint — see
+`SECURITY.md` for the full list and the documented gap (interview-
+continuation turns and the two browser-direct, non-`createServerFn` write
+paths — messaging, job applications — aren't covered).
+
+**Security headers**: new `requestMiddleware` in `src/start.ts` (runs for
+every page request, server function call, and the 500 error page alike)
+adding `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, a
+`Permissions-Policy` that leaves camera/microphone available (the voice
+interview feature genuinely uses `getUserMedia`), and a real
+`Content-Security-Policy` scoped to what the app actually loads
+client-side (confirmed by grep: zero non-`.server.ts` files fetch an
+external host directly — every AI/Judge0/Stripe call is server-side).
+`script-src`/`style-src` include `'unsafe-inline'` — TanStack Router
+injects inline hydration `<script>` tags with no nonce mechanism
+available in the installed version, confirmed by reading its source, so a
+strict `script-src 'self'` would break hydration on every page load.
+Verified live via `curl` against a real `npm run dev` server, not just
+trusted from code review.
+
+**Input validation and error handling**: closed the specific gaps the
+audit found — missing `.max()` bounds on Judge0's `source` fields and the
+AI chat history's per-item text, a bare `z.string()` tightened to the
+real 7-value enum for the application-status email. Raw
+Postgres/Supabase error messages returned directly to the client (found
+across `payments.server.ts`, `career-roadmap.server.ts`,
+`analytics.server.ts`, `college.server.ts`, `mentor.server.ts`,
+`resume-builder.server.ts`, `voice-interview.server.ts`) now get logged
+server-side via `console.error` and replaced with a short generic
+message.
+
+**Secrets audit**: every `SUPABASE_SECRET_KEY`/`RESEND_API_KEY`/
+`GEMINI_API_KEY`/`RAPIDAPI_KEY`/`STRIPE_SECRET_KEY`/
+`STRIPE_WEBHOOK_SECRET` reference confirmed server-only; every
+`getSupabaseAdminClient()` call site re-audited and confirmed to
+re-derive identity from an authenticated session (or a verified Stripe
+webhook signature, or a brand-new account) before writing — none trusts
+a client-supplied id. Both came back clean, no new findings — recorded as
+such rather than manufacturing one.
+
+**A real, pre-existing bug found while writing the live-verification
+script, not a Sprint 34 regression**: `useStartConversation`
+(`messages-client.ts`) chained `.insert({is_group:false}).select("id").single()`
+on `conversations` — Postgres enforces a table's SELECT RLS policy on the
+row an `INSERT...RETURNING` returns too, and
+`conversations_participant_select` requires a `conversation_participants`
+row that can't exist yet for a conversation that was just created. This
+call has always failed with a genuine "new row violates row-level
+security policy" error; nothing caught it before because no Playwright
+test exercises authenticated flows and no prior sprint's live-account
+testing happened to start a brand-new DM this way. Fixed by generating
+the conversation id client-side (`crypto.randomUUID()`) and dropping the
+`.select()` entirely.
+
+**Live-verified end to end** with disposable accounts (3 students, 1
+recruiter, a real company/job/application/interview fixture, a real
+existing challenge picked live rather than synthesized): 24/24
+assertions passed — profile role/account_type escalation attempts
+rejected, forged challenge status rejected (while the admin-client path
+and a real challenge-pass-driven skill verification both still work),
+direct skill self-verification rejected, arbitrary conversation joins
+rejected (while legitimate creation and group growth still work),
+interview-schedule column tampering rejected (while a real applicant
+response still works), the rate limiter allows exactly 5 requests then
+blocks the 6th, and cross-user isolation holds (student B's skills write
+against student A affects zero rows, provably unchanged before/after;
+student B cannot read student A's challenge submissions). One more real,
+out-of-scope finding surfaced during cleanup and documented rather than
+fixed: deleting a profile referenced as `notifications.actor_id` fails
+because the `on delete set null` cascade trips
+`enforce_notification_update`'s guard — zero current product impact since
+the app has no admin "delete user" feature anywhere (grepped), so this is
+recorded as a follow-up rather than fixed this sprint. All fixtures
+deleted after the run; a post-cleanup sweep confirmed zero leftover test
+profiles.
+
+New file `SECURITY.md` documents the resulting authentication,
+authorization, RLS, storage, API, secrets, rate-limiting, and
+security-header model as actually implemented, plus the known
+limitations recorded above.
+
+Full local suite (tsc/lint/build/Playwright 22/22, unchanged — no new
+routes this sprint) clean both before and after live verification.
+
 ## Known technical debt / TODOs (repository-wide, not just Sprint 26)
 
 - Every AI feature is gated behind `GEMINI_API_KEY` and degrades

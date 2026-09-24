@@ -3,6 +3,7 @@ import { z } from "zod";
 import { GoogleGenAI } from "@google/genai";
 
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { checkRateLimit, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit.server";
 import { GEMINI_MODEL, friendlyGeminiError, withGeminiRetry } from "@/lib/ai.server";
 
 const PASSED_PROMPT = (
@@ -71,6 +72,9 @@ export const explainSubmissionFn = createServerFn({ method: "POST" })
     const supabase = getSupabaseServerClient();
     const { data: auth } = await supabase.auth.getUser();
     if (!auth.user) return { error: "Not signed in." };
+    if (!(await checkRateLimit(`ai:explain-submission:${auth.user.id}`, 20, 600))) {
+      return { error: RATE_LIMIT_MESSAGE };
+    }
 
     const { data: submission, error: submissionError } = await supabase
       .from("challenge_submissions")

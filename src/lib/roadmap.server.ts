@@ -3,6 +3,7 @@ import { z } from "zod";
 import { GoogleGenAI } from "@google/genai";
 
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { checkRateLimit, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit.server";
 import { GEMINI_MODEL, friendlyGeminiError, withGeminiRetry } from "@/lib/ai.server";
 
 function slugify(role: string) {
@@ -42,6 +43,9 @@ export const generateRoadmapForRoleFn = createServerFn({ method: "POST" })
       const supabase = getSupabaseServerClient();
       const { data: auth } = await supabase.auth.getUser();
       if (!auth.user) return { error: "Not signed in." };
+      if (!(await checkRateLimit(`ai:roadmap-for-role:${auth.user.id}`, 10, 600))) {
+        return { error: RATE_LIMIT_MESSAGE };
+      }
 
       const slug = slugify(data.role);
       if (!slug) return { error: "Enter a valid role." };

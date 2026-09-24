@@ -42,7 +42,20 @@ async function isCompanyRecruiter(
 // ---------------------------------------------------------------------
 
 export const sendApplicationStatusEmailFn = createServerFn({ method: "POST" })
-  .validator(z.object({ applicationId: z.string().uuid(), status: z.string() }))
+  .validator(
+    z.object({
+      applicationId: z.string().uuid(),
+      status: z.enum([
+        "applied",
+        "viewed",
+        "shortlisted",
+        "interview",
+        "selected",
+        "rejected",
+        "hired",
+      ]),
+    }),
+  )
   .handler(async ({ data }): Promise<EmailFnResult> => {
     const supabase = getSupabaseServerClient();
     const { data: auth } = await supabase.auth.getUser();

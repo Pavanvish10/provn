@@ -3,6 +3,7 @@ import { z } from "zod";
 import { GoogleGenAI } from "@google/genai";
 
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { checkRateLimit, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit.server";
 import { GEMINI_MODEL, friendlyGeminiError, withGeminiRetry } from "@/lib/ai.server";
 import type { ResumeAnalysis } from "@/lib/resume.server";
 import { getCompanyProfile } from "@/ai/resume/CompanyProfile";
@@ -301,6 +302,9 @@ export const generateCareerRoadmapFn = createServerFn({ method: "POST" })
     const supabase = getSupabaseServerClient();
     const { data: auth } = await supabase.auth.getUser();
     if (!auth.user) return { error: "Not signed in." };
+    if (!(await checkRateLimit(`ai:career-roadmap:${auth.user.id}`, 10, 600))) {
+      return { error: RATE_LIMIT_MESSAGE };
+    }
 
     const geminiResult = getGemini();
     if ("error" in geminiResult) return { error: geminiResult.error };
@@ -538,7 +542,10 @@ export const generateCareerRoadmapFn = createServerFn({ method: "POST" })
     for (let i = 0; i < taskRows.length; i += 500) {
       const chunk = taskRows.slice(i, i + 500);
       const { error: taskError } = await supabase.from("career_roadmap_tasks").insert(chunk);
-      if (taskError) return { error: taskError.message };
+      if (taskError) {
+        console.error("[career-roadmap] task insert failed:", taskError.message);
+        return { error: "Could not save the roadmap's tasks." };
+      }
     }
 
     return { error: null, roadmapId: inserted.id };
@@ -556,6 +563,9 @@ export const archiveCareerRoadmapFn = createServerFn({ method: "POST" })
       .update({ status: "archived" })
       .eq("id", data.roadmapId)
       .eq("profile_id", auth.user.id);
-    if (error) return { error: error.message };
+    if (error) {
+      console.error("[career-roadmap] archive failed:", error.message);
+      return { error: "Could not archive this roadmap." };
+    }
     return { error: null };
   });

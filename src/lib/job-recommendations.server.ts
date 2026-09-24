@@ -3,6 +3,7 @@ import { z } from "zod";
 import { GoogleGenAI } from "@google/genai";
 
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { checkRateLimit, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit.server";
 import { GEMINI_MODEL, friendlyGeminiError, withGeminiRetry } from "@/lib/ai.server";
 import { scoreCandidate, type Candidate } from "@/lib/matching";
 import { getCompanyProfile } from "@/ai/resume/CompanyProfile";
@@ -196,6 +197,9 @@ export const generateJobRecommendationsFn = createServerFn({ method: "POST" })
       const supabase = getSupabaseServerClient();
       const { data: auth } = await supabase.auth.getUser();
       if (!auth.user) return { error: "Not signed in." };
+      if (!(await checkRateLimit(`ai:job-recommendations:${auth.user.id}`, 10, 600))) {
+        return { error: RATE_LIMIT_MESSAGE };
+      }
 
       const geminiResult = getGemini();
       if ("error" in geminiResult) return { error: geminiResult.error };

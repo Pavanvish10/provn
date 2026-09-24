@@ -3,6 +3,7 @@ import { z } from "zod";
 import { GoogleGenAI } from "@google/genai";
 
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { checkRateLimit, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit.server";
 import { GEMINI_MODEL, friendlyGeminiError, withGeminiRetry } from "@/lib/ai.server";
 import type { Json } from "@/lib/supabase/types";
 
@@ -308,7 +309,10 @@ export const rejectApplicantFn = createServerFn({ method: "POST" })
       .from("drive_applications")
       .update({ status: "rejected", updated_at: new Date().toISOString() })
       .eq("id", data.applicationId);
-    if (error) return { error: error.message };
+    if (error) {
+      console.error("[college] reject applicant failed:", error.message);
+      return { error: "Could not reject this applicant." };
+    }
     return { error: null };
   });
 
@@ -325,6 +329,9 @@ export const generateDriveRankingInsightsFn = createServerFn({ method: "POST" })
     const supabase = getSupabaseServerClient();
     const { data: auth } = await supabase.auth.getUser();
     if (!auth.user) return { error: "Not signed in." };
+    if (!(await checkRateLimit(`ai:drive-ranking:${auth.user.id}`, 15, 600))) {
+      return { error: RATE_LIMIT_MESSAGE };
+    }
 
     const geminiResult = getGemini();
     if ("error" in geminiResult) return { error: geminiResult.error };
@@ -391,6 +398,9 @@ export const generateMissingSkillSuggestionsFn = createServerFn({ method: "POST"
     const supabase = getSupabaseServerClient();
     const { data: auth } = await supabase.auth.getUser();
     if (!auth.user) return { error: "Not signed in." };
+    if (!(await checkRateLimit(`ai:missing-skills:${auth.user.id}`, 15, 600))) {
+      return { error: RATE_LIMIT_MESSAGE };
+    }
 
     const geminiResult = getGemini();
     if ("error" in geminiResult) return { error: geminiResult.error };

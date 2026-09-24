@@ -3,6 +3,7 @@ import { z } from "zod";
 import { GoogleGenAI } from "@google/genai";
 
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { checkRateLimit, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit.server";
 import { GEMINI_MODEL, friendlyGeminiError, withGeminiRetry } from "@/lib/ai.server";
 import type { ResumeAnalysis } from "@/lib/resume.server";
 import { getAnalyticsDashboardFn, type AnalyticsDashboard } from "@/lib/analytics.server";
@@ -298,6 +299,9 @@ export const sendMentorMessageFn = createServerFn({ method: "POST" })
       const supabase = getSupabaseServerClient();
       const { data: auth } = await supabase.auth.getUser();
       if (!auth.user) return { error: "Not signed in." };
+      if (!(await checkRateLimit(`ai:mentor:${auth.user.id}`, 20, 600))) {
+        return { error: RATE_LIMIT_MESSAGE };
+      }
 
       const geminiResult = getGemini();
       if ("error" in geminiResult) return { error: geminiResult.error };
@@ -401,7 +405,10 @@ export const renameMentorConversationFn = createServerFn({ method: "POST" })
       .from("mentor_conversations")
       .update({ title: data.title, updated_at: new Date().toISOString() })
       .eq("id", data.conversationId);
-    if (error) return { error: error.message };
+    if (error) {
+      console.error("[mentor] rename conversation failed:", error.message);
+      return { error: "Could not rename this conversation." };
+    }
     return { error: null };
   });
 
@@ -416,7 +423,10 @@ export const deleteMentorConversationFn = createServerFn({ method: "POST" })
       .from("mentor_conversations")
       .delete()
       .eq("id", data.conversationId);
-    if (error) return { error: error.message };
+    if (error) {
+      console.error("[mentor] delete conversation failed:", error.message);
+      return { error: "Could not delete this conversation." };
+    }
     return { error: null };
   });
 
@@ -431,6 +441,9 @@ export const togglePinMentorConversationFn = createServerFn({ method: "POST" })
       .from("mentor_conversations")
       .update({ is_pinned: data.pinned, updated_at: new Date().toISOString() })
       .eq("id", data.conversationId);
-    if (error) return { error: error.message };
+    if (error) {
+      console.error("[mentor] toggle pin failed:", error.message);
+      return { error: "Could not update this conversation." };
+    }
     return { error: null };
   });

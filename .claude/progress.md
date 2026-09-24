@@ -1,4 +1,159 @@
-CURRENT SPRINT: 33 — College Management Platform
+CURRENT SPRINT: 34 — Security & Reliability
+STATUS: SPRINT 34 COMPLETE AND VERIFIED. Both migrations applied live and
+confirmed via a 24/24 live-verification pass covering privilege
+escalation, forged challenge status, skill self-verification, arbitrary
+conversation join, interview-schedule column scoping, rate limiting, and
+cross-user isolation (see LIVE VERIFICATION below). Full local suite
+(tsc/lint/build/Playwright 22/22) clean both before and after live
+verification. Completion commit created — see LAST COMMIT below.
+
+Branch: main. HEAD at start of this sprint: d5911a0 (Sprint 33's docs
+follow-up commit). Working tree is currently dirty with all Sprint 34
+changes below, none committed yet.
+
+Audit method: 3 parallel focused sub-agent passes (auth/session,
+rate-limiting/validation/secrets/errors, RLS gaps in tables not covered
+by Sprints 26-31's prior security work) — see .claude/project-history.md
+for the full writeup and SECURITY.md for the resulting security model.
+
+Migrations (applied live, both confirmed via direct probe before AND
+after — migration 1's rate_limit_buckets/check_rate_limit didn't exist on
+the first probe, existed and worked on the second):
+1. supabase/migrations/20260927000000_sprint34_security_hardening.sql —
+   profiles self-promotion fix (guard_profiles_update), challenge_submissions
+   forged-status fix, skills self-verification fix (guard trigger only —
+   the bypass flag itself is in the next file), conversation_participants
+   arbitrary-join fix, interview_schedules applicant-column-scope fix, and
+   the new generic rate_limit_buckets table + check_rate_limit() function.
+2. supabase/migrations/20260927010000_sprint34_skill_verification_bypass.sql —
+   deliberately isolated, single-statement: adds the
+   set_config('app.bypass_skills_guard', ...) calls to
+   verify_skills_on_challenge_pass so it can still write through the new
+   skills guard trigger. Kept separate because this exact function took 5
+   migration rounds to actually take effect live in Sprint 31 for a reason
+   never conclusively pinned down (see that sprint's record) — minimizing
+   blast radius here in case that recurs.
+
+Code changes (all locally verified, see below):
+- src/start.ts: new requestMiddleware adding X-Content-Type-Options,
+  X-Frame-Options, Referrer-Policy, Permissions-Policy, and a real CSP to
+  every response (pages + server functions + the 500 page). Verified live
+  against `npm run dev` via curl — all 5 headers present and correct,
+  including the dynamically-built connect-src pointing at this project's
+  real Supabase URL.
+- src/lib/rate-limit.server.ts (new): checkRateLimit() wrapper around the
+  new check_rate_limit RPC. Wired into signInFn/signUpFn/businessSignUpFn/
+  requestPasswordResetFn (auth.server.ts), every Gemini-backed generation
+  endpoint (resume/career-roadmap/roadmap/ai-chat/mentor/
+  challenge-generation/challenge-ai/voice-interview-start/
+  job-recommendations/eligibility/college drive-ranking+missing-skills/
+  resume-builder optimize), and every Judge0 endpoint (judge0.server.ts's
+  run+submit, coding-interview.server.ts's run+submit).
+- src/lib/judge0.server.ts: submitChallengeFn's challenge_submissions
+  insert switched to the admin/service-role client (same established
+  pattern as Sprint 31's job_applications score-column fix) so the new
+  guard trigger's real-session block doesn't also block this legitimate,
+  already-graded write. profile_id still re-derived from the authenticated
+  session, never trusted from the client. Added .max(20000) to both
+  `source` fields (previously unbounded).
+- src/lib/ai-chat.server.ts: messageSchema.text capped at .max(4000)
+  (previously unbounded per-item within an already-capped 30-item array).
+- src/lib/business-emails.server.ts: sendApplicationStatusEmailFn's
+  `status` field changed from a bare z.string() to the real 7-value enum.
+- src/lib/company-client.ts: one call-site type fix (StatusEmailTrigger
+  cast) needed after the above enum tightening — useUpdateApplicationStatus
+  already only ever passes real status values (Kanban dropStatus), this
+  just makes that provable to the type checker.
+- src/lib/supabase/types.ts: added the check_rate_limit RPC's hand-written
+  type signature (no CLI codegen access this session, same as every prior
+  sprint's schema changes).
+- Raw Postgres/Supabase error messages no longer returned directly to the
+  client (found by the audit, fixed at every flagged call site): now
+  logged server-side via console.error and replaced with a short generic
+  message. Files touched: payments.server.ts (7 sites),
+  career-roadmap.server.ts (2), analytics.server.ts (2), college.server.ts
+  (1), mentor.server.ts (3), resume-builder.server.ts (1),
+  voice-interview.server.ts (2).
+- src/lib/messages-client.ts (useStartConversation): a REAL pre-existing
+  bug found while writing the live-verification script, not a Sprint 34
+  regression — `.insert({is_group:false}).select("id").single()` on
+  conversations always failed with "new row violates row-level security
+  policy", because Postgres enforces a table's SELECT policy on an
+  INSERT...RETURNING row too, and conversations_participant_select
+  requires a conversation_participants row that can't exist yet for a
+  conversation that was just created (confirmed live via a standalone
+  repro before touching anything). Fixed by generating the id
+  client-side (crypto.randomUUID()) and dropping the .select() entirely.
+  No Playwright coverage exercises authenticated flows, so this had never
+  been caught. Zero prior sprint's live-account testing happened to
+  exercise "start a brand-new DM" specifically until this one did.
+
+Local verification: tsc 0 errors, lint 0 errors (7 pre-existing
+warnings), build PASS, Playwright 22/22 (unchanged — no new routes this
+sprint). Security headers independently verified via curl against a real
+`npm run dev` server (not just trusted from code review), both before
+and after live DB verification.
+
+LIVE VERIFICATION (24/24 passed): disposable-account methodology — 3
+students, 1 recruiter, a real company/job/application/interview_schedules
+fixture, a real existing challenge (picked live, not synthetic) with
+non-empty tags, all exercised through real anon-key sessions (not
+service-role):
+- profiles: a user cannot self-assign role='admin' (rejected, role
+  confirmed unchanged); the first account_type hop (student -> company)
+  succeeds, a second hop (company -> college) is rejected; a benign
+  self-update (onboarding_completed) still works; the admin/service-role
+  client can still write role directly.
+- challenge_submissions: a user cannot directly insert status='passed'
+  (rejected); a real status='pending' insert still works; the
+  admin/service-role client (matching submitChallengeFn's new write path)
+  CAN insert a real status='passed' row.
+- skills: a user cannot insert OR update a skill with verified=true
+  directly (both rejected); a real challenge-pass DID verify the matching
+  skill afterward, proving migration 2's set_config bypass actually took
+  effect live (if it hadn't, the guard trigger would have silently
+  blocked the trusted trigger's own write too).
+- conversation_participants: the creator can populate a brand-new
+  conversation; a stranger cannot self-join or add a third party into an
+  existing one (both rejected, RLS-backstopped — the stranger also can't
+  read the conversation's messages); an existing participant CAN add a
+  new member (group growth preserved).
+- interview_schedules: the applicant cannot change scheduled_at or
+  meeting_link (both rejected); the applicant CAN respond
+  (status/responded_at).
+- check_rate_limit: allows exactly 5 requests in a fresh window, blocks
+  the 6th+.
+- Cross-user isolation: student B cannot write to student A's skills
+  (0 rows affected, verified-skill set provably unchanged before/after)
+  and cannot read student A's challenge_submissions.
+- Cleanup: every fixture deleted in a finally block (including working
+  around the notifications/enforce_notification_update quirk noted
+  below); a post-cleanup sweep confirmed zero leftover test profiles.
+
+**Real, pre-existing, out-of-scope finding — documented, not fixed**:
+deleting a profile that's referenced as `notifications.actor_id` fails,
+because the `on delete set null` cascade fires an UPDATE that trips
+`enforce_notification_update` (20260922000000, allows recipients to
+toggle `is_read` only — not exempted for a system/cascade-driven update).
+Confirmed via direct repro. Zero current product impact — grepped the
+whole app, there is no admin "delete user" feature anywhere, only the
+`is_banned` soft-delete — so this only surfaces through a direct
+service-role script (like this sprint's own verification harness).
+Worked around in the verification script itself (delete the user's
+notification rows before deleting the user); left as a follow-up if an
+admin hard-delete feature is ever built.
+
+LAST VERIFIED COMMAND: npx playwright test (final run, post-live-DB-verification)
+LAST VERIFIED RESULT: 22 passed (11.0s)
+
+LAST COMMIT: see git log — Sprint 34 completion commit created after this
+progress update.
+
+NEXT EXACT ACTION: None — Sprint 34 is complete. Awaiting explicit
+instruction before starting Sprint 35.
+
+---
+Sprint 33 record below (historical, complete, pushed to origin/main):
 STATUS: SPRINT 33 COMPLETE AND VERIFIED. Migration applied live and
 confirmed via a live-verification pass covering table existence, notes
 RLS, resume-access RLS, cross-tenant isolation between two colleges, and

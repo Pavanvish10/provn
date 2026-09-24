@@ -59,7 +59,10 @@ export const createSubscriptionCheckoutFn = createServerFn({ method: "POST" })
         .eq("code", data.planCode)
         .eq("is_active", true)
         .maybeSingle();
-      if (planError) return { error: planError.message };
+      if (planError) {
+        console.error("[payments] plan lookup failed:", planError.message);
+        return { error: "Could not load this plan." };
+      }
       if (!plan) return { error: "This plan is no longer available." };
 
       const provider = getPaymentProvider();
@@ -106,7 +109,10 @@ export const createSubscriptionCheckoutFn = createServerFn({ method: "POST" })
         })
         .select("id")
         .single();
-      if (subError) return { error: subError.message };
+      if (subError) {
+        console.error("[payments] subscription insert failed:", subError.message);
+        return { error: "Could not activate the subscription." };
+      }
 
       const { data: payment, error: payError } = await admin
         .from("payments")
@@ -123,7 +129,10 @@ export const createSubscriptionCheckoutFn = createServerFn({ method: "POST" })
         })
         .select("id")
         .single();
-      if (payError) return { error: payError.message };
+      if (payError) {
+        console.error("[payments] payment record insert failed:", payError.message);
+        return { error: "Could not record the payment." };
+      }
 
       if (plan.price_cents > 0) {
         const invoiceNumber = await nextInvoiceNumber(admin);
@@ -172,7 +181,10 @@ export const cancelSubscriptionFn = createServerFn({ method: "POST" }).handler(
       .from("subscriptions")
       .update({ status: "canceled", canceled_at: new Date().toISOString() })
       .eq("id", active.id);
-    if (error) return { error: error.message };
+    if (error) {
+      console.error("[payments] cancel subscription failed:", error.message);
+      return { error: "Could not cancel the subscription." };
+    }
     return { error: null };
   },
 );
@@ -195,7 +207,10 @@ export const createCoursePurchaseCheckoutFn = createServerFn({ method: "POST" })
         .eq("id", data.courseId)
         .eq("is_active", true)
         .maybeSingle();
-      if (courseError) return { error: courseError.message };
+      if (courseError) {
+        console.error("[payments] course lookup failed:", courseError.message);
+        return { error: "Could not load this course." };
+      }
       if (!course) return { error: "This course is no longer available." };
 
       const { data: existing } = await supabase
@@ -241,7 +256,8 @@ export const createCoursePurchaseCheckoutFn = createServerFn({ method: "POST" })
         .single();
       if (purchaseError) {
         if (purchaseError.code === "23505") return { error: "You already own this course." };
-        return { error: purchaseError.message };
+        console.error("[payments] course purchase insert failed:", purchaseError.message);
+        return { error: "Could not record the course purchase." };
       }
 
       const { data: payment, error: payError } = await admin
@@ -260,7 +276,8 @@ export const createCoursePurchaseCheckoutFn = createServerFn({ method: "POST" })
       if (payError) {
         // Don't leave the user with course access but no payment record.
         await admin.from("course_purchases").delete().eq("id", purchase.id);
-        return { error: payError.message };
+        console.error("[payments] course payment record insert failed:", payError.message);
+        return { error: "Could not record the payment." };
       }
 
       await admin.from("course_purchases").update({ payment_id: payment.id }).eq("id", purchase.id);
@@ -325,7 +342,10 @@ export const createCreditPackCheckoutFn = createServerFn({ method: "POST" })
         .eq("code", data.packCode)
         .eq("is_active", true)
         .maybeSingle();
-      if (packError) return { error: packError.message };
+      if (packError) {
+        console.error("[payments] credit pack lookup failed:", packError.message);
+        return { error: "Could not load this credit pack." };
+      }
       if (!pack) return { error: "This credit pack is no longer available." };
 
       const provider = getPaymentProvider();
@@ -367,7 +387,8 @@ export const createCreditPackCheckoutFn = createServerFn({ method: "POST" })
         // Unique violation on idempotency_key: a concurrent duplicate
         // request already inserted the payment and will grant credits.
         if (payError.code === "23505") return { error: null, activated: true };
-        return { error: payError.message };
+        console.error("[payments] credit pack payment insert failed:", payError.message);
+        return { error: "Could not record the payment." };
       }
 
       const { error: grantError } = await admin.rpc("grant_ai_credits", {
@@ -377,7 +398,10 @@ export const createCreditPackCheckoutFn = createServerFn({ method: "POST" })
         p_reference_type: "credit_pack",
         p_reference_id: pack.id,
       });
-      if (grantError) return { error: grantError.message };
+      if (grantError) {
+        console.error("[payments] credit grant failed:", grantError.message);
+        return { error: "Payment recorded, but crediting your account failed. Contact support." };
+      }
 
       const invoiceNumber = await nextInvoiceNumber(admin);
       await admin.from("invoices").insert({

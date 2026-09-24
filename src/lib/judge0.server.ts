@@ -1,7 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseAdminClient, getSupabaseServerClient } from "@/lib/supabase/server";
+import { checkRateLimit, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit.server";
 
 const JUDGE0_BASE = "https://judge0-ce.p.rapidapi.com";
 const JUDGE0_HOST = "judge0-ce.p.rapidapi.com";
@@ -140,13 +141,16 @@ export const runSampleFn = createServerFn({ method: "POST" })
     z.object({
       challengeId: z.string().uuid(),
       judge0Id: z.number(),
-      source: z.string().min(1),
+      source: z.string().min(1).max(20000),
     }),
   )
   .handler(async ({ data }) => {
     const supabase = getSupabaseServerClient();
     const { data: auth } = await supabase.auth.getUser();
     if (!auth.user) return { error: "Not signed in." };
+    if (!(await checkRateLimit(`judge0:run:${auth.user.id}`, 30, 600))) {
+      return { error: RATE_LIMIT_MESSAGE };
+    }
 
     const { data: cases, error } = await supabase
       .from("challenge_test_cases")
@@ -184,7 +188,7 @@ export const submitChallengeFn = createServerFn({ method: "POST" })
       challengeId: z.string().uuid(),
       judge0Id: z.number(),
       language: z.string().min(1),
-      source: z.string().min(1),
+      source: z.string().min(1).max(20000),
       timeTakenSeconds: z.number().int().min(0).optional(),
       hintUsed: z.boolean().optional(),
       // The user's own local calendar date (YYYY-MM-DD), used to bucket
@@ -199,6 +203,9 @@ export const submitChallengeFn = createServerFn({ method: "POST" })
     const supabase = getSupabaseServerClient();
     const { data: auth } = await supabase.auth.getUser();
     if (!auth.user) return { error: "Not signed in." };
+    if (!(await checkRateLimit(`judge0:submit:${auth.user.id}`, 30, 600))) {
+      return { error: RATE_LIMIT_MESSAGE };
+    }
 
     const { data: cases, error } = await supabase
       .from("challenge_test_cases")
@@ -226,7 +233,14 @@ export const submitChallengeFn = createServerFn({ method: "POST" })
     }
     const runtimeMs = Date.now() - start;
 
-    const { data: submission, error: insertError } = await supabase
+    // Sprint 34: written via the admin/service-role client (auth.uid() is
+    // null in that context) so the new trg_guard_challenge_submission_insert
+    // trigger — which blocks any non-'pending' status for a real client
+    // session — allows this one real, already-graded write through. profile_id
+    // is still re-derived from the authenticated session above, never trusted
+    // from the client payload.
+    const admin = getSupabaseAdminClient();
+    const { data: submission, error: insertError } = await admin
       .from("challenge_submissions")
       .insert({
         challenge_id: data.challengeId,

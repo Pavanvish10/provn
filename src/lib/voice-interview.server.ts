@@ -3,6 +3,7 @@ import { z } from "zod";
 import { GoogleGenAI } from "@google/genai";
 
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { checkRateLimit, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit.server";
 import { GEMINI_MODEL, friendlyGeminiError, withGeminiRetry } from "@/lib/ai.server";
 import type { ResumeAnalysis } from "@/lib/resume.server";
 
@@ -189,6 +190,9 @@ export const startVoiceInterviewFn = createServerFn({ method: "POST" })
       const supabase = getSupabaseServerClient();
       const { data: auth } = await supabase.auth.getUser();
       if (!auth.user) return { error: "Not signed in." };
+      if (!(await checkRateLimit(`ai:voice-interview-start:${auth.user.id}`, 10, 600))) {
+        return { error: RATE_LIMIT_MESSAGE };
+      }
 
       const geminiResult = getGemini();
       if ("error" in geminiResult) return { error: geminiResult.error };
@@ -622,7 +626,10 @@ export const abandonVoiceInterviewFn = createServerFn({ method: "POST" })
       .eq("id", data.sessionId)
       .eq("profile_id", auth.user.id)
       .eq("status", "in_progress");
-    if (error) return { error: error.message };
+    if (error) {
+      console.error("[voice-interview] abandon session failed:", error.message);
+      return { error: "Could not update this interview session." };
+    }
     return { error: null };
   });
 
@@ -638,6 +645,9 @@ export const deleteVoiceInterviewFn = createServerFn({ method: "POST" })
       .delete()
       .eq("id", data.sessionId)
       .eq("profile_id", auth.user.id);
-    if (error) return { error: error.message };
+    if (error) {
+      console.error("[voice-interview] delete session failed:", error.message);
+      return { error: "Could not delete this interview session." };
+    }
     return { error: null };
   });

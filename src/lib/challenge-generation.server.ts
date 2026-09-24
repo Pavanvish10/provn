@@ -3,6 +3,7 @@ import { z } from "zod";
 import { GoogleGenAI } from "@google/genai";
 
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { checkRateLimit, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit.server";
 import { GEMINI_MODEL, friendlyGeminiError, withGeminiRetry } from "@/lib/ai.server";
 
 export type GeneratedChallengeDraft = {
@@ -38,6 +39,9 @@ export const generateChallengeDraftFn = createServerFn({ method: "POST" })
     if (!auth.user) return { error: "Not signed in." };
     const { data: isAdmin } = await supabase.rpc("is_admin");
     if (!isAdmin) return { error: "Admin access required." };
+    if (!(await checkRateLimit(`ai:challenge-draft:${auth.user.id}`, 20, 600))) {
+      return { error: RATE_LIMIT_MESSAGE };
+    }
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {

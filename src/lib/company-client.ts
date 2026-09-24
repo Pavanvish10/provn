@@ -693,7 +693,8 @@ export function useJobApplications(jobId: string | undefined) {
   });
 }
 
-const STATUS_EMAIL_TRIGGERS = new Set(["shortlisted", "rejected", "selected", "hired"]);
+const STATUS_EMAIL_TRIGGERS = new Set<string>(["shortlisted", "rejected", "selected", "hired"]);
+type StatusEmailTrigger = "shortlisted" | "rejected" | "selected" | "hired";
 
 /**
  * `companyId` is optional and additive — when provided (the Kanban board
@@ -722,7 +723,9 @@ export function useUpdateApplicationStatus(
       // change itself.
       if (STATUS_EMAIL_TRIGGERS.has(status)) {
         try {
-          await sendApplicationStatusEmailFn({ data: { applicationId: id, status } });
+          await sendApplicationStatusEmailFn({
+            data: { applicationId: id, status: status as StatusEmailTrigger },
+          });
         } catch (err) {
           console.warn("[company-client] application status email failed:", err);
         }
