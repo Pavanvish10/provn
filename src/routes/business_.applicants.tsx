@@ -19,6 +19,7 @@ import {
   History,
   Loader2,
   MessageSquare,
+  Scale,
   Send,
   ShieldAlert,
   ShieldCheck,
@@ -27,6 +28,7 @@ import {
   UserCheck,
   UserPlus,
   Users,
+  X,
 } from "lucide-react";
 
 import { BusinessShell } from "@/components/BusinessNav";
@@ -102,13 +104,15 @@ export const Route = createFileRoute("/business_/applicants")({
 });
 
 // ---------------------------------------------------------------------
-// Pipeline columns. The schema's 7 statuses are all reachable: `viewed`
-// lives inside the "Applied" column (a small action marks a card seen)
-// rather than getting its own column, since it's a read-receipt on the
-// applied stage rather than a distinct pipeline step.
+// Pipeline columns. Sprint 32: `viewed` now gets its own "Screening"
+// column — previously it was folded into "Applied" with the column's
+// dropStatus hardcoded to "applied", so a card could never actually
+// reach `viewed` through the UI despite the status existing in the
+// schema. All 7 statuses are genuinely reachable now.
 // ---------------------------------------------------------------------
 const COLUMNS: { key: string; label: string; statuses: string[]; dropStatus: string }[] = [
-  { key: "applied", label: "Applied", statuses: ["applied", "viewed"], dropStatus: "applied" },
+  { key: "applied", label: "Applied", statuses: ["applied"], dropStatus: "applied" },
+  { key: "screening", label: "Screening", statuses: ["viewed"], dropStatus: "viewed" },
   {
     key: "shortlisted",
     label: "Shortlisted",
@@ -265,6 +269,22 @@ function KanbanBoardPanel({
   const [interviewCompletedOnly, setInterviewCompletedOnly] = useState(false);
   const [roadmapActiveOnly, setRoadmapActiveOnly] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [compareIds, setCompareIds] = useState<Set<string>>(new Set());
+  const [compareOpen, setCompareOpen] = useState(false);
+  const MAX_COMPARE = 4;
+
+  const toggleCompare = (id: string) =>
+    setCompareIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else if (next.size < MAX_COMPARE) {
+        next.add(id);
+      } else {
+        toast.error(`You can compare up to ${MAX_COMPARE} candidates at once.`);
+      }
+      return next;
+    });
 
   const allSkills = useMemo(() => {
     const set = new Set<string>();
@@ -331,8 +351,21 @@ function KanbanBoardPanel({
               </Badge>
             )}
           </span>
-          <span className="text-xs text-muted-foreground">
+          <span className="flex items-center gap-2 text-xs text-muted-foreground">
             {applications.length} applicant{applications.length === 1 ? "" : "s"}
+            {compareIds.size > 0 && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-6 gap-1 px-2 text-[11px]"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCompareOpen(true);
+                }}
+              >
+                <Scale className="h-3 w-3" /> Compare ({compareIds.size})
+              </Button>
+            )}
           </span>
         </button>
 
@@ -429,7 +462,7 @@ function KanbanBoardPanel({
           <EmptyState text="No applicants yet." />
         </div>
       ) : (
-        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
           {columns.map((col) => (
             <KanbanColumn
               key={col.key}
@@ -439,11 +472,207 @@ function KanbanBoardPanel({
               companyId={companyId}
               bookmarks={bookmarks}
               toggleBookmark={toggleBookmark}
+              compareIds={compareIds}
+              toggleCompare={toggleCompare}
             />
           ))}
         </div>
       )}
+
+      <CompareDialog
+        open={compareOpen}
+        onOpenChange={setCompareOpen}
+        candidates={applications.filter((a) => compareIds.has(a.id))}
+        onRemove={toggleCompare}
+      />
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------
+// Candidate comparison — pure client-side view over already-fetched
+// Kanban data (useCompanyApplications already includes everything
+// needed per candidate: scores, verified skills, job-requirement match,
+// interview results). No new queries, no fabricated data — a candidate
+// with no resume/no interview yet just shows "—" for that row.
+// ---------------------------------------------------------------------
+function CompareDialog({
+  open,
+  onOpenChange,
+  candidates,
+  onRemove,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  candidates: KanbanApplicant[];
+  onRemove: (id: string) => void;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-5xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Scale className="h-4 w-4 text-brand" /> Compare candidates
+          </DialogTitle>
+        </DialogHeader>
+        {candidates.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            Select at least 2 candidates from the board to compare them.
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[560px] border-collapse text-sm">
+              <thead>
+                <tr>
+                  <th className="w-36 py-2 pr-3 text-left align-bottom text-xs text-muted-foreground">
+                    &nbsp;
+                  </th>
+                  {candidates.map((c) => (
+                    <th key={c.id} className="min-w-[180px] px-3 py-2 text-left align-bottom">
+                      <div className="flex items-start justify-between gap-1">
+                        <div className="min-w-0">
+                          <div className="truncate font-display text-base">
+                            {c.applicant?.full_name ?? "Unknown candidate"}
+                          </div>
+                          <div className="truncate text-xs text-muted-foreground">
+                            {c.applicant?.target_role || "Target role not set"}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => onRemove(c.id)}
+                          className="shrink-0 text-muted-foreground hover:text-destructive"
+                          title="Remove from comparison"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                <CompareRow
+                  label="Pipeline status"
+                  values={candidates.map((c) => (
+                    <Badge key={c.id} variant="secondary" className="text-[10px] capitalize">
+                      {c.status}
+                    </Badge>
+                  ))}
+                />
+                <CompareRow
+                  label="Applied"
+                  values={candidates.map((c) =>
+                    c.appliedAt ? new Date(c.appliedAt).toLocaleDateString() : "—",
+                  )}
+                />
+                <CompareRow
+                  label="Job match"
+                  values={candidates.map((c) =>
+                    c.jobMatchPercentage != null ? `${Math.round(c.jobMatchPercentage)}%` : "—",
+                  )}
+                  highlight
+                />
+                <CompareRow
+                  label="ATS score"
+                  values={candidates.map((c) =>
+                    c.atsScore != null ? Math.round(c.atsScore) : "—",
+                  )}
+                />
+                <CompareRow
+                  label="Skills score"
+                  values={candidates.map((c) =>
+                    c.skillsScore != null ? Math.round(c.skillsScore) : "—",
+                  )}
+                />
+                <CompareRow
+                  label="Verified skills"
+                  values={candidates.map((c) => (
+                    <div key={c.id} className="flex flex-wrap gap-1">
+                      {c.verifiedSkills.length === 0 ? (
+                        <span className="text-muted-foreground">None yet</span>
+                      ) : (
+                        c.verifiedSkills.slice(0, 6).map((s) => (
+                          <Badge key={s} variant="secondary" className="text-[9px]">
+                            {s}
+                          </Badge>
+                        ))
+                      )}
+                    </div>
+                  ))}
+                />
+                <CompareRow
+                  label="Matches job requirements"
+                  values={candidates.map((c) =>
+                    c.jobTags.length === 0
+                      ? "No tags on this role"
+                      : `${c.matchedSkills.length}/${c.jobTags.length}`,
+                  )}
+                />
+                <CompareRow
+                  label="Missing requirements"
+                  values={candidates.map((c) => (
+                    <div key={c.id} className="flex flex-wrap gap-1">
+                      {c.missingSkills.length === 0 ? (
+                        <span className="text-muted-foreground">None</span>
+                      ) : (
+                        c.missingSkills.slice(0, 4).map((s) => (
+                          <Badge key={s} variant="outline" className="text-[9px] text-destructive">
+                            {s}
+                          </Badge>
+                        ))
+                      )}
+                    </div>
+                  ))}
+                />
+                <CompareRow
+                  label="Coding interview"
+                  values={candidates.map((c) =>
+                    c.bestCodingScore != null
+                      ? `${Math.round(c.bestCodingScore)}/100`
+                      : "Not taken",
+                  )}
+                />
+                <CompareRow
+                  label="HR/voice interview"
+                  values={candidates.map((c) =>
+                    c.bestHrScore != null ? `${Math.round(c.bestHrScore)}/100` : "Not taken",
+                  )}
+                />
+                <CompareRow
+                  label="Active roadmap"
+                  values={candidates.map((c) => (c.roadmapActive ? "Yes" : "No"))}
+                />
+                <CompareRow
+                  label="Projects on profile"
+                  values={candidates.map((c) => c.topProjects.length)}
+                />
+              </tbody>
+            </table>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function CompareRow({
+  label,
+  values,
+  highlight,
+}: {
+  label: string;
+  values: React.ReactNode[];
+  highlight?: boolean;
+}) {
+  return (
+    <tr>
+      <td className="py-2 pr-3 text-xs font-medium text-muted-foreground">{label}</td>
+      {values.map((v, i) => (
+        <td key={i} className={cn("px-3 py-2", highlight && "font-display text-base text-brand")}>
+          {v}
+        </td>
+      ))}
+    </tr>
   );
 }
 
@@ -454,6 +683,8 @@ function KanbanColumn({
   companyId,
   bookmarks,
   toggleBookmark,
+  compareIds,
+  toggleCompare,
 }: {
   col: { key: string; label: string; items: KanbanApplicant[]; dropStatus: string };
   updateStatus: ReturnType<typeof useUpdateApplicationStatus>;
@@ -461,6 +692,8 @@ function KanbanColumn({
   companyId: string | undefined;
   bookmarks: Set<string>;
   toggleBookmark: ReturnType<typeof useToggleCandidateBookmark>;
+  compareIds: Set<string>;
+  toggleCompare: (id: string) => void;
 }) {
   const [isOver, setIsOver] = useState(false);
 
@@ -505,6 +738,8 @@ function KanbanColumn({
               updateStatus={updateStatus}
               bookmarks={bookmarks}
               toggleBookmark={toggleBookmark}
+              compareChecked={compareIds.has(a.id)}
+              onToggleCompare={() => toggleCompare(a.id)}
             />
           ))
         )}
@@ -520,6 +755,8 @@ function ApplicantCard({
   updateStatus,
   bookmarks,
   toggleBookmark,
+  compareChecked,
+  onToggleCompare,
 }: {
   app: KanbanApplicant;
   userId: string | undefined;
@@ -527,6 +764,8 @@ function ApplicantCard({
   updateStatus: ReturnType<typeof useUpdateApplicationStatus>;
   bookmarks: Set<string>;
   toggleBookmark: ReturnType<typeof useToggleCandidateBookmark>;
+  compareChecked: boolean;
+  onToggleCompare: () => void;
 }) {
   const scheduleInterview = useScheduleInterview(app.jobId, userId, companyId);
   const startConversation = useStartConversation(userId);
@@ -555,6 +794,13 @@ function ApplicantCard({
       className="cursor-grab rounded-xl border border-border bg-card p-3 text-sm shadow-sm active:cursor-grabbing"
     >
       <div className="flex items-start gap-2">
+        <Checkbox
+          checked={compareChecked}
+          onClick={(e) => e.stopPropagation()}
+          onCheckedChange={onToggleCompare}
+          className="mt-1 shrink-0"
+          title="Select to compare"
+        />
         <img
           src={
             app.applicant?.avatar_url ||

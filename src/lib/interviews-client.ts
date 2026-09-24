@@ -111,26 +111,11 @@ export function useMyInterviews(profileId: string | undefined) {
 
 // ---------------------------------------------------------------------
 // Respond to an interview: Accept / Decline / Request another time.
-//
-// KNOWN SCHEMA GAP (flagged, not fixed — this task's scope excludes editing
-// supabase/migrations/*): as of 20260728000000_business_v2.sql and
-// 20260728000200_business_notifications_fix.sql, interview_schedules only
-// has a SELECT policy (interview_schedules_visible) and an INSERT policy
-// scoped to recruiters (interview_schedules_recruiter_write). There is NO
-// UPDATE policy that lets the applicant change `status`/`responded_at` on
-// their own row, even though on_interview_schedule_change's trigger body is
-// written assuming a student CAN do exactly that (it branches on the
-// student setting status to accepted/declined/reschedule_requested to
-// notify HR). Until a migration adds something like:
-//
-//   create policy interview_schedules_applicant_update on interview_schedules
-//     for update to authenticated using (exists (
-//       select 1 from job_applications ja
-//       where ja.id = interview_schedules.application_id
-//         and ja.applicant_id = auth.uid()
-//     ));
-//
-// the mutation below will fail at the DB with a permissions/RLS error.
+// Backed by interview_schedules_applicant_update (migration
+// 20260728000300), which lets the applicant update status/responded_at
+// on their own row. Sprint 32 also fixed the trigger's UPDATE branch
+// (on_interview_schedule_change) to notify the recruiter who scheduled
+// it, not the applicant who just responded.
 // ---------------------------------------------------------------------
 export function useRespondToInterview(profileId: string | undefined) {
   const queryClient = useQueryClient();

@@ -10,6 +10,7 @@ import {
   useCompanyMembers,
   useAddCompanyMember,
   useRemoveCompanyMember,
+  useUpdateCompanyMemberRole,
   findProfileByEmail,
 } from "@/lib/company-client";
 import { Button } from "@/components/ui/button";
@@ -66,6 +67,7 @@ function TeamPanel({ companyId }: { companyId: string }) {
   const { data: members = [], isLoading } = useCompanyMembers(companyId);
   const addMember = useAddCompanyMember(companyId);
   const removeMember = useRemoveCompanyMember(companyId);
+  const updateRole = useUpdateCompanyMemberRole(companyId);
 
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<"admin" | "recruiter">("recruiter");
@@ -148,9 +150,26 @@ function TeamPanel({ companyId }: { companyId: string }) {
                 <span className="font-medium">
                   {m.profile?.full_name ?? m.profile?.email ?? "Unknown"}
                 </span>
-                <span className="ml-2 text-xs uppercase tracking-widest text-muted-foreground">
-                  {m.role}
-                </span>
+                {m.role === "owner" ? (
+                  <span className="ml-2 text-xs uppercase tracking-widest text-muted-foreground">
+                    owner
+                  </span>
+                ) : (
+                  <Select
+                    value={m.role}
+                    onValueChange={(v) =>
+                      updateRole.mutate({ memberId: m.id, role: v as "admin" | "recruiter" })
+                    }
+                  >
+                    <SelectTrigger className="ml-2 inline-flex h-6 w-28 text-xs uppercase tracking-widest">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="recruiter">Recruiter</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
               {m.role !== "owner" && (
                 <button

@@ -78,6 +78,15 @@ test("/messages redirects to /login when signed out", async ({ page }) => {
   await expect(page).toHaveURL(/\/login/);
 });
 
+test.describe("Sprint 32 recruiter platform routes require auth", () => {
+  for (const path of ["/business/applicants", "/business/analytics", "/business/settings"]) {
+    test(`${path} redirects to /login when signed out`, async ({ page }) => {
+      await page.goto(path);
+      await expect(page).toHaveURL(/\/login/);
+    });
+  }
+});
+
 test("signup page renders without console errors", async ({ page }) => {
   const consoleErrors: string[] = [];
   page.on("console", (msg) => {

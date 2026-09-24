@@ -1,6 +1,172 @@
-CURRENT SPRINT: 31 — Production Readiness Audit + Fixes
-CURRENT TASK: Complete. Awaiting instruction before starting Sprint 32 (do
+CURRENT SPRINT: 32 — Advanced Recruiter Platform
+CURRENT TASK: Complete. Awaiting instruction before starting Sprint 33 (do
 not begin autonomously).
+STATUS: SPRINT 32 COMPLETE AND VERIFIED. Migration applied live and
+confirmed via two live-verification passes: cross-tenant security (9/9 —
+Company B's recruiter cannot read/write any of Company A's
+job_applications/application_notes/interview_schedules/
+application_status_history/company_members, cannot self-add to Company
+A's team, cannot schedule an interview for Company A's application) and
+the notification-direction fix specifically (3/3 — recruiter scheduling
+notifies the candidate as before; candidate responding now correctly
+notifies the recruiter instead of re-notifying the candidate). Full local
+suite (tsc/lint/build/Playwright 20/20) clean both before and after live
+verification. Completion commit created — see LAST COMMIT below. Not
+pushed (push explicitly not requested this sprint).
+
+Pre-existing infrastructure confirmed (NOT rebuilding these — reuse only):
+- Team management: company_members (owner/admin/recruiter roles,
+  has_company_role() RLS, cross-tenant hijack fix already in Sprint 31),
+  invite/remove UI in business_.settings.tsx. Missing: role-change
+  (promote/demote) UI only — add/remove existed, edit didn't.
+- Candidate pipeline: job_applications.status (7 values including
+  'viewed', unreachable through the UI since the Applied column's
+  dropStatus was hardcoded to 'applied'), application_status_history
+  (full audit trail), Kanban board at business_.applicants.tsx with a
+  rich CandidateDetailDrawer (notes, history, skills, resume/ATS,
+  coding/voice interview scores).
+- Recruiter notes: application_notes table + useApplicationNotes/
+  useAddApplicationNote, fully wired into the candidate detail drawer.
+- Interview scheduling: interview_schedules table already has
+  interviewer_name, meeting_link, status (proposed/accepted/declined/
+  reschedule_requested), responded_at — everything Sprint 32 asked for.
+  Candidate-facing accept/decline UI already exists at /my-interviews
+  (src/routes/my-interviews.tsx + src/lib/interviews-client.ts).
+- Notifications: trg_interview_schedule_notify already fires on
+  insert/update — but ONLY ever notifies the candidate, never the
+  recruiter, because interview_schedules has exactly one UPDATE policy
+  (applicant-only) yet the trigger's UPDATE branch still addresses the
+  notification to the applicant. Real bug, being fixed (see below).
+
+Genuinely missing, being built this sprint:
+1. Recruiter notification when a candidate responds to a scheduled
+   interview (DB fix — the trigger notifies the wrong party today).
+2. Candidate comparison (select 2-4 applicants from the same job's
+   Kanban pool, side-by-side view) — zero prior art anywhere in the
+   codebase (grepped "compare" repo-wide). Building as a pure
+   client-side view over useCompanyApplications' already-fetched data
+   (atsScore/skillsScore/jobMatchPercentage/verifiedSkills/
+   bestCodingScore/bestHrScore/topProjects already all present per-row)
+   — no new queries needed.
+3. Pipeline conversion rate + time-to-hire analytics — the existing
+   "Hiring funnel" chart is raw per-stage headcounts only, no %
+   conversion or timing anywhere in business-analytics-client.ts.
+4. Screening as its own visible Kanban column (currently 'viewed' is
+   folded into "Applied" with a dropStatus that never actually reaches
+   'viewed' — a real, previously-unreachable pipeline stage).
+5. Team role-change (promote recruiter to admin, demote, etc.) UI —
+   add/remove exist, edit doesn't.
+6. Live cross-tenant security verification: prove a Company A recruiter
+   cannot read/write Company B's job_applications, application_notes,
+   interview_schedules, or company_members (existing RLS, being tested
+   explicitly per Sprint 32's requirement, not newly built).
+7. Stale comment cleanup in interviews-client.ts (documents a schema gap
+   that was actually already fixed by a later migration).
+
+COMPLETED (all 7 items):
+1. Migration supabase/migrations/20260925000000_sprint32_recruiter_platform.sql
+   — on_interview_schedule_change's UPDATE branch now notifies
+   new.created_by (the recruiter) with the candidate as actor, instead
+   of re-notifying the candidate. INSERT branch unchanged. NOT yet
+   applied live — handed to the user.
+2. Candidate comparison: new CompareDialog component in
+   business_.applicants.tsx. Checkbox on each card (compareChecked/
+   onToggleCompare threaded through KanbanColumn→ApplicantCard), a
+   "Compare (N)" button next to the applicant count, capped at 4
+   candidates. Side-by-side table: status, applied date, job match %,
+   ATS score, skills score, verified skills, job-requirement match
+   (matchedSkills/jobTags), missing requirements, coding/HR interview
+   scores, active roadmap, project count. Pure client-side over
+   useCompanyApplications' already-fetched data — zero new queries.
+3. Pipeline conversion + time-to-stage: business-analytics-client.ts's
+   useBusinessAnalytics extended with `conversion` (cumulative % of all
+   applications that ever reached each stage — computed from
+   application_status_history, not a current-status snapshot, so a
+   hired candidate still counts toward every earlier stage) and
+   `avgDaysToStage` (mean days from applied_at to first reaching
+   shortlisted/interview/hired). Bounded fetch (.limit(5000)) + JS
+   reduce, matching the established admin-analytics-client.ts
+   large-aggregate pattern. Rendered in business_.analytics.tsx as a new
+   conversion bar chart + a time-to-stage stat list.
+4. Screening column: business_.applicants.tsx's COLUMNS split "Applied"
+   (statuses: ["applied"]) from a new "Screening" column
+   (statuses: ["viewed"], dropStatus: "viewed") — previously "viewed"
+   was folded into Applied with dropStatus hardcoded to "applied", so
+   drag-and-drop could never actually produce a "viewed" status despite
+   it being a valid, reachable value in the schema. Grid updated
+   xl:grid-cols-6 → xl:grid-cols-7 for the new column.
+5. Team role-change: new useUpdateCompanyMemberRole hook
+   (company-client.ts) + a role <Select> replacing the static role text
+   for non-owner rows in business_.settings.tsx's TeamPanel. No new
+   migration needed — reuses the existing company_members_update_delete
+   RLS policy and Sprint 31's guard trigger (which blocks company_id/
+   profile_id changes but always allowed role changes — confirmed by
+   Sprint 31's own G1.2 regression assertion).
+   Also added onError toasts to useAddCompanyMember/
+   useRemoveCompanyMember/useUpdateCompanyMemberRole/
+   useUpdateApplicationStatus (the last one is the Kanban drag-and-drop
+   mutation specifically — found missing while working in this exact
+   file, same silent-failure class Sprint 31 fixed elsewhere).
+6. Live cross-tenant security verification: disposable two-company test
+   (Company A vs Company B recruiters) — 9/9 PASS. Company B's recruiter
+   cannot read or write Company A's job_applications, application_notes,
+   interview_schedules, application_status_history, or company_members;
+   cannot add themselves to Company A's team; cannot schedule an
+   interview for Company A's application. This tests EXISTING RLS
+   (already live, no new migration needed for this item specifically).
+7. Stale comment fixed in src/lib/interviews-client.ts — it described a
+   missing RLS policy as a live bug; that policy was actually added by
+   migration 20260728000300, predating this session. Corrected.
+
+Migration supabase/migrations/20260925000000_sprint32_recruiter_platform.sql
+applied live by the user, confirmed via a live probe (see below).
+
+FILES MODIFIED: .claude/progress.md, .claude/project-history.md,
+e2e/smoke.spec.ts, src/lib/business-analytics-client.ts,
+src/lib/company-client.ts, src/lib/interviews-client.ts,
+src/routes/business_.analytics.tsx, src/routes/business_.applicants.tsx,
+src/routes/business_.settings.tsx.
+New: supabase/migrations/20260925000000_sprint32_recruiter_platform.sql.
+
+DATABASE MIGRATIONS: one function replacement
+(on_interview_schedule_change) — no new table, no RLS policy change, no
+existing data touched. Applied and live-verified.
+
+TESTS (final, all green):
+- npx tsc --noEmit: PASS, 0 errors
+- npm run lint: PASS, 0 errors, 7 pre-existing benign warnings
+- npm run build: PASS
+- npx playwright test: PASS, 20/20 (3 new route-guard tests)
+- Live cross-tenant security verification: 9/9 PASS
+- Live notification-direction fix verification: 3/3 PASS
+- All disposable test data deleted after every run; final sweep
+  confirmed zero leftover profiles/companies/jobs/auth users.
+
+ERRORS FOUND: the interview-schedule notification trigger addressed
+every notification to the applicant regardless of who acted, so
+recruiters were never notified when a candidate responded to a
+scheduled interview — a real, silent gap discovered during inspection
+(not by trial and error) by reading the trigger against the table's
+actual RLS policies. Also found (and fixed) a missing onError on the
+Kanban board's drag-and-drop status-change mutation while working in
+that file.
+
+ERRORS FIXED: both of the above — see COMPLETED. Nothing found and left
+unfixed this sprint.
+
+LAST VERIFIED COMMAND: npx playwright test (final run, post-live-DB-verification)
+LAST VERIFIED RESULT: 20 passed (29.2s)
+
+LAST COMMIT: see git log — Sprint 32 completion commit created after this
+progress-file update, following the same "commit only after genuine full
+verification passes" discipline as every prior sprint.
+
+NEXT EXACT ACTION: None — Sprint 32 is complete. Awaiting explicit
+instruction before starting Sprint 33 or pushing to origin/main.
+
+---
+Sprint 31 record below (historical, complete, pushed):
+CURRENT TASK: Complete and pushed to origin/main.
 STATUS: SPRINT 31 COMPLETE AND VERIFIED. All 6 migration files applied
 live (5 for the skill-verification saga, see history below, plus the
 original combined migration). Final live-verification run: 13/13 PASS
@@ -224,13 +390,15 @@ TESTS (final, all green):
 LAST VERIFIED COMMAND: npx playwright test (final run, post-live-DB-verification)
 LAST VERIFIED RESULT: 17 passed (56.6s)
 
-LAST COMMIT: c2fb14c "feat(sprint-31): production readiness audit + fixes"
-— 32 files changed. Working tree clean. NOT pushed to origin/main (no
-push instruction given this sprint; matches this session's established
-pattern of only pushing on explicit request).
+LAST COMMIT: 027ecaf "docs(sprint-31): record final commit hash in
+progress.md" (on top of c2fb14c "feat(sprint-31): production readiness
+audit + fixes", 32 files changed). PUSHED to origin/main — confirmed via
+git fetch + hash comparison, local HEAD and origin/main both
+027ecafa6158a41d39cd77c598ce60a46eecf63e. Working tree clean.
 
-NEXT EXACT ACTION: None — Sprint 31 is complete. Awaiting explicit
-instruction before starting Sprint 32 or pushing to origin/main.
+NEXT EXACT ACTION: None — Sprint 31 is complete and pushed. Sprint 32
+starting per explicit instruction (see Sprint 32 section, prepended
+above once work begins).
 
 ---
 Sprint 30 record below (historical, complete):

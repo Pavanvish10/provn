@@ -238,6 +238,7 @@ export function useAddCompanyMember(companyId: string | undefined) {
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: companyMembersQueryKey(companyId) }),
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Couldn't add this team member."),
   });
 }
 
@@ -250,6 +251,36 @@ export function useRemoveCompanyMember(companyId: string | undefined) {
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: companyMembersQueryKey(companyId) }),
+    onError: (e) =>
+      toast.error(e instanceof Error ? e.message : "Couldn't remove this team member."),
+  });
+}
+
+// Sprint 32: promote/demote a team member between admin and recruiter.
+// Deliberately can't target/set 'owner' here — ownership transfer is a
+// separate, higher-stakes action this app doesn't support yet, matching
+// useAddCompanyMember's own admin/recruiter-only role type above. RLS
+// (company_members_update_delete, requires the caller be owner/admin of
+// this company) plus the Sprint 31 guard trigger (blocks moving the row
+// to a different company_id/profile_id) already fully cover this from
+// the database side — this just adds the missing UI action.
+export function useUpdateCompanyMemberRole(companyId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      memberId: string;
+      role: Extract<CompanyRole, "admin" | "recruiter">;
+    }) => {
+      const supabase = getSupabaseBrowserClient();
+      const { error } = await supabase
+        .from("company_members")
+        .update({ role: input.role })
+        .eq("id", input.memberId);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: companyMembersQueryKey(companyId) }),
+    onError: (e) =>
+      toast.error(e instanceof Error ? e.message : "Couldn't update this member's role."),
   });
 }
 
@@ -703,6 +734,8 @@ export function useUpdateApplicationStatus(
         queryClient.invalidateQueries({ queryKey: ["company-applications", companyId] });
       }
     },
+    onError: (e) =>
+      toast.error(e instanceof Error ? e.message : "Couldn't update this application's status."),
   });
 }
 

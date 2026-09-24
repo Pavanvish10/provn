@@ -866,6 +866,112 @@ Full local suite (tsc/lint/build/Playwright 17/17 — 1 new route-guard test
 for `/messages`, touched significantly by the chat-images change) clean
 after every batch of changes.
 
+Committed as `c2fb14c` (32 files) plus a small follow-up `027ecaf`
+(recording the commit hash back into `progress.md`). Pushed to
+`origin/main` — confirmed via `git fetch` + hash comparison, local
+`HEAD` and `origin/main` both `027ecafa6158a41d39cd77c598ce60a46eecf63e`.
+
+## Sprint 32 — Advanced Recruiter Platform (complete, 2026-09-25)
+
+Requested as a large 10-area feature set (team management, candidate
+pipeline, candidate management, comparison, interview scheduling,
+analytics, permissions, UI/UX, database, integration). The inspection
+phase (mandatory before any coding, per the task's own instructions)
+found most of it already built by prior sprints — this sprint's actual
+work is the genuinely missing slice, not a rebuild.
+
+**Already existed, confirmed by direct code reading before assuming
+otherwise** (matches this session's established discipline of auditing
+before building): `company_members` already provides full team
+management (owner/admin/recruiter roles, `has_company_role()` RLS,
+cross-tenant hijack already closed in Sprint 31), with invite/remove UI
+in `business_.settings.tsx`. `application_notes` already provides
+recruiter notes, fully wired into `business_.applicants.tsx`'s candidate
+detail drawer. `application_status_history` already logs every pipeline
+transition. `interview_schedules` already has `interviewer_name`,
+`meeting_link`, `status` (proposed/accepted/declined/
+reschedule_requested), `responded_at` — everything the task asked for —
+and a complete candidate-facing accept/decline UI already existed at
+`/my-interviews` (`src/routes/my-interviews.tsx` +
+`src/lib/interviews-client.ts`), predating this sprint entirely.
+
+**Genuinely missing pieces, built this sprint:**
+1. **A real notification-direction bug**, found by reading
+   `on_interview_schedule_change` against `interview_schedules`' actual
+   RLS: that table has exactly one UPDATE policy
+   (`interview_schedules_applicant_update`, applicant-only), so every
+   UPDATE the trigger ever sees is the candidate responding — yet the
+   UPDATE branch still addressed the notification to the applicant. The
+   recruiter who scheduled the interview was never notified when a
+   candidate accepted, declined, or asked to reschedule. Fixed by
+   flipping the UPDATE branch's recipient/actor
+   (`supabase/migrations/20260925000000_sprint32_recruiter_platform.sql`);
+   the INSERT branch (recruiter scheduling → candidate notified) was
+   already correct and is unchanged.
+2. **Candidate comparison** — zero prior art anywhere in the codebase
+   (grepped "compare" repo-wide, confirmed clean). Built as a pure
+   client-side `CompareDialog` in `business_.applicants.tsx` over
+   `useCompanyApplications`' already-fetched per-candidate data (ATS/
+   skills/job-match scores, verified skills, job-requirement match,
+   coding/voice interview scores, active roadmap, project count) — zero
+   new queries. A checkbox on each Kanban card selects up to 4
+   candidates; a "Compare (N)" button opens a side-by-side table.
+3. **Pipeline conversion rate + time-to-stage analytics** — the
+   pre-existing "Hiring funnel" chart was raw per-stage headcounts only
+   (a snapshot of who's currently sitting in each status), not a
+   genuine conversion funnel. `useBusinessAnalytics` extended with
+   `conversion` (cumulative % of all applications that ever reached
+   each stage, derived from `application_status_history` so a hired
+   candidate still counts toward every earlier stage) and
+   `avgDaysToStage` (mean days from `applied_at` to first reaching
+   shortlisted/interview/hired). Bounded fetch (`.limit(5000)`) + JS
+   reduce — PostgREST has no `COUNT(DISTINCT ...)`, so this mirrors the
+   same "bounded fetch, reduce client-side" pattern already established
+   for `admin-analytics-client.ts`'s large aggregates, not a new one.
+4. **A previously-unreachable pipeline stage made real**: `viewed` was
+   a valid status in the schema's own check constraint, but the Kanban
+   board's "Applied" column had its `dropStatus` hardcoded to `applied`,
+   so no drag-and-drop action could ever actually produce a `viewed`
+   application — the status existed on paper only. Split into its own
+   "Screening" column (`dropStatus: "viewed"`), making it genuinely
+   reachable for the first time.
+5. **Team role-change (promote/demote) UI** — add and remove already
+   existed; changing an existing member's role didn't. New
+   `useUpdateCompanyMemberRole` hook needed no new migration at all: the
+   existing `company_members_update_delete` RLS policy plus Sprint 31's
+   own guard trigger (which blocks moving a row to a different
+   `company_id`/`profile_id` but always allowed role changes — confirmed
+   by that sprint's own `G1.2` regression assertion) already fully cover
+   it. Also added `onError` toasts to `useAddCompanyMember`/
+   `useRemoveCompanyMember`/`useUpdateCompanyMemberRole`, plus
+   `useUpdateApplicationStatus` (the Kanban drag-and-drop mutation
+   itself, found missing while working in the same file — same
+   silent-failure class Sprint 31 fixed elsewhere, not previously
+   caught because Sprint 31's audit sampled different files).
+6. **Live cross-tenant security verification** (explicitly required by
+   the task, not just implied): a disposable two-company test proving
+   Company B's recruiter cannot read or write any of Company A's
+   `job_applications`, `application_notes`, `interview_schedules`,
+   `application_status_history`, or `company_members`, cannot add
+   themselves to Company A's team, and cannot schedule an interview for
+   Company A's application. This tests RLS that already existed from
+   Sprints 26-31 — no new migration needed for this item specifically —
+   9/9 assertions passed.
+7. A stale comment in `interviews-client.ts` describing a missing RLS
+   policy as a live bug was corrected — that policy (migration
+   `20260728000300`) predates this session entirely.
+
+Live-verified end to end with disposable accounts: 9/9 on cross-tenant
+isolation, plus 3/3 specifically on the notification-direction fix
+(recruiter scheduling still notifies the candidate; candidate responding
+now correctly notifies the recruiter instead of re-notifying the
+candidate). All test data deleted after every run; final sweep confirmed
+zero leftover profiles/companies/jobs/auth users.
+
+Full local suite (tsc/lint/build/Playwright 20/20 — 3 new route-guard
+tests for `/business/applicants`, `/business/analytics`,
+`/business/settings`) clean both before and after live verification.
+
 ## Known technical debt / TODOs (repository-wide, not just Sprint 26)
 
 - Every AI feature is gated behind `GEMINI_API_KEY` and degrades
