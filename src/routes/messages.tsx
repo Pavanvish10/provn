@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 import { Send, Search, ImagePlus, Check, CheckCheck, X, MessageSquarePlus } from "lucide-react";
@@ -15,6 +15,7 @@ import { useCurrentUser } from "@/lib/auth-client";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
   conversationsQueryKey,
+  getSignedChatImageUrl,
   markConversationRead,
   messagesQueryKey,
   participantsQueryKey,
@@ -84,6 +85,27 @@ function lastSeenLabel(profile: ProfileLite | null | undefined, online: boolean)
   if (online) return "Online";
   if (!profile?.last_seen_at) return "Offline";
   return `Last seen ${formatTime(profile.last_seen_at)} ago`;
+}
+
+// messages.image_url stores a chat-images storage path (private bucket,
+// Sprint 31), not a public URL — resolve it to a short-lived signed URL
+// on render, same pattern as resume previews.
+function ChatImage({ storagePath }: { storagePath: string }) {
+  const { data: url } = useQuery({
+    queryKey: ["chat-image-url", storagePath],
+    queryFn: () => getSignedChatImageUrl(storagePath),
+    staleTime: 8 * 60 * 1000,
+  });
+  if (!url) {
+    return <div className="mb-1 h-40 w-full animate-pulse rounded-lg bg-muted" />;
+  }
+  return (
+    <img
+      src={url}
+      alt="Shared attachment"
+      className="mb-1 max-h-64 w-full rounded-lg object-cover"
+    />
+  );
 }
 
 function Messages() {
@@ -413,13 +435,7 @@ function Messages() {
                           mine ? "bg-brand text-brand-foreground" : "bg-muted text-foreground"
                         }`}
                       >
-                        {m.image_url && (
-                          <img
-                            src={m.image_url}
-                            alt="Shared attachment"
-                            className="mb-1 max-h-64 w-full rounded-lg object-cover"
-                          />
-                        )}
+                        {m.image_url && <ChatImage storagePath={m.image_url} />}
                         {m.content && (
                           <div className="whitespace-pre-wrap break-words">{m.content}</div>
                         )}

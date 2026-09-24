@@ -46,6 +46,8 @@ function BusinessSubscription() {
       if (result.error) setError(result.error);
       else if (result.checkoutUrl && !result.activated) window.location.href = result.checkoutUrl;
       else if (result.activated) window.location.href = "/checkout/success";
+    } catch {
+      setError("Couldn't start checkout. Please try again.");
     } finally {
       setSubscribing(false);
     }

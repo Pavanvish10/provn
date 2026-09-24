@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { Database } from "@/lib/supabase/types";
@@ -519,6 +520,7 @@ export function useUpdateJob(companyId: string | undefined, userId?: string | un
       }
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: companyJobsQueryKey(companyId) }),
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Couldn't update this job."),
   });
 }
 
@@ -531,6 +533,7 @@ export function useDeleteJob(companyId: string | undefined) {
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: companyJobsQueryKey(companyId) }),
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Couldn't delete this job."),
   });
 }
 

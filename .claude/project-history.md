@@ -696,6 +696,176 @@ Full local suite (tsc/lint/build/Playwright 16/16 — added 2 new
 route-guard checks for the two BusinessShell-migrated routes) clean, both
 before and after the live database verification pass. Sprint complete.
 
+## Sprint 31 — Production Readiness Audit + Fixes (complete, 2026-09-24)
+
+Two-phase sprint: a full audit (report delivered, approved by the user)
+followed by implementing the approved fix list in the user's mandated
+priority order. Every fix reused an established pattern from Sprints
+26-30 rather than inventing a new one.
+
+**Audit method**: 4 parallel focused sub-agent passes (application flows
+split student-facing vs. company/college/admin-facing, database/RLS,
+security deep-dive) plus direct manual verification of every high-severity
+claim before it was trusted — this caught one sub-agent overstatement
+(`courses.$courseId.tsx`'s Buy-button bug was real but not as severe as
+first reported: react-query resets `isPending` on any settled mutation
+regardless of whether the caller catches the rejection, so the button was
+never actually stuck — the real defect was just a missing error message)
+and one flatly incorrect finding (`debug_list_policies()` was claimed
+still-granted; it was in fact already dropped by migration
+`20260728000600`, confirmed by matching the exact function signature).
+
+**Two real, verified security findings**, both closed with the same
+guard-trigger pattern already used 4 times in prior sprints (compare
+OLD vs NEW inside a `BEFORE UPDATE` trigger, since a Postgres RLS
+`WITH CHECK` clause alone can't express an OLD-vs-NEW column-level
+restriction):
+1. `company_members` cross-tenant hijack — the UPDATE policy
+   (`company_members_update_delete`, migration `20260728000400`) had a
+   `USING` clause but no `WITH CHECK`; since `USING` on UPDATE only
+   evaluates the OLD row, an owner/admin of one company could UPDATE
+   their own membership row and set `company_id` to a different company
+   (with `role='owner'`), hijacking that tenant's recruiter dashboard.
+   New trigger `guard_company_members_update` blocks `company_id`/
+   `profile_id` changes for non-admins. No app code currently calls
+   UPDATE on this table at all (grepped every client/server file), so
+   nothing legitimate was restricted — only the attack surface closed.
+2. `job_applications` scoring-column tamper — `status` was already
+   guarded (pre-existing trigger, predates Sprint 26), but
+   `ats_score`/`job_match_percentage`/`skills_score` had no restriction,
+   letting an applicant directly overwrite their own application's match
+   score, bypassing `matching-scores.server.ts`'s real computation.
+   `guard_job_application_update` extended to also block those columns
+   for non-recruiter, non-service-role sessions; `matching-scores.server.ts`
+   switched to write via the admin/service-role client after its existing
+   auth check (same pattern as payments/subscriptions/AI credits), so the
+   legitimate scoring flow still works while a direct client write is now
+   rejected by the trigger.
+
+**Real skill-verification feature gap closed** (found by an audit
+sub-agent, independently confirmed via schema read + full-tree grep
+before trusting it): the `skills` table schema (`source` column with a
+check constraint allowing `'challenge'`, a `verified_at` timestamp) was
+explicitly built for a verification pipeline that was never wired up —
+`profile.tsx` has told users "Skills become verified by passing a coding
+challenge in that category" with no code path that ever made it true.
+New trigger `verify_skills_on_challenge_pass` (`AFTER INSERT` on
+`challenge_submissions`, the table exclusively written by
+`judge0.server.ts`'s real Judge0-graded `submitChallengeFn` — not
+client-forgeable) marks each of the passed challenge's `tags` as a
+verified skill for that profile, upserting a new skill row if none
+existed. Reuses the same tag vocabulary `jobs.tags`/matching-scores
+already use — a direct implementation of already-scoped product intent,
+not a new concept.
+
+**The skill-verification trigger took 5 migration rounds to actually
+land, and the reason is worth recording for future sessions.** Round 1
+(bundled into the main `20260924000000_sprint31_security_fixes.sql`)
+targeted `on conflict (profile_id, lower(skill_name))`, matching a unique
+INDEX created in `20260726220130` — but that index had been dropped and
+replaced by a plain-column unique CONSTRAINT
+(`skills_profile_id_skill_name_key`) in
+`20260727000500_skills_unique_fix.sql`, missed during the original audit.
+Every real challenge-pass insert failed with Postgres `42P10`. Round 2
+(`20260924010000`) retargeted the conflict clause at the correct
+constraint by name — same `42P10` error, reproduced. Investigated rather
+than guessing a third spelling: confirmed live that the constraint
+genuinely exists (a raw duplicate insert is correctly rejected citing it,
+and a PostgREST `.upsert()` with the identical `onConflict` column list
+succeeds cleanly) — yet the identical column list as a literal `ON
+CONFLICT` clause inside this specific function's own `INSERT` still
+failed, for a reason never conclusively pinned down. Round 3
+(`20260924020000`) sidestepped `ON CONFLICT` entirely with an explicit
+select-then-insert-or-update, independently sanity-checked live against
+the real table outside the trigger before being handed over — reported
+as applied ("Success. No rows returned"), but the exact same `42P10`
+persisted, reproduced via a same-run A/B test (a real-tag challenge fails,
+an empty-tag challenge on the same profile in the same script run
+succeeds), ruling out a timing fluke and ruling out every other trigger on
+`challenge_submissions`/`skills` as the source (none of them depend on
+tag presence). A temporary read-only diagnostic
+(`20260924030000_temp_diagnostic_function_source.sql`,
+`debug_get_function_source`, a thin `pg_get_functiondef` wrapper) was
+added to read the live function definition via RPC rather than keep
+inferring from error text — it was never reachable through PostgREST
+(`PGRST202`, persisting across 8+ retries over 90+ seconds and a
+follow-up migration that added an explicit `grant execute`, round 4,
+`20260924040000`). The actual ground truth only came from the user
+running `select pg_get_functiondef('public.verify_skills_on_challenge_pass'::regproc)`
+directly in the Supabase SQL Editor (bypassing PostgREST/RPC entirely):
+the live function still contained the **original round-1 body**. None of
+rounds 2, 3, or 4's `create or replace function` statements had ever
+actually taken effect, despite each one being reported as applied
+successfully — the mismatch was never conclusively explained. Round 5
+(`20260924050000_fix_skill_verification_final.sql`, one statement, alone
+in its own file with nothing else bundled) finally landed and was
+live-verified: 8/8 assertions on its own (existing skill verified in
+place, new skill inserted when none existed, repeat submissions safe,
+blank tags skipped, empty-tags challenges unaffected) plus a full 13/13
+re-run of the combined items-1/2/3/9 suite confirming nothing regressed
+across the 5 rounds. **If a future session sees a `create or replace
+function` reported as successful in the Supabase SQL Editor but the
+function's actual behavior doesn't change, this is precedent that it can
+happen — verify via a direct `pg_get_functiondef` read in the SQL Editor
+itself, not by inference from application-level test results alone, and
+not by trusting a PostgREST/RPC round-trip (which has its own, separate,
+unresolved schema-cache/grant visibility issue in this project — see
+`debug_get_function_source`, left in place, harmless and unused).**
+
+**Reliability fixes** — a recurring "mutation has no `onError`, fails
+completely silently" pattern found across 6+ files, fixed at the mutation-
+hook level (one `sonner` `toast.error` per hook) rather than patching
+every call site individually: `useUpdateJob`/`useDeleteJob`
+(`company-client.ts`), `useUpdateDrive` (`college-client.ts`),
+`useUpdateReportStatus`/`useDeleteReportedPost`/`useDeleteReportedComment`
+(`admin-reports-client.ts`), `useCancelSubscription`
+(`payments-client.ts`, which also needed its in-band `result.error` case
+toasted, not just a thrown exception). Also added `isPending`-disabled
+guards to the status-toggle buttons in `business_.jobs.tsx`/`college.tsx`
+(duplicate-submit prevention, found alongside the missing-`onError` bug).
+Separately, a missing-`try/catch`-around-a-checkout-mutation pattern
+(distinct from the above — these already had in-band error handling, just
+no `catch` for a genuinely thrown exception) was found and fixed in
+`courses.$courseId.tsx`, `admin.premium.tsx`, `billing.tsx`,
+`business_.subscription.tsx`, and `plan.tsx`'s `subscribeToPro`.
+
+**Chat images moved to private storage** (`src/lib/messages-client.ts`,
+`src/routes/messages.tsx`): DM attachments previously reused the
+public-read `post-images` bucket with a guessable path — anyone who
+obtained/guessed the URL could view a private image without auth. New
+private `chat-images` bucket mirrors the `resumes` bucket's pattern
+exactly: `uploadChatImage` now returns a storage path, not a URL; a new
+`getSignedChatImageUrl` resolves a 10-minute signed URL on render via a
+new small `ChatImage` component (replacing the old inline `<img
+src={m.image_url}>`). RLS grants read to the uploader, an admin, or
+anyone sharing any conversation with the uploader (same coarser-join
+precedent as `resumes_recruiter_read`).
+
+**`company-logos` bucket tightened**: dropped `image/svg+xml` from
+`allowed_mime_types` (an SVG can embed `<script>`; the bucket is
+public-read, so this was a stored-XSS vector via any company's logo URL).
+
+Migrations: `20260924000000_sprint31_security_fixes.sql` (items 1, 2, 9,
+10, and the original/buggy item 3), `20260924010000`, `20260924020000`,
+`20260924030000`, `20260924040000` (all fix-forward attempts for item 3
+that were applied but never actually took effect — kept as an accurate
+record, see the skill-verification history above), `20260924050000`
+(item 3's real, working fix).
+
+**P3 cleanup** (done only after all P1/P2 items, per the user's explicit
+ordering): removed 4 confirmed-zero-import runtime dependencies and their
+unused shadcn wrapper components (`react-resizable-panels`, `vaul`,
+`embla-carousel-react`, `react-day-picker`); added the missing `.max(6000)`
+to `resume.server.ts`'s one AI-prompt field that lacked it (every sibling
+field already had this cap); fixed `resume-setup.tsx`'s PDF-only
+validation to use the shared `ACCEPTED_RESUME_MIME_TYPES` constant already
+used everywhere else resumes are uploaded; removed 2 duplicate
+`.gitignore` entries.
+
+Full local suite (tsc/lint/build/Playwright 17/17 — 1 new route-guard test
+for `/messages`, touched significantly by the chat-images change) clean
+after every batch of changes.
+
 ## Known technical debt / TODOs (repository-wide, not just Sprint 26)
 
 - Every AI feature is gated behind `GEMINI_API_KEY` and degrades
@@ -745,16 +915,19 @@ before and after the live database verification pass. Sprint complete.
   and college_admins takeover) are **fixed and confirmed live** via
   round-5 throwaway-account testing (9/9 assertions pass, zero
   regressions to legitimate flows). Sprint 26 is production-safe.
-- **`job_applications` (Sprint 25) still has the same class of
-  self-approval gap** that `drive_applications` had — not fixed, flagged
-  as the top follow-up item, out of this session's Sprint-26-only scope.
+- ~~`job_applications` (Sprint 25) still has the same class of
+  self-approval gap that `drive_applications` had~~ — **[Corrected in
+  Sprint 31]** this was stale even before Sprint 31: `status` was already
+  guarded by a trigger (`guard_job_application_update`, migration
+  `20260728000700`, predates Sprint 26). The real remaining gap, found by
+  Sprint 31's audit, was narrower — the same table's `ats_score`/
+  `job_match_percentage`/`skills_score` columns had no restriction at all,
+  letting an applicant fabricate their own match score. Fixed in Sprint 31
+  (`20260924000000_sprint31_security_fixes.sql`).
 
 ## Testing
 
-- No dedicated test runner script in `package.json` (`scripts` only has
-  `dev`/`build`/`build:dev`/`preview`/`lint`/`format` — no `test`,
-  no `playwright` script). Sprint 14's commit message describes "a real
-  Playwright pass" being run, implying Playwright was used ad hoc/via a
-  separate invocation, not as a checked-in `npm test` script — **not
-  determinable from repository evidence** whether a Playwright config
-  file currently exists; not yet checked in this session.
+- **[Corrected in Sprint 31]** ~~No dedicated test runner script...not yet
+  checked in this session~~ — stale as of Sprint 26: `playwright.config.ts`
+  exists, `package.json` has a `test:e2e` script, and `e2e/smoke.spec.ts`
+  has grown to 17 tests as of Sprint 31 (started at 0 before Sprint 26).

@@ -328,8 +328,12 @@ export function useProfileSearch(query: string, excludeId: string | undefined) {
 }
 
 // ---------------------------------------------------------------------
-// Chat image upload (reuses the public post-images bucket; see report re:
-// this being public-read, which is not ideal for private DM images)
+// Chat image upload — Sprint 31: moved to the private `chat-images`
+// bucket (previously reused the public post-images bucket, so a DM
+// image was viewable by anyone with the guessable URL). Returns the
+// storage path, not a URL; messages.image_url now stores that path and
+// callers must resolve it to a short-lived signed URL via
+// getSignedChatImageUrl before rendering, same pattern as resumes.
 // ---------------------------------------------------------------------
 
 export async function uploadChatImage(userId: string, file: File): Promise<string> {
@@ -337,11 +341,19 @@ export async function uploadChatImage(userId: string, file: File): Promise<strin
   const ext = file.name.split(".").pop() ?? "png";
   const path = `${userId}/chat-${Date.now()}.${ext}`;
   const { error } = await supabase.storage
-    .from("post-images")
+    .from("chat-images")
     .upload(path, file, { upsert: false, cacheControl: "3600" });
   if (error) throw error;
-  const { data } = supabase.storage.from("post-images").getPublicUrl(path);
-  return data.publicUrl;
+  return path;
+}
+
+export async function getSignedChatImageUrl(storagePath: string) {
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.storage
+    .from("chat-images")
+    .createSignedUrl(storagePath, 60 * 10);
+  if (error) throw error;
+  return data.signedUrl;
 }
 
 // ---------------------------------------------------------------------

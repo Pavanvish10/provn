@@ -73,6 +73,11 @@ test.describe("Sprint 30: business routes moved to BusinessShell still require a
   }
 });
 
+test("/messages redirects to /login when signed out", async ({ page }) => {
+  await page.goto("/messages");
+  await expect(page).toHaveURL(/\/login/);
+});
+
 test("signup page renders without console errors", async ({ page }) => {
   const consoleErrors: string[] = [];
   page.on("console", (msg) => {

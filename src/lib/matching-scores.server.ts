@@ -22,7 +22,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseServerClient, getSupabaseAdminClient } from "@/lib/supabase/server";
 import { scoreCandidate, type Candidate } from "@/lib/matching";
 
 export type ApplicationScores = {
@@ -94,7 +94,13 @@ export const computeApplicationScoresFn = createServerFn({ method: "POST" })
       jobMatchPercentage = atsScore;
     }
 
-    const { error: updateError } = await supabase
+    // Written via the admin client, not the caller's own session: the
+    // authorization check above (applicant_id === auth.user.id) already
+    // ran under RLS, so this is safe — and it's what lets a Sprint 31 DB
+    // guard (guard_job_application_update) block a direct client update
+    // of these columns while still allowing this real computation through.
+    const admin = getSupabaseAdminClient();
+    const { error: updateError } = await admin
       .from("job_applications")
       .update({
         ats_score: atsScore,

@@ -164,7 +164,7 @@ ${jd}
 """`;
 
 export const analyzeResumeAgainstJdFn = createServerFn({ method: "POST" })
-  .validator(z.object({ jobDescription: z.string().min(40) }))
+  .validator(z.object({ jobDescription: z.string().trim().min(40).max(6000) }))
   .handler(async ({ data }): Promise<{ error: string | null; result?: JdMatchResult }> => {
     const supabase = getSupabaseServerClient();
     const { data: auth } = await supabase.auth.getUser();

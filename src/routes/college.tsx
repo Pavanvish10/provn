@@ -194,6 +194,7 @@ function DriveRow({ drive, collegeId }: { drive: PlacementDrive; collegeId: stri
               size="sm"
               variant="outline"
               className="h-7 gap-1 text-xs"
+              disabled={updateDrive.isPending}
               onClick={() => updateDrive.mutate({ id: drive.id, status: "published" })}
             >
               <PlayCircle className="h-3.5 w-3.5" /> Publish
@@ -204,6 +205,7 @@ function DriveRow({ drive, collegeId }: { drive: PlacementDrive; collegeId: stri
               size="sm"
               variant="outline"
               className="h-7 gap-1 text-xs"
+              disabled={updateDrive.isPending}
               onClick={() => updateDrive.mutate({ id: drive.id, status: "paused" })}
             >
               <Pause className="h-3.5 w-3.5" /> Pause
@@ -214,6 +216,7 @@ function DriveRow({ drive, collegeId }: { drive: PlacementDrive; collegeId: stri
               size="sm"
               variant="outline"
               className="h-7 gap-1 text-xs"
+              disabled={updateDrive.isPending}
               onClick={() => updateDrive.mutate({ id: drive.id, status: "published" })}
             >
               <PlayCircle className="h-3.5 w-3.5" /> Resume
@@ -224,6 +227,7 @@ function DriveRow({ drive, collegeId }: { drive: PlacementDrive; collegeId: stri
               size="sm"
               variant="outline"
               className="h-7 gap-1 text-xs text-destructive"
+              disabled={updateDrive.isPending}
               onClick={() => updateDrive.mutate({ id: drive.id, status: "closed" })}
             >
               <XCircle className="h-3.5 w-3.5" /> Close

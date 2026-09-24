@@ -93,22 +93,26 @@ function PlanPage() {
   const subscribeToPro = async () => {
     if (!proPlan) return;
     setSubscribeError(null);
-    const result = await subscribeCheckout.mutateAsync({
-      planCode: proPlan.code,
-      successUrl: `${window.location.origin}/checkout/success`,
-      cancelUrl: `${window.location.origin}/checkout/cancel`,
-    });
-    if (result.error) {
-      setSubscribeError(result.error);
-      return;
-    }
-    if (result.activated) {
-      await updateProfile.mutateAsync({ onboarding_completed: true });
-      await invalidateCurrentUser(queryClient);
-      await router.invalidate();
-      nav({ to: "/checkout/success" });
-    } else if (result.checkoutUrl) {
-      window.location.href = result.checkoutUrl;
+    try {
+      const result = await subscribeCheckout.mutateAsync({
+        planCode: proPlan.code,
+        successUrl: `${window.location.origin}/checkout/success`,
+        cancelUrl: `${window.location.origin}/checkout/cancel`,
+      });
+      if (result.error) {
+        setSubscribeError(result.error);
+        return;
+      }
+      if (result.activated) {
+        await updateProfile.mutateAsync({ onboarding_completed: true });
+        await invalidateCurrentUser(queryClient);
+        await router.invalidate();
+        nav({ to: "/checkout/success" });
+      } else if (result.checkoutUrl) {
+        window.location.href = result.checkoutUrl;
+      }
+    } catch {
+      setSubscribeError("Couldn't start checkout. Please try again.");
     }
   };
 

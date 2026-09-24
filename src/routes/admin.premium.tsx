@@ -35,6 +35,7 @@ function AdminPremium() {
   const grantPremium = useGrantPremium(currentUser?.id);
   const revokePremium = useRevokePremium(currentUser?.id);
   const [notice, setNotice] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const rows = data?.rows ?? [];
   const count = data?.count ?? 0;
@@ -42,15 +43,25 @@ function AdminPremium() {
 
   const grant = async (profileId: string, days: number | null) => {
     setNotice(null);
-    await grantPremium.mutateAsync({ profileId, days });
-    setNotice("Premium granted.");
-    setGrantSearch("");
+    setError(null);
+    try {
+      await grantPremium.mutateAsync({ profileId, days });
+      setNotice("Premium granted.");
+      setGrantSearch("");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to grant premium.");
+    }
   };
 
   const runRevoke = async () => {
     if (!revokeTarget) return;
-    await revokePremium.mutateAsync(revokeTarget.id);
-    setRevokeTarget(null);
+    setError(null);
+    try {
+      await revokePremium.mutateAsync(revokeTarget.id);
+      setRevokeTarget(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to revoke premium.");
+    }
   };
 
   return (
@@ -80,6 +91,7 @@ function AdminPremium() {
             />
           </div>
           {notice && <p className="mt-2 text-sm text-brand">{notice}</p>}
+          {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
           <div className="mt-3 space-y-2">
             {(matches ?? []).map((p) => (
               <div

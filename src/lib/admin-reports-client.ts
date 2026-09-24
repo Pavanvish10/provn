@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { Database } from "@/lib/supabase/types";
@@ -103,6 +104,7 @@ export function useUpdateReportStatus(adminId: string | undefined) {
       }
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "reports"] }),
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Couldn't update this report."),
   });
 }
 
@@ -133,6 +135,7 @@ export function useDeleteReportedPost(adminId: string | undefined) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "reports"] });
     },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Couldn't delete this post."),
   });
 }
 
@@ -163,5 +166,6 @@ export function useDeleteReportedComment(adminId: string | undefined) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "reports"] });
     },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Couldn't delete this comment."),
   });
 }

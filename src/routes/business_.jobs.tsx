@@ -638,6 +638,7 @@ function JobCard({
             variant="outline"
             className="h-7 px-2"
             title="Pause"
+            disabled={updateJob.isPending}
             onClick={() => updateJob.mutate({ id: job.id, patch: { status: "paused" } })}
           >
             <Pause className="h-3 w-3" />
@@ -648,6 +649,7 @@ function JobCard({
             variant="outline"
             className="h-7 px-2"
             title="Reopen"
+            disabled={updateJob.isPending}
             onClick={() => updateJob.mutate({ id: job.id, patch: { status: "open" } })}
           >
             <PlayCircle className="h-3 w-3" />
@@ -659,6 +661,7 @@ function JobCard({
             variant="outline"
             className="h-7 px-2"
             title="Close"
+            disabled={updateJob.isPending}
             onClick={() => updateJob.mutate({ id: job.id, patch: { status: "closed" } })}
           >
             <XCircle className="h-3 w-3" />
@@ -670,6 +673,7 @@ function JobCard({
               size="sm"
               variant="destructive"
               className="h-7 px-2"
+              disabled={deleteJob.isPending}
               onClick={() => deleteJob.mutate(job.id)}
             >
               Confirm

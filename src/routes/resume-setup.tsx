@@ -7,7 +7,7 @@ import { DarkModeToggle } from "@/components/DarkModeToggle";
 import { Wordmark } from "@/components/Logo";
 import { requireAuth } from "@/lib/auth-guard";
 import { useCurrentUser } from "@/lib/auth-client";
-import { useUploadResume } from "@/lib/resume-client";
+import { ACCEPTED_RESUME_MIME_TYPES, useUploadResume } from "@/lib/resume-client";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/resume-setup")({
@@ -32,8 +32,8 @@ function ResumeSetup() {
   const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.type !== "application/pdf") {
-      setError("Please upload a PDF resume.");
+    if (!ACCEPTED_RESUME_MIME_TYPES.has(file.type)) {
+      setError("Please upload a PDF or Word document (.pdf, .doc, .docx).");
       return;
     }
     setError(null);
@@ -89,7 +89,7 @@ function ResumeSetup() {
             <OptionCard
               icon={Upload}
               title="Upload resume"
-              copy="PDF, analyzed instantly"
+              copy="PDF or Word, analyzed instantly"
               onClick={() => fileInput.current?.click()}
               busy={mode === "uploading"}
             />
@@ -111,7 +111,7 @@ function ResumeSetup() {
         <input
           ref={fileInput}
           type="file"
-          accept="application/pdf"
+          accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
           className="hidden"
           onChange={onFile}
         />

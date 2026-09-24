@@ -43,13 +43,17 @@ function CourseDetail() {
 
   const handleBuy = async () => {
     setError(null);
-    const result = await purchase.mutateAsync({
-      courseId: course.id,
-      successUrl: `${window.location.origin}/checkout/success`,
-      cancelUrl: `${window.location.origin}/checkout/cancel`,
-    });
-    if (result.error) setError(result.error);
-    else if (result.checkoutUrl && !result.activated) window.location.href = result.checkoutUrl;
+    try {
+      const result = await purchase.mutateAsync({
+        courseId: course.id,
+        successUrl: `${window.location.origin}/checkout/success`,
+        cancelUrl: `${window.location.origin}/checkout/cancel`,
+      });
+      if (result.error) setError(result.error);
+      else if (result.checkoutUrl && !result.activated) window.location.href = result.checkoutUrl;
+    } catch {
+      setError("Couldn't start checkout. Please try again.");
+    }
   };
 
   return (

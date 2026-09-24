@@ -75,6 +75,8 @@ function BillingPage() {
       } else if (result.checkoutUrl && !result.activated) {
         window.location.href = result.checkoutUrl;
       }
+    } catch {
+      setCreditsError("Couldn't start checkout. Please try again.");
     } finally {
       setBuyingPack(null);
     }

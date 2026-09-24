@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { Database } from "@/lib/supabase/types";
@@ -232,8 +233,12 @@ export function useCancelSubscription(userId: string | undefined) {
       if (!result.error) {
         queryClient.invalidateQueries({ queryKey: mySubscriptionQueryKey(userId) });
         queryClient.invalidateQueries({ queryKey: ["premium", userId] });
+      } else {
+        toast.error(result.error);
       }
     },
+    onError: (e) =>
+      toast.error(e instanceof Error ? e.message : "Couldn't cancel your subscription."),
   });
 }
 
