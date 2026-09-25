@@ -96,6 +96,11 @@ test.describe("Sprint 33 college platform routes require auth", () => {
   }
 });
 
+test("/admin/launch redirects to /login when signed out", async ({ page }) => {
+  await page.goto("/admin/launch");
+  await expect(page).toHaveURL(/\/login/);
+});
+
 test("signup page renders without console errors", async ({ page }) => {
   const consoleErrors: string[] = [];
   page.on("console", (msg) => {

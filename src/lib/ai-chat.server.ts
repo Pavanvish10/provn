@@ -5,6 +5,7 @@ import { GoogleGenAI } from "@google/genai";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { GEMINI_MODEL, friendlyGeminiError, withGeminiRetry } from "@/lib/ai.server";
 import { checkRateLimit, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit.server";
+import { isFeatureEnabled, FEATURE_DISABLED_MESSAGE } from "@/lib/feature-flags.server";
 
 const SYSTEM_PROMPT = (
   name: string,
@@ -35,6 +36,9 @@ export const sendChatMessageFn = createServerFn({ method: "POST" })
     if (!auth.user) return { error: "Not signed in." };
     if (!(await checkRateLimit(`ai:chat:${auth.user.id}`, 20, 600))) {
       return { error: RATE_LIMIT_MESSAGE };
+    }
+    if (!(await isFeatureEnabled(supabase, "ai_chat_assistant"))) {
+      return { error: FEATURE_DISABLED_MESSAGE };
     }
 
     // TODO(API_KEY): set GEMINI_API_KEY in the environment to enable the AI chat assistant.

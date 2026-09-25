@@ -1,4 +1,171 @@
-CURRENT SPRINT: 34 — Security & Reliability
+CURRENT SPRINT: 35 — Launch Command Center
+STATUS: SPRINT 35 COMPLETE AND VERIFIED. Migration applied live and
+confirmed via a 17/17 live-verification pass (migration structure, public
+read access, non-admin write rejection on both new tables, real-admin
+write success, feature-flag toggle correctness, Sprint 34 regression
+spot-check, no duplicate-policy symptoms). Full local suite (tsc/lint/
+build/Playwright 23/23) clean both before and after live verification.
+Completion commit created — see LAST COMMIT below.
+
+Branch: main. HEAD: 8396b4b (Sprint 34's docs commit, matches
+origin/main). Working tree has all Sprint 35 changes below, none
+committed yet.
+
+Scope (per the user's own Sprint 35 spec): admin-only Launch Command
+Center — real platform metrics, platform health, launch readiness
+checklist, operational alerts, and admin controls (maintenance mode,
+system announcement, feature flags), all real-data-only, RBAC/RLS
+protected.
+
+Existing infrastructure reused (confirmed via an Explore-agent survey
+before writing any code, to avoid duplicating Sprint 28's admin control
+center): `requireAdmin` guard (auth-guard.ts, real server-verified
+session), `AppShell`+`AdminSubNav` layout, `logAdminAction`/
+`ADMIN_PAGE_SIZE` (admin-shared.ts), the `Promise.all`-of-`count:exact,
+head:true` stats pattern from `useAdminOverviewStats`/`useAdminAnalytics`,
+the real-revenue-by-summing-payments pattern from admin-analytics-client.ts,
+`admin_actions` audit table, `AdminConfirmDialog`. New
+`src/components/StatTile.tsx` extracted as a shared component (the two
+existing admin pages each had their own copy-pasted version — not
+touched, only used by the new page, per "don't redesign existing pages").
+
+New migration (NOT yet applied live):
+supabase/migrations/20260929000000_sprint35_launch_command_center.sql —
+two genuinely new tables (confirmed via grep: no maintenance-mode/
+announcement/feature-flag concept existed anywhere before this sprint):
+`system_settings` (key/value, seeded with maintenance_mode + announcement
+rows) and `feature_flags` (seeded with 4 real flags, each wired to real
+enforcement — see below). Both public-read (the values are operational,
+not sensitive — same trust level as a public status page), admin-only
+write via `is_admin()`-gated RLS.
+
+Code changes:
+- src/lib/admin-health.server.ts (new): `getIntegrationHealthFn`,
+  admin-gated, returns only booleans for whether GEMINI_API_KEY/
+  RESEND_API_KEY/JUDGE0_API_KEY/STRIPE_SECRET_KEY/Supabase env vars are
+  SET — never a secret value.
+- src/lib/admin-command-center-client.ts (new): `useLaunchMetrics` (20
+  real counts — users/students/colleges/college staff/recruiters/
+  companies/active-users-7d/resumes/resumes-analyzed/applications/jobs/
+  drives/challenges/completions/verified skills/AI transactions/
+  payments/revenue/subscriptions/notifications, every field traced to a
+  real table+column before being written), `usePlatformHealth` (live
+  DB+storage probe queries, not simulated), `useIntegrationHealth`,
+  `useLaunchReadinessChecklist` (derives PASS/WARNING/FAIL/NOT
+  CONFIGURED/NOT VERIFIED per area from the real metrics+health above —
+  a few areas that a running web page fundamentally can't self-test
+  (RLS correctness, the automated test suite, a production build) point
+  at this session's own dated, real verification evidence instead of
+  either re-running something dangerous live or fabricating a status),
+  `useOperationalAlerts` (real signals: failed payments/open reports/
+  banned users/unverified orgs, PLUS an explicit "not available"
+  category for AI/auth/DB/server-op failures since no error-logging
+  table exists in this schema for those — labeled honestly, not
+  omitted), `useFeatureFlags`/`useToggleFeatureFlag`.
+- src/lib/system-settings-client.ts (new): `useSystemSettings`/
+  `useUpdateMaintenanceMode`/`useUpdateAnnouncement` — split out from the
+  admin-only client file specifically because the public-facing banner
+  (see below) needs these too and shouldn't import an admin module.
+- src/lib/feature-flags.server.ts (new): `isFeatureEnabled()`, fails
+  OPEN (missing row or query error = enabled) so this table can never
+  take down a working feature — same fail-open philosophy as Sprint 34's
+  checkRateLimit.
+- Real enforcement wired into the 4 seeded flags (not inert toggles):
+  ai-chat.server.ts (`ai_chat_assistant`), mentor.server.ts
+  (`mentor_chat`), voice-interview.server.ts (`voice_interviews`),
+  payments.server.ts (`checkout`, on `createSubscriptionCheckoutFn`).
+- src/components/SystemBanner.tsx (new) + src/routes/__root.tsx: an
+  app-wide, informational-only banner (never blocks access) showing the
+  maintenance/announcement message when active — makes the admin
+  controls genuinely real rather than inert stored state nobody sees.
+- src/routes/admin.launch.tsx (new): the Launch Command Center page —
+  metrics grid, health grid (live checks + integration checks), readiness
+  checklist table, operational alerts (real + explicit not-available),
+  admin controls (maintenance mode + announcement with a confirm dialog
+  for enabling, feature flags with a confirm dialog for disabling).
+- src/routes/admin.tsx + src/components/AdminSubNav.tsx: new "Launch
+  Command Center" entries (SECTIONS card + ADMIN_SECTIONS pill nav).
+- src/lib/supabase/types.ts: hand-added `system_settings`/`feature_flags`
+  Row/Insert/Update types (no CLI codegen access this session).
+- e2e/smoke.spec.ts: new route-guard test for `/admin/launch`.
+
+Local verification: tsc 0 errors, lint 0 errors (7 pre-existing
+warnings, same as always — 31 prettier-only errors from the new files
+were auto-fixed via `eslint --fix`, re-verified clean after), build
+PASS, Playwright 23/23 (22 prior + the new /admin/launch guard test).
+
+Migration `20260929000000_sprint35_launch_command_center.sql` applied
+live by the user via the Supabase SQL editor. Applied-state independently
+confirmed empirically both before (table-not-found) and after (reachable)
+the user's apply confirmation.
+
+LIVE VERIFICATION (17/17 passed): disposable-account methodology, real
+anon-key sessions (not service-role):
+- Migration structure: `system_settings`/`feature_flags` both reachable
+  with all expected columns; both seeded correctly (maintenance_mode +
+  announcement rows; all 4 real feature flags).
+- Public read: an unauthenticated (anon-key, no session) client can read
+  both tables — confirms the SystemBanner will actually work for
+  signed-out visitors too.
+- Non-admin write rejection: a disposable regular user's UPDATE on both
+  `system_settings` and `feature_flags` affected zero rows (RLS-filtered,
+  not merely "returned an error" — verified by re-reading the row via the
+  admin client immediately after and confirming it was byte-for-byte
+  unchanged, same discipline as Sprint 34's cross-user isolation checks).
+- Sprint 34 regression spot-check: the same disposable user still cannot
+  self-assign `role = 'admin'` on `profiles` — confirms Sprint 35 didn't
+  touch or weaken that fix.
+- Real admin write success: a disposable user promoted to `role='admin'`
+  via the service-role client (mirroring how every other admin-role
+  change in this app already happens) CAN write both tables, and the
+  write was confirmed to actually persist by re-reading via the admin
+  client.
+- Feature-flag data-layer proof: toggling `ai_chat_assistant` off then on
+  again, re-reading via `isFeatureEnabled`'s exact query shape at each
+  step, correctly reported disabled then re-enabled.
+- No duplicate/conflicting policy symptoms: repeated public reads
+  returned byte-identical results.
+- Cleanup: every write reverted to its original value, all disposable
+  users deleted (working around the same `enforce_notification_update`/
+  `on delete set null` quirk documented in Sprint 34's progress record);
+  a post-cleanup sweep confirmed zero leftover test profiles.
+
+**What was NOT verified this way, and why**: a full authenticated
+browser click-through (real login form → `/admin/launch`) was attempted
+via a temporary Playwright spec using two disposable accounts (one
+promoted to admin). The credentials themselves were confirmed valid
+(direct SDK sign-in succeeded with a real session), but the subsequent
+full-page navigation to a protected route consistently bounced back to
+`/login?redirect=...` in the Playwright browser — consistent with a
+cookie-propagation timing/attribute issue between `@supabase/ssr`'s
+server-set session cookie and Playwright's browser context under local
+`vite dev`, not a Sprint 35 application bug (the same session works fine
+against the DB directly, and `requireAdmin`/`requireAuth` in
+auth-guard.ts are unmodified this sprint — already proven server-verified
+in Sprint 34's audit). This matches `e2e/smoke.spec.ts`'s own long-
+standing documented limitation ("no seeded test account/credentials exist
+in this environment... does not attempt authenticated flows"). Given
+that, admin-access/non-admin-rejection was verified at the actual
+enforcement layer instead (RLS reads/writes above), which is the layer
+that matters for data safety — the route guard itself is unchanged code,
+already covered by Sprint 34's server-side-session audit. The temporary
+spec file and its 2 disposable accounts were deleted/cleaned up; nothing
+from this attempt is present in the committed diff.
+
+Full local suite re-run after live verification: tsc 0 errors, lint 0
+errors (7 pre-existing warnings), build PASS, Playwright 23/23.
+
+LAST VERIFIED COMMAND: npx playwright test (final run, post-live-DB-verification)
+LAST VERIFIED RESULT: 23 passed (8.6s)
+
+LAST COMMIT: see git log — Sprint 35 completion commit created after this
+progress update.
+
+NEXT EXACT ACTION: None — Sprint 35 is complete. Awaiting explicit
+instruction before starting Sprint 36.
+
+---
+Sprint 34 record below (historical, complete, pushed to origin/main):
 STATUS: SPRINT 34 COMPLETE AND VERIFIED. Both migrations applied live and
 confirmed via a 24/24 live-verification pass covering privilege
 escalation, forged challenge status, skill self-verification, arbitrary

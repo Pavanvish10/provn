@@ -17,6 +17,7 @@ import {
   BarChart3,
   History,
   ArrowRight,
+  Rocket,
 } from "lucide-react";
 
 import { AppShell } from "@/components/AppNav";
@@ -38,6 +39,12 @@ export const Route = createFileRoute("/admin")({
 });
 
 const SECTIONS = [
+  {
+    to: "/admin/launch" as const,
+    icon: Rocket,
+    title: "Launch Command Center",
+    desc: "Real platform metrics, infrastructure health, launch readiness, and operational controls.",
+  },
   {
     to: "/admin/users" as const,
     icon: Users,

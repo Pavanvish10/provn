@@ -4,6 +4,7 @@ import { z } from "zod";
 import { getSupabaseServerClient, getSupabaseAdminClient } from "@/lib/supabase/server";
 import { getPaymentProvider } from "@/lib/payments";
 import { sendPaymentReceiptEmail } from "@/lib/email.server";
+import { isFeatureEnabled, FEATURE_DISABLED_MESSAGE } from "@/lib/feature-flags.server";
 import type { Json } from "@/lib/supabase/types";
 
 // Sprint 27: checkout + activation. The mock provider (what actually runs
@@ -53,6 +54,9 @@ export const createSubscriptionCheckoutFn = createServerFn({ method: "POST" })
       if ("error" in who) return { error: who.error };
 
       const supabase = getSupabaseServerClient();
+      if (!(await isFeatureEnabled(supabase, "checkout"))) {
+        return { error: FEATURE_DISABLED_MESSAGE };
+      }
       const { data: plan, error: planError } = await supabase
         .from("subscription_plans")
         .select("id, code, name, audience, price_cents, currency, billing_interval")

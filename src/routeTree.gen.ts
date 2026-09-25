@@ -66,6 +66,7 @@ import { Route as AdminCoursesRouteImport } from './routes/admin.courses'
 import { Route as AdminCreditsRouteImport } from './routes/admin.credits'
 import { Route as AdminDrivesRouteImport } from './routes/admin.drives'
 import { Route as AdminJobsRouteImport } from './routes/admin.jobs'
+import { Route as AdminLaunchRouteImport } from './routes/admin.launch'
 import { Route as AdminNotificationsRouteImport } from './routes/admin.notifications'
 import { Route as AdminPremiumRouteImport } from './routes/admin.premium'
 import { Route as AdminReportsRouteImport } from './routes/admin.reports'
@@ -386,6 +387,11 @@ const AdminJobsRoute = AdminJobsRouteImport.update({
   path: '/jobs',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminLaunchRoute = AdminLaunchRouteImport.update({
+  id: '/launch',
+  path: '/launch',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminNotificationsRoute = AdminNotificationsRouteImport.update({
   id: '/notifications',
   path: '/notifications',
@@ -615,6 +621,7 @@ export interface FileRoutesByFullPath {
   '/admin/credits': typeof AdminCreditsRoute
   '/admin/drives': typeof AdminDrivesRoute
   '/admin/jobs': typeof AdminJobsRoute
+  '/admin/launch': typeof AdminLaunchRoute
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/premium': typeof AdminPremiumRoute
   '/admin/reports': typeof AdminReportsRoute
@@ -708,6 +715,7 @@ export interface FileRoutesByTo {
   '/admin/credits': typeof AdminCreditsRoute
   '/admin/drives': typeof AdminDrivesRoute
   '/admin/jobs': typeof AdminJobsRoute
+  '/admin/launch': typeof AdminLaunchRoute
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/premium': typeof AdminPremiumRoute
   '/admin/reports': typeof AdminReportsRoute
@@ -802,6 +810,7 @@ export interface FileRoutesById {
   '/admin/credits': typeof AdminCreditsRoute
   '/admin/drives': typeof AdminDrivesRoute
   '/admin/jobs': typeof AdminJobsRoute
+  '/admin/launch': typeof AdminLaunchRoute
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/premium': typeof AdminPremiumRoute
   '/admin/reports': typeof AdminReportsRoute
@@ -897,6 +906,7 @@ export interface FileRouteTypes {
     | '/admin/credits'
     | '/admin/drives'
     | '/admin/jobs'
+    | '/admin/launch'
     | '/admin/notifications'
     | '/admin/premium'
     | '/admin/reports'
@@ -990,6 +1000,7 @@ export interface FileRouteTypes {
     | '/admin/credits'
     | '/admin/drives'
     | '/admin/jobs'
+    | '/admin/launch'
     | '/admin/notifications'
     | '/admin/premium'
     | '/admin/reports'
@@ -1083,6 +1094,7 @@ export interface FileRouteTypes {
     | '/admin/credits'
     | '/admin/drives'
     | '/admin/jobs'
+    | '/admin/launch'
     | '/admin/notifications'
     | '/admin/premium'
     | '/admin/reports'
@@ -1597,6 +1609,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminJobsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/launch': {
+      id: '/admin/launch'
+      path: '/launch'
+      fullPath: '/admin/launch'
+      preLoaderRoute: typeof AdminLaunchRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/notifications': {
       id: '/admin/notifications'
       path: '/notifications'
@@ -1849,6 +1868,7 @@ interface AdminRouteChildren {
   AdminCreditsRoute: typeof AdminCreditsRoute
   AdminDrivesRoute: typeof AdminDrivesRoute
   AdminJobsRoute: typeof AdminJobsRoute
+  AdminLaunchRoute: typeof AdminLaunchRoute
   AdminNotificationsRoute: typeof AdminNotificationsRoute
   AdminPremiumRoute: typeof AdminPremiumRoute
   AdminReportsRoute: typeof AdminReportsRoute
@@ -1867,6 +1887,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminCreditsRoute: AdminCreditsRoute,
   AdminDrivesRoute: AdminDrivesRoute,
   AdminJobsRoute: AdminJobsRoute,
+  AdminLaunchRoute: AdminLaunchRoute,
   AdminNotificationsRoute: AdminNotificationsRoute,
   AdminPremiumRoute: AdminPremiumRoute,
   AdminReportsRoute: AdminReportsRoute,

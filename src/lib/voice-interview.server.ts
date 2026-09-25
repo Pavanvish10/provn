@@ -4,6 +4,7 @@ import { GoogleGenAI } from "@google/genai";
 
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { checkRateLimit, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit.server";
+import { isFeatureEnabled, FEATURE_DISABLED_MESSAGE } from "@/lib/feature-flags.server";
 import { GEMINI_MODEL, friendlyGeminiError, withGeminiRetry } from "@/lib/ai.server";
 import type { ResumeAnalysis } from "@/lib/resume.server";
 
@@ -192,6 +193,9 @@ export const startVoiceInterviewFn = createServerFn({ method: "POST" })
       if (!auth.user) return { error: "Not signed in." };
       if (!(await checkRateLimit(`ai:voice-interview-start:${auth.user.id}`, 10, 600))) {
         return { error: RATE_LIMIT_MESSAGE };
+      }
+      if (!(await isFeatureEnabled(supabase, "voice_interviews"))) {
+        return { error: FEATURE_DISABLED_MESSAGE };
       }
 
       const geminiResult = getGemini();

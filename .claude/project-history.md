@@ -1225,6 +1225,105 @@ limitations recorded above.
 Full local suite (tsc/lint/build/Playwright 22/22, unchanged — no new
 routes this sprint) clean both before and after live verification.
 
+## Sprint 35 — Launch Command Center (complete, 2026-09-25)
+
+Admin-only production-launch readiness tool: real platform metrics,
+infrastructure health, a launch readiness checklist, operational alerts,
+and admin controls (maintenance mode, a system announcement, feature
+flags) — every number and status sourced from real data, with explicit
+"not available"/"not verified" labels wherever a metric or check
+genuinely can't be computed, never a fabricated value.
+
+**Reused rather than duplicated** (confirmed via an Explore-agent survey
+of the existing admin infrastructure before writing any code, specifically
+to avoid re-building what Sprint 28's admin control center already has):
+`requireAdmin` (a real server-verified session + `profiles.role` check,
+confirmed unchanged), `AppShell`+`AdminSubNav`, `logAdminAction`/
+`ADMIN_PAGE_SIZE`/`AdminConfirmDialog`, the `Promise.all`-of-
+`count:exact,head:true` stats pattern already used by
+`useAdminOverviewStats`/`useAdminAnalytics`, the summed-`payments`-rows
+revenue pattern, and the `admin_actions` audit table. The two existing
+admin overview pages (`/admin`, `/admin/analytics`) were left untouched —
+Sprint 35 is a new, separate `/admin/launch` page, not a redesign of
+working pages.
+
+**Two genuinely new tables** (confirmed via grep: no maintenance-mode/
+announcement/feature-flag concept existed anywhere before this sprint),
+migration `20260929000000_sprint35_launch_command_center.sql`:
+`system_settings` (seeded with `maintenance_mode`/`announcement` rows)
+and `feature_flags` (seeded with 4 real flags). Both deliberately
+public-read (the values are operational, not sensitive — the same trust
+level as a public status page; also needed so the app-wide banner works
+for signed-out visitors), admin-only write via `is_admin()`-gated RLS.
+Everything else the page shows is derived live from tables that already
+existed — no other schema change was needed.
+
+**Feature flags are real controls, not inert toggles**: all 4 seeded
+flags gate a real, working call site — `ai_chat_assistant`
+(`sendChatMessageFn`), `mentor_chat` (`sendMentorMessageFn`),
+`voice_interviews` (`startVoiceInterviewFn`), `checkout`
+(`createSubscriptionCheckoutFn`) — via a new `isFeatureEnabled()` helper
+(`feature-flags.server.ts`) that fails OPEN (a missing row or query error
+never takes a working feature down, same philosophy as Sprint 34's
+`checkRateLimit`).
+
+**Maintenance mode and the announcement are genuinely visible, not just
+stored state**: a new `SystemBanner` component, rendered once in
+`__root.tsx`, reads `system_settings` and shows the relevant message to
+every signed-in (and signed-out) user. Deliberately informational-only —
+it does not lock the app out during maintenance; a full request-blocking
+maintenance mode was judged out of scope and too risky to build without
+more explicit direction (risk of locking out the admin who'd need to turn
+it back off), and is recorded as a known limitation rather than silently
+built as a lockout.
+
+**Launch readiness checklist design**: most areas derive their PASS/
+WARNING/FAIL/NOT CONFIGURED/NOT VERIFIED status live from the real
+metrics and health checks (e.g. "Resume upload/storage" is PASS only if
+real resume rows exist). A few areas that a running web page fundamentally
+cannot safely self-test on every page load — RLS correctness, the
+automated test suite, a production build — point at this session's own
+dated, real, already-executed verification evidence (SECURITY.md, this
+file, `.claude/progress.md`) instead of either re-running something
+expensive/dangerous live or fabricating a status; each of those items'
+detail text says so explicitly rather than implying it was just re-checked.
+
+**Live-verified end to end** with disposable accounts (17/17): migration
+structure and seed data confirmed reachable; unauthenticated (anon-key)
+reads work on both new tables; a non-admin's writes to both tables
+affect zero rows (RLS-filtered, confirmed via re-reading the row
+afterward — not just "returned an error", the same discipline established
+in Sprint 34's cross-user isolation checks); a real admin (promoted via
+the service-role client, mirroring how every other admin-role change in
+this app already happens) can write both tables and the write
+demonstrably persists; toggling a feature flag off then on is correctly
+reflected by the exact query `isFeatureEnabled()` performs; Sprint 34's
+profiles privilege-escalation fix was spot-checked and still holds;
+repeated public reads returned identical results (no duplicate/
+conflicting-policy symptoms). All fixtures reverted/deleted after the
+run; a post-cleanup sweep confirmed zero leftovers.
+
+**A genuine tooling limitation hit and documented, not glossed over**: a
+full authenticated-browser Playwright click-through (real login form →
+`/admin/launch`) was attempted with two disposable accounts. Credentials
+were confirmed valid via a direct SDK sign-in, but the subsequent
+protected-route navigation inside the Playwright browser consistently
+bounced back to `/login` — consistent with a cookie-propagation timing/
+attribute issue between `@supabase/ssr`'s server-set session cookie and
+Playwright's browser context under local `vite dev`, not an application
+bug (the same credentials work fine directly against Supabase, and
+`auth-guard.ts` is unmodified this sprint). This matches
+`e2e/smoke.spec.ts`'s own long-documented limitation that this project's
+Playwright setup has never supported authenticated-flow testing. Access
+control was instead verified at the actual data-enforcement layer (RLS,
+above) rather than the route-guard UI layer, which is unchanged code
+already covered by Sprint 34's server-verified-session audit. The
+temporary spec file and its disposable accounts were deleted; nothing
+from the attempt is in the committed diff.
+
+Full local suite (tsc/lint/build/Playwright 23/23 — 1 new route-guard
+test for `/admin/launch`) clean both before and after live verification.
+
 ## Known technical debt / TODOs (repository-wide, not just Sprint 26)
 
 - Every AI feature is gated behind `GEMINI_API_KEY` and degrades

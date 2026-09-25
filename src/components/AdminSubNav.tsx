@@ -16,11 +16,13 @@ import {
   ShieldCheck,
   CreditCard,
   History,
+  Rocket,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
 export const ADMIN_SECTIONS = [
+  { to: "/admin/launch" as const, label: "Launch Command Center", icon: Rocket },
   { to: "/admin/users" as const, label: "Users", icon: Users },
   { to: "/admin/companies" as const, label: "Companies", icon: Building2 },
   { to: "/admin/colleges" as const, label: "Colleges", icon: GraduationCap },

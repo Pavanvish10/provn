@@ -15,6 +15,7 @@ import { useHydrateDarkMode } from "../lib/store";
 import { authUserQueryOptions } from "../lib/auth-client";
 import { Toaster } from "../components/ui/sonner";
 import { AiChatWidget } from "../components/AiChatWidget";
+import { SystemBanner } from "../components/SystemBanner";
 
 function NotFoundComponent() {
   return (
@@ -134,6 +135,7 @@ function RootComponent() {
   useHydrateDarkMode();
   return (
     <QueryClientProvider client={queryClient}>
+      <SystemBanner />
       <Outlet />
       <Toaster position="top-center" richColors />
       <AiChatWidget />
